@@ -1,13 +1,11 @@
-from typing import Any
 import torch
 import torch.nn as nn
-from torch_geometric.nn.glob import global_mean_pool
-from env.observation import EnvObsTensor, unmap_env_obs, unmap_env_obs_batch
-from ray.rllib.core.rl_module.torch import TorchRLModule
-from torch_geometric.nn.models import GIN
-from ray.rllib.core.columns import Columns
 from torch.distributions.categorical import Categorical
 from torch.nn.functional import softmax
+from torch_geometric.nn.glob import global_mean_pool
+from torch_geometric.nn.models import GIN
+
+from env.observation import EnvObsTensor, unmap_env_obs
 
 # Base Gin Network (Batched Version)
 # ------------------------------------------------------------------------------------------------------------------

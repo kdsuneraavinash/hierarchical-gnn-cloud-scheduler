@@ -1,8 +1,8 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
-from pathlib import Path
 import random
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
@@ -10,12 +10,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from gymnasium.wrappers import RecordEpisodeStatistics
-from tqdm import tqdm
 import tyro
-from torch.utils.tensorboard import SummaryWriter
-
+from gymnasium.wrappers import RecordEpisodeStatistics
 from icecream import ic
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from dataset.generator import DatasetArgs
 from env.core_env import CoreEnvironment

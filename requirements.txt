@@ -11,3 +11,4 @@ wandb==0.19.7
 mypy==1.15.0
 icecream==2.1.4
 types-tqdm==4.67.0.20250301
+pre-commit==4.1.0

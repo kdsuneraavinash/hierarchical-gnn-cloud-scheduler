@@ -3,10 +3,9 @@ from typing import Any, SupportsFloat
 import gymnasium as gym
 import numpy as np
 
-from dataset.generator import DatasetArgs
 from env.action import EnvAction
-from env.observation import MAX_OBS_SIZE, EnvObs, map_env_obs
 from env.core_env import CoreEnvironment
+from env.observation import MAX_OBS_SIZE, map_env_obs
 
 
 class VecEnvironment(gym.Wrapper):

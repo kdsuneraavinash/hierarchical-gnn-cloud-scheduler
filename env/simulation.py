@@ -1,6 +1,6 @@
 import copy
+
 from dataset.models import Dataset, VmAssignment
-from env.observation import EnvObs
 from env.state import TaskState, VmState
 
 

@@ -1,13 +1,13 @@
-from dataclasses import dataclass, field
 import json
 import math
-import tyro
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
+import tyro
 from scipy import stats
 
-from dataset.models import Dataset, Host, Vm, Workflow, Task
+from dataset.models import Dataset, Host, Task, Vm, Workflow
 
 
 @dataclass

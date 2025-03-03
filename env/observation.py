@@ -3,7 +3,6 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-
 MAX_OBS_SIZE = 100_000
 
 
@@ -62,49 +61,6 @@ def unmap_env_obs(tensor: torch.Tensor) -> "EnvObsTensor":
     tensor = tensor[num_compatibilities * 2 :]
 
     assert not tensor.any(), "There are non-zero elements in the padding"
-
-    return EnvObsTensor(
-        task_state_scheduled=task_state_scheduled,
-        task_state_ready=task_state_ready,
-        task_length=task_length,
-        vm_speed=vm_speed,
-        vm_energy_rate=vm_energy_rate,
-        vm_completion_time=vm_completion_time,
-        task_dependencies=task_dependencies,
-        compatibilities=compatibilities,
-    )
-
-
-def unmap_env_obs_batch(tensor: torch.Tensor) -> "EnvObsTensor":
-    graphs = [unmap_env_obs(obs_i) for obs_i in tensor]
-
-    task_state_scheduled = torch.concat([graph.task_state_scheduled for graph in graphs])
-    task_state_ready = torch.concat([graph.task_state_ready for graph in graphs])
-    task_length = torch.concat([graph.task_length for graph in graphs])
-    vm_speed = torch.concat([graph.vm_speed for graph in graphs])
-    vm_energy_rate = torch.concat([graph.vm_energy_rate for graph in graphs])
-    vm_completion_time = torch.concat([graph.vm_completion_time for graph in graphs])
-
-    total_task_dependencies = sum([graph.task_dependencies.shape[1] for graph in graphs])
-    total_compatibilities = sum([graph.compatibilities.shape[1] for graph in graphs])
-    task_dependencies = torch.zeros((2, total_task_dependencies), dtype=torch.long)
-    compatibilities = torch.zeros((2, total_compatibilities), dtype=torch.long)
-
-    # Since the task dependencies and compatibilities are in the form of edges, we need to offset the indices
-    # of the second graph to avoid conflicts.
-    task_offset = vm_offset = task_td_offset = cp_offset = 0
-    for graph in graphs:
-        num_td_edges = graph.task_dependencies.shape[1]
-        num_cp_edges = graph.compatibilities.shape[1]
-        task_dependencies[0][task_td_offset : task_td_offset + num_td_edges] = graph.task_dependencies[0] + task_offset
-        task_dependencies[1][task_td_offset : task_td_offset + num_td_edges] = graph.task_dependencies[1] + task_offset
-        compatibilities[0][cp_offset : cp_offset + num_cp_edges] = graph.compatibilities[0] + task_offset
-        compatibilities[1][cp_offset : cp_offset + num_cp_edges] = graph.compatibilities[1] + vm_offset
-
-        task_offset += graph.task_state_scheduled.shape[0]
-        vm_offset += graph.vm_completion_time.shape[0]
-        task_td_offset += num_td_edges
-        cp_offset += num_cp_edges
 
     return EnvObsTensor(
         task_state_scheduled=task_state_scheduled,
