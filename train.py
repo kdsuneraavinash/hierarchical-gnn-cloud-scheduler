@@ -233,12 +233,11 @@ def train(args: Args):
             rewards[step] = torch.Tensor(reward).to(device).view(-1)
             next_obs_tensor, next_done_tensor = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
 
-            if "final_info" in infos:
-                for info in infos["final_info"]:
-                    if info and "episode" in info:
-                        pbar.update(global_step - pbar.n)
-                        writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
-                        writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
+            if "episode" in infos:
+                for i in range(args.num_envs):
+                    pbar.update(global_step - pbar.n)
+                    writer.add_scalar("charts/episodic_return", infos["episode"]["r"][i], global_step)
+                    writer.add_scalar("charts/episodic_length", infos["episode"]["l"][i], global_step)
 
         # bootstrap value if not done
         with torch.no_grad():

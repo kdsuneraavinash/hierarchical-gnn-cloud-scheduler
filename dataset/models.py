@@ -72,17 +72,20 @@ class Dataset:
         vms = [Vm(**vm) for vm in data.pop("vms")]
         hosts = [Host(**host) for host in data.pop("hosts")]
 
-        # Sanity check - we should be able to use index and id interchangeably
-        for i, workflow in enumerate(workflows):
-            assert workflow.id == i, f"Sanity Check Failed: workflow ID mismatch, {workflow=} in index {i}"
-        for i, task in enumerate(tasks):
-            assert task.id == i, f"Sanity Check Failed: task ID mismatch, {task=} in index {i}"
-        for i, vm in enumerate(vms):
-            assert vm.id == i, f"Sanity Check Failed: vm ID mismatch, {vm=} in index {i}"
-        for i, host in enumerate(hosts):
-            assert host.id == i, f"Sanity Check Failed: host ID mismatch, {host=} in index {i}"
+        dataset = Dataset(workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+        dataset.check_sanity()
+        return dataset
 
-        return Dataset(workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+    def check_sanity(self):
+        # Sanity check - we should be able to use index and id interchangeably
+        for i, workflow in enumerate(self.workflows):
+            assert workflow.id == i, f"Sanity Check Failed: workflow ID mismatch, {workflow=} in index {i}"
+        for i, task in enumerate(self.tasks):
+            assert task.id == i, f"Sanity Check Failed: task ID mismatch, {task=} in index {i}"
+        for i, vm in enumerate(self.vms):
+            assert vm.id == i, f"Sanity Check Failed: vm ID mismatch, {vm=} in index {i}"
+        for i, host in enumerate(self.hosts):
+            assert host.id == i, f"Sanity Check Failed: host ID mismatch, {host=} in index {i}"
 
 
 @dataclass

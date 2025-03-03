@@ -84,8 +84,9 @@ class Simulation:
 
         # New dependencies (a new edge between the old task in the VM and this task)
         new_task_dependencies = copy.deepcopy(self.task_dependencies)
-        vm_prev_task_id = self.vm_states[vm_id].assigned_task_id or 0
-        new_task_dependencies.add((vm_prev_task_id, task_id))
+        vm_prev_task_id = self.vm_states[vm_id].assigned_task_id
+        if vm_prev_task_id is not None:
+            new_task_dependencies.add((vm_prev_task_id, task_id))
 
         # Change the state
         self.task_states = new_task_states

@@ -54,7 +54,10 @@ def generate_dataset(args: DatasetArgs) -> Dataset:
     vms = generate_vms(args, rng)
     tasks = generate_tasks(args, rng)
     workflows = generate_workflows(args, rng)
-    return Dataset(workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+
+    dataset = Dataset(workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+    dataset.check_sanity()
+    return dataset
 
 
 # Generating Hosts
@@ -210,16 +213,18 @@ def generate_tasks(args: DatasetArgs, rng: np.random.RandomState) -> list[Task]:
     tasks: list[Task] = []
     for workflow_id in range(args.workflow_count):
         dag = generate_dag(args, rng)
-        for task_id, child_ids in dag.items():
-            tasks.append(
+        tasks.extend(
+            [
                 Task(
-                    id=task_id,
+                    id=len(tasks) + task_id,
                     workflow_id=workflow_id,
                     length=int(generate_task_length(args, rng)),
                     req_memory_mb=generate_task_memory(args, rng),
-                    child_ids=list(child_ids),
+                    child_ids=[len(tasks) + child_id for child_id in child_ids],
                 )
-            )
+                for task_id, child_ids in dag.items()
+            ]
+        )
 
     return tasks
 

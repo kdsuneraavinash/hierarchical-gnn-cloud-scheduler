@@ -7,7 +7,7 @@ from torch_geometric.nn.models import GIN
 
 from env.observation import EnvObsTensor, unmap_env_obs
 
-# Base Gin Network (Batched Version)
+# Base Gin Network
 # ------------------------------------------------------------------------------------------------------------------
 
 
