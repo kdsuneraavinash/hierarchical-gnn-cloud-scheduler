@@ -94,8 +94,8 @@ class Simulation:
         self.task_dependencies = new_task_dependencies
 
         # Find whether there are any more tasks remaining
-        tasks_remaining = any(task_state.assigned_vm_id is None for task_state in self.task_states)
-        return None, tasks_remaining
+        done = all(task_state.assigned_vm_id is not None for task_state in self.task_states)
+        return None, done
 
     # Step
     # ------------------------------------------------------------------------------------------------------------------

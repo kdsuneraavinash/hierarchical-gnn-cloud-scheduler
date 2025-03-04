@@ -37,7 +37,7 @@ class CoreEnvironment(gym.Env):
         """Performs a step in the environment given an action."""
         assert self.simulation is not None, "Environment must be reset before calling step"
 
-        error, tasks_remaining = self.simulation.assign_vm(action.task_id, action.vm_id)
+        error, done = self.simulation.assign_vm(action.task_id, action.vm_id)
 
         # Penalize invalid actions
         if error:
@@ -45,11 +45,13 @@ class CoreEnvironment(gym.Env):
             return self.to_observation(), penalty, True, False, {"error": error}
 
         # Immediate reward (neutral reward for valid intermediate steps)
-        if tasks_remaining:
+        if not done:
             return self.to_observation(), 0, False, False, {}
 
-        # Terminal reward: negative of the max completion time among VM
-        reward = -max(vm.completion_time for vm in self.simulation.vm_states)
+        makespan = max(vm.completion_time for vm in self.simulation.vm_states)
+        energy_consumption = sum(task.energy_consumption for task in self.simulation.task_states)
+        reward = -makespan * energy_consumption
+
         info = {"assignments": self.simulation.to_assignments()}
         return self.to_observation(), reward, False, True, info
 
