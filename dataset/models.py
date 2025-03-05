@@ -86,6 +86,10 @@ class Dataset:
             assert vm.id == i, f"Sanity Check Failed: vm ID mismatch, {vm=} in index {i}"
         for i, host in enumerate(self.hosts):
             assert host.id == i, f"Sanity Check Failed: host ID mismatch, {host=} in index {i}"
+        # Check if all child ids are greater than the task id
+        for task in self.tasks:
+            for child_id in task.child_ids:
+                assert child_id > task.id, f"Sanity Check Failed: {task=} has child id {child_id} less than task id"
 
 
 @dataclass
