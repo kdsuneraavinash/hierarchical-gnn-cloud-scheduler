@@ -10,19 +10,17 @@ def map_env_obs(obs: "EnvObs") -> np.ndarray:
     num_tasks = obs.task_state_scheduled.shape[0]
     num_vms = obs.vm_completion_time.shape[0]
     num_task_deps = obs.task_dependencies.shape[1]
-    num_compatibilities = obs.compatibilities.shape[1]
 
     arr = np.concatenate(
         [
-            np.array([num_tasks, num_vms, num_task_deps, num_compatibilities], dtype=np.int32),  # Header
+            np.array([num_tasks, num_vms, num_task_deps], dtype=np.int32),  # Header
+            np.asarray(obs.task_completion_time, dtype=np.float64),  # num_tasks
             np.asarray(obs.task_state_scheduled, dtype=np.int32),  # num_tasks
-            np.asarray(obs.task_state_ready, dtype=np.int32),  # num_tasks
-            np.asarray(obs.task_length, dtype=np.float64),  # num_tasks
-            np.asarray(obs.vm_speed, dtype=np.float64),  # num_vms
-            np.asarray(obs.vm_energy_rate, dtype=np.float64),  # num_vms
             np.asarray(obs.vm_completion_time, dtype=np.float64),  # num_vms
+            np.asarray(obs.task_vm_time_cost, dtype=np.float64).flatten(),  # num_tasks*num_vms
+            np.asarray(obs.task_vm_compatibilities, dtype=np.int32).flatten(),  # num_tasks*num_vms
+            np.asarray(obs.task_state_ready, dtype=np.int32),  # num_tasks
             np.asarray(obs.task_dependencies, dtype=np.int32).flatten(),  # num_task_deps*2
-            np.asarray(obs.compatibilities, dtype=np.int32).flatten(),  # num_compatibilities*2
         ]
     )
 
@@ -38,61 +36,53 @@ def unmap_env_obs(tensor: torch.Tensor) -> "EnvObsTensor":
     num_tasks = int(tensor[0].long().item())
     num_vms = int(tensor[1].long().item())
     num_task_deps = int(tensor[2].long().item())
-    num_compatibilities = int(tensor[3].long().item())
-    tensor = tensor[4:]
+    tensor = tensor[3:]
 
+    task_completion_time = tensor[:num_tasks]
+    tensor = tensor[num_tasks:]
     task_state_scheduled = tensor[:num_tasks].long()
     tensor = tensor[num_tasks:]
-    task_state_ready = tensor[:num_tasks].long()
-    tensor = tensor[num_tasks:]
-    task_length = tensor[:num_tasks]
-    tensor = tensor[num_tasks:]
-
-    vm_speed = tensor[:num_vms]
-    tensor = tensor[num_vms:]
-    vm_energy_rate = tensor[:num_vms]
-    tensor = tensor[num_vms:]
     vm_completion_time = tensor[:num_vms]
     tensor = tensor[num_vms:]
-
+    task_vm_time_cost = tensor[: num_tasks * num_vms].reshape(num_tasks, num_vms)
+    tensor = tensor[num_tasks * num_vms :]
+    task_vm_compatibilities = tensor[: num_tasks * num_vms].reshape(num_tasks, num_vms)
+    tensor = tensor[num_tasks * num_vms :]
+    task_state_ready = tensor[:num_tasks].long()
+    tensor = tensor[num_tasks:]
     task_dependencies = tensor[: num_task_deps * 2].reshape(2, num_task_deps).long()
     tensor = tensor[num_task_deps * 2 :]
-    compatibilities = tensor[: num_compatibilities * 2].reshape(2, num_compatibilities).long()
-    tensor = tensor[num_compatibilities * 2 :]
 
     assert not tensor.any(), "There are non-zero elements in the padding"
 
     return EnvObsTensor(
+        task_completion_time=task_completion_time,
         task_state_scheduled=task_state_scheduled,
-        task_state_ready=task_state_ready,
-        task_length=task_length,
-        vm_speed=vm_speed,
-        vm_energy_rate=vm_energy_rate,
         vm_completion_time=vm_completion_time,
+        task_vm_time_cost=task_vm_time_cost,
+        task_vm_compatibilities=task_vm_compatibilities,
+        task_state_ready=task_state_ready,
         task_dependencies=task_dependencies,
-        compatibilities=compatibilities,
     )
 
 
 @dataclass
 class EnvObs:
+    task_completion_time: np.ndarray
     task_state_scheduled: np.ndarray
-    task_state_ready: np.ndarray
-    task_length: np.ndarray
-    vm_speed: np.ndarray
-    vm_energy_rate: np.ndarray
     vm_completion_time: np.ndarray
+    task_vm_time_cost: np.ndarray
+    task_vm_compatibilities: np.ndarray
+    task_state_ready: np.ndarray
     task_dependencies: np.ndarray
-    compatibilities: np.ndarray
 
 
 @dataclass
 class EnvObsTensor:
+    task_completion_time: torch.Tensor
     task_state_scheduled: torch.Tensor
-    task_state_ready: torch.Tensor
-    task_length: torch.Tensor
-    vm_speed: torch.Tensor
-    vm_energy_rate: torch.Tensor
     vm_completion_time: torch.Tensor
+    task_vm_time_cost: torch.Tensor
+    task_vm_compatibilities: torch.Tensor
+    task_state_ready: torch.Tensor
     task_dependencies: torch.Tensor
-    compatibilities: torch.Tensor
