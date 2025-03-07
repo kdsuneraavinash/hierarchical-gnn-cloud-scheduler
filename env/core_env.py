@@ -57,7 +57,7 @@ class CoreEnvironment(gym.Env):
         # Immediate reward (neutral reward for valid intermediate steps)
         if not done:
             reward = -(curr_makespan - prev_makespan)
-            return self.to_observation(), 0, False, False, {}
+            return self.to_observation(), reward, False, False, {}
 
         reward = -curr_makespan
         info = {"assignments": self.simulation.to_assignments()}
