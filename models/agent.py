@@ -6,8 +6,9 @@ from torch_geometric.nn.models import GIN
 from env.observation import EnvObsTensor, unmap_env_obs
 
 
-def mean_pool(embedding: torch.Tensor, device: torch.device) -> torch.Tensor:
-    batch_vector = torch.zeros(embedding.shape[0], dtype=torch.long, device=device)
+def mean_pool(embedding: torch.Tensor, device: torch.device, num_batches: int = 1) -> torch.Tensor:
+    batch_vector = torch.arange(num_batches, dtype=torch.long, device=device)
+    batch_vector = batch_vector.repeat_interleave(embedding.shape[0] // num_batches)
     return global_mean_pool(embedding, batch=batch_vector)
 
 

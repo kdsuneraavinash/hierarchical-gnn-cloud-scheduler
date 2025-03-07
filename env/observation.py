@@ -79,10 +79,10 @@ class EnvObs:
 
 @dataclass
 class EnvObsTensor:
-    task_completion_time: torch.Tensor
-    task_state_scheduled: torch.Tensor
-    vm_completion_time: torch.Tensor
-    task_vm_time_cost: torch.Tensor
-    task_vm_compatibilities: torch.Tensor
-    task_state_ready: torch.Tensor
-    task_dependencies: torch.Tensor
+    task_completion_time: torch.Tensor  # (Nt)
+    task_state_scheduled: torch.Tensor  # (Nt)
+    vm_completion_time: torch.Tensor  # (Nv)
+    task_vm_time_cost: torch.Tensor  # (Nt, Nv)
+    task_vm_compatibilities: torch.Tensor  # (Nt, Nv)
+    task_state_ready: torch.Tensor  # (Nt)
+    task_dependencies: torch.Tensor  # (Nd)
