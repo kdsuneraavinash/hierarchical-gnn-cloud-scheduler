@@ -79,7 +79,7 @@ class CoreEnvironment(gym.Env):
         # max(LB(O_parent) + min(P(i, k)))
         task_completion_time = [task_state.completion_time for task_state in task_states]
         for t_id, task_state in enumerate(task_states):
-            if task_state.assigned_vm_id is not None:
+            if task_state.assigned_vm_id is None:
                 task_state.completion_time = max(
                     (
                         task_states[p_id].completion_time
