@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch_geometric.nn.glob import global_mean_pool
 from torch_geometric.nn.models import GIN
 
-from env.observation import EnvObsTensor, unmap_env_obs
+from env.observation import EnvObsTensor, decode_env_obs
 
 
 def mean_pool(embedding: torch.Tensor, device: torch.device, num_batches: int = 1) -> torch.Tensor:
@@ -154,7 +154,7 @@ class GinAgent(nn.Module):
         values = []
 
         for batch_index in range(batch_size):
-            decoded_obs = unmap_env_obs(x[batch_index])
+            decoded_obs = decode_env_obs(x[batch_index])
             value = self.critic(decoded_obs)
             values.append(value)
 
@@ -168,7 +168,7 @@ class GinAgent(nn.Module):
         all_chosen_actions, all_log_probs, all_entropies, all_values = [], [], [], []
 
         for batch_index in range(batch_size):
-            decoded_obs = unmap_env_obs(x[batch_index])
+            decoded_obs = decode_env_obs(x[batch_index])
             num_vms = decoded_obs.vm_completion_time.shape[0]
 
             # --- Task Selection ---

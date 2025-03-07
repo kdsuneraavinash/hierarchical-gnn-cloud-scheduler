@@ -17,8 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from dataset.generator import DatasetArgs
-from env.core_env import CoreEnvironment
-from env.vec_env import VecEnvironment
+from env.gym_env import GymEnvironment
 from models.agent import GinAgent
 
 
@@ -113,14 +112,12 @@ class Args:
 
 
 def make_env(idx: int, args: Args):
-    core_env = CoreEnvironment(dataset_args=args.dataset)
-    vec_env = VecEnvironment(core_env)
-    return RecordEpisodeStatistics(vec_env)
+    env = GymEnvironment(dataset_args=args.dataset)
+    return RecordEpisodeStatistics(env)
 
 
 def make_test_env(args: Args):
-    core_env = CoreEnvironment(dataset_args=args.dataset)
-    return VecEnvironment(core_env)
+    return GymEnvironment(dataset_args=args.dataset)
 
 
 def make_agent(device: torch.device):
