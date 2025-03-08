@@ -19,13 +19,10 @@ def plot_gantt_chart(ax: plt.Axes, solution: Solution, label=True):
         if assigned_task.start_time < 0:
             continue
 
+        execution_time = solution.dataset.vms[assigned_task.vm_id].execution_time(task)
+
         ax.broken_barh(
-            [
-                (
-                    assigned_task.start_time,
-                    solution.dataset.vms[assigned_task.vm_id].execution_time(task),
-                )
-            ],
+            [(assigned_task.start_time, execution_time)],
             (int(assigned_task.vm_id) - 0.3, 0.6),
             color=get_color(task.workflow_id),
             edgecolor="black",
@@ -33,7 +30,7 @@ def plot_gantt_chart(ax: plt.Axes, solution: Solution, label=True):
         )
         if label:
             ax.text(
-                x=assigned_task.start_time + 10,
+                x=assigned_task.start_time + execution_time / 2,
                 y=int(assigned_task.vm_id),
                 s=f"T{task.id}\n{task.length}MI\n{task.req_memory_mb // 1024}GB",
                 ha="center",

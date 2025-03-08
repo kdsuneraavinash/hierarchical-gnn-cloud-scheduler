@@ -1,7 +1,6 @@
 import time
 from typing import Any
 
-import networkx as nx
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -10,7 +9,6 @@ from dataset.models import Dataset, Solution
 from evaluate.algorithms.agent import AgentScheduler
 from evaluate.algorithms.base import BaseScheduler
 from evaluate.algorithms.heft import HeftScheduler
-from evaluate.plotters.color import draw_agraph
 from evaluate.plotters.gantt_chart import plot_gantt_chart
 from evaluate.plotters.workflow_graph import plot_workflow_graphs
 
@@ -39,10 +37,9 @@ def run_evaluation(dataset: Dataset):
         )
 
         _, axes = plt.subplots(nrows=1, ncols=2)
-        g_w: nx.DiGraph = nx.DiGraph()
-        a_w = plot_workflow_graphs(g_w, solution.dataset.tasks)
-        draw_agraph(axes[0], a_w)
+        plot_workflow_graphs(axes[0], solution)
         plot_gantt_chart(axes[1], solution)
+        plt.title(scheduler.name)
         plt.show()
 
     df = pd.DataFrame(data)
