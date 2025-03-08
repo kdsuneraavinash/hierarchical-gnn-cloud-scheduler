@@ -9,7 +9,7 @@ from models.agent import GinAgent
 
 class AgentScheduler(BaseScheduler):
     def __init__(self, model_path: str | None = None, agent: GinAgent | None = None):
-        super().__init__("Proposed")
+        super().__init__(f"Proposed\n({model_path})")
 
         if agent is not None:
             self.agent = agent

@@ -1,4 +1,4 @@
-from dataset.models import VmAssignment
+from dataset.models import Dataset, VmAssignment
 
 
 class BaseScheduler:
@@ -7,5 +7,5 @@ class BaseScheduler:
     def __init__(self, name: str):
         self.name = name
 
-    def schedule(self, dataset) -> list[VmAssignment]:
+    def schedule(self, dataset: Dataset) -> list[VmAssignment]:
         raise NotImplementedError()
