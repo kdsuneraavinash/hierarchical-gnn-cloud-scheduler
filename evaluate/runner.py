@@ -10,7 +10,6 @@ from dataset.models import Dataset, Solution
 from evaluate.algorithms.agent import AgentScheduler
 from evaluate.algorithms.base import BaseScheduler
 from evaluate.algorithms.heft import HeftScheduler
-from evaluate.algorithms.random import RandomScheduler
 from evaluate.plotters.color import draw_agraph
 from evaluate.plotters.gantt_chart import plot_gantt_chart
 from evaluate.plotters.workflow_graph import plot_workflow_graphs
@@ -18,7 +17,6 @@ from evaluate.plotters.workflow_graph import plot_workflow_graphs
 
 def run_evaluation(dataset: Dataset):
     schedulers: list[BaseScheduler] = [
-        RandomScheduler(),
         HeftScheduler(),
         AgentScheduler(model_path="logs/1741360518_test/model_501760.pt"),
     ]
