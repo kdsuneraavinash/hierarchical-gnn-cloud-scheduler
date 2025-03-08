@@ -3,7 +3,7 @@ import torch
 from dataset.models import Dataset, VmAssignment
 from env.observation import create_env_obs, encode_env_obs
 from env.simulation import Simulation
-from evaluate.base import BaseScheduler
+from evaluate.algorithms.base import BaseScheduler
 from models.agent import GinAgent
 
 

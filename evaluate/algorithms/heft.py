@@ -1,5 +1,5 @@
 from dataset.models import Dataset, Task, Vm, VmAssignment
-from evaluate.base import BaseScheduler
+from evaluate.algorithms.base import BaseScheduler, to_assignments
 
 
 class HeftScheduler(BaseScheduler):
@@ -15,7 +15,7 @@ class HeftScheduler(BaseScheduler):
 
         vm_ready_times: dict[int, float] = {vm.id: 0.0 for vm in dataset.vms}
         task_completion_times: dict[int, float] = {}
-        assignments: list[VmAssignment] = []
+        assignments: list[tuple[int, int]] = []
         for task in sorted_tasks:
             best_vm, earliest_finish_time = None, float("inf")
 
@@ -42,16 +42,9 @@ class HeftScheduler(BaseScheduler):
             vm_ready_times[best_vm.id] = earliest_finish_time
             task_completion_times[task.id] = earliest_finish_time
 
-            assignments.append(
-                VmAssignment(
-                    vm_id=best_vm.id,
-                    task_id=task.id,
-                    start_time=task_completion_times[task.id] - (task.length / best_vm.cpu_speed_mips),
-                    end_time=task_completion_times[task.id],
-                )
-            )
+            assignments.append((task.id, best_vm.id))
 
-        return assignments
+        return to_assignments(dataset, assignments)
 
     @staticmethod
     def compute_task_priorities(tasks: list[Task], vms: list[Vm]) -> dict:

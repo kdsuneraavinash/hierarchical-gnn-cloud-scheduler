@@ -19,7 +19,7 @@ from tqdm import tqdm
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
-from evaluate.agent import AgentScheduler
+from evaluate.algorithms.agent import AgentScheduler
 from models.agent import GinAgent
 
 

@@ -37,7 +37,7 @@ def to_assignments(dataset: Dataset, raw_assignments: list[tuple[int, int]]) -> 
             )
         )
 
-    ordered_assignments.sort(key=lambda x: x.end_time)
+    ordered_assignments.sort(key=lambda x: x.start_time)
     return ordered_assignments
 
 

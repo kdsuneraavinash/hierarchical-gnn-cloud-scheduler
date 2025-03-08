@@ -1,7 +1,7 @@
 import random
 
 from dataset.models import Dataset, VmAssignment
-from evaluate.base import BaseScheduler, to_assignments
+from evaluate.algorithms.base import BaseScheduler, to_assignments
 
 
 class RandomScheduler(BaseScheduler):

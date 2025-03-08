@@ -5,10 +5,10 @@ import pandas as pd
 
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
-from evaluate.agent import AgentScheduler
-from evaluate.base import BaseScheduler
-from evaluate.heft import HeftScheduler
-from evaluate.random import RandomScheduler
+from evaluate.algorithms.agent import AgentScheduler
+from evaluate.algorithms.base import BaseScheduler
+from evaluate.algorithms.heft import HeftScheduler
+from evaluate.algorithms.random import RandomScheduler
 
 
 def run_evaluation(dataset: Dataset):
