@@ -28,9 +28,7 @@ class GymEnvironment(gym.Env):
         """Resets the environment and initializes the simulation."""
         super().reset(seed=seed, options=options)
 
-        dataset_args_values = self.dataset_args.__dict__.copy()
-        dataset_args_values["seed"] = seed
-        dataset_args = DatasetArgs(**dataset_args_values)
+        dataset_args = self.dataset_args.copy_with_seed(seed)
         dataset = generate_dataset(dataset_args)
         self.simulation = Simulation(dataset)
 
@@ -82,9 +80,3 @@ class GymEnvironment(gym.Env):
         reward = -curr_makespan
         info = {"assignments": self.simulation.to_assignments()}
         return encode_env_obs(obs), reward, False, True, info
-
-    def makespan(self):
-        return self.prev_makespan
-
-    def energy_consumption(self):
-        return self.prev_energy_consumption

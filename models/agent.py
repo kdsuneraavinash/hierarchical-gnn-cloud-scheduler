@@ -206,3 +206,22 @@ class GinAgent(nn.Module):
         values = torch.stack(all_values).to(self.device)
 
         return chosen_actions, log_probs, entropies, values
+
+    def get_action_unbatched(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.to(self.device)
+        decoded_obs = decode_env_obs(x)
+        num_vms = decoded_obs.vm_completion_time.shape[0]
+
+        # --- Task Selection ---
+        task_logits = self.task_actor(decoded_obs)  # (Nt,)
+        task_probs = torch.softmax(task_logits, dim=0)
+        task_dist = torch.distributions.Categorical(task_probs)
+        chosen_task = task_dist.sample()
+
+        # --- VM Selection ---
+        vm_logits = self.vm_actor(decoded_obs, chosen_task)  # (Nv,)
+        vm_probs = torch.softmax(vm_logits, dim=0)
+        vm_dist = torch.distributions.Categorical(vm_probs)
+        chosen_vm = vm_dist.sample()
+
+        return chosen_task * num_vms + chosen_vm

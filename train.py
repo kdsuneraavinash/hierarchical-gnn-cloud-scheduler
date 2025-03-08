@@ -16,8 +16,10 @@ from icecream import ic
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from dataset.generator import DatasetArgs
+from dataset.generator import DatasetArgs, generate_dataset
+from dataset.models import Solution
 from env.gym_env import GymEnvironment
+from evaluate.agent import AgentScheduler
 from models.agent import GinAgent
 
 
@@ -46,7 +48,7 @@ class Args:
     """number of test iterations"""
 
     # Algorithm specific arguments
-    total_timesteps: int = 2_000_000
+    total_timesteps: int = 500_000
     """total timesteps of the experiments"""
     learning_rate: float = 2.5e-4
     """the learning rate of the optimizer"""
@@ -114,10 +116,6 @@ class Args:
 def make_env(idx: int, args: Args):
     env = GymEnvironment(dataset_args=args.dataset)
     return RecordEpisodeStatistics(env)
-
-
-def make_test_env(args: Args):
-    return GymEnvironment(dataset_args=args.dataset)
 
 
 def make_agent(device: torch.device):
@@ -355,20 +353,15 @@ def test_agent(agent: GinAgent, args: Args):
     total_energy_consumption = 0.0
 
     for seed_index in range(args.test_iterations):
-        test_env = make_test_env(args)
+        dataset_args = args.dataset.copy_with_seed(100_000 + seed_index)
+        dataset = generate_dataset(dataset_args)
 
-        next_obs, _ = test_env.reset(seed=100_000 + seed_index)
-        while True:
-            obs_tensor = torch.from_numpy(next_obs.astype(np.float32).reshape(1, -1))
-            action, _, _, _ = agent.get_action_and_value(obs_tensor)
-            vm_action = int(action.item())
-            next_obs, _, terminated, truncated, _ = test_env.step(vm_action)
-            if terminated or truncated:
-                break
+        test_scheduler = AgentScheduler(agent=agent)
+        assignments = test_scheduler.schedule(dataset)
+        solution = Solution(dataset, assignments)
 
-        total_makespan += test_env.makespan()
-        total_energy_consumption += test_env.energy_consumption()
-        test_env.close()
+        total_makespan += solution.makespan()
+        total_energy_consumption += solution.energy_consumption()
 
     avg_makespan = total_makespan / args.test_iterations
     avg_energy_consumption = total_energy_consumption / args.test_iterations

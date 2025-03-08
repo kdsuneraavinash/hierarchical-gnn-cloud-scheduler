@@ -78,9 +78,7 @@ class Simulation:
         new_vm_states[vm_id].completion_time = start_time + processing_time
 
         # Update energy consumption
-        new_task_states[task_id].energy_consumption = (
-            task.length * self.dataset.hosts[vm.host_id].active_power_consumption_per_mi()
-        )
+        new_task_states[task_id].energy_consumption = self.dataset.hosts[vm.host_id].active_power_consumption(task)
 
         # New dependencies (a new edge between the old task in the VM and this task)
         new_task_dependencies = copy.deepcopy(self.task_dependencies)
@@ -106,7 +104,6 @@ class Simulation:
             if task_state.assigned_vm_id is None:
                 continue  # No VM Assigned
             assignment = VmAssignment(
-                workflow_id=self.dataset.tasks[task_id].workflow_id,
                 task_id=task_id,
                 vm_id=task_state.assigned_vm_id,
                 start_time=task_state.start_time,

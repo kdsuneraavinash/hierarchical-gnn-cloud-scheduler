@@ -43,6 +43,11 @@ class DatasetArgs:
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
+    def copy_with_seed(self, new_seed: int | None):
+        dataset_args_values = self.__dict__.copy()
+        dataset_args_values["seed"] = new_seed
+        return DatasetArgs(**dataset_args_values)
+
 
 def generate_dataset(args: DatasetArgs) -> Dataset:
     """

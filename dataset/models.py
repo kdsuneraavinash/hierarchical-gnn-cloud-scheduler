@@ -42,13 +42,12 @@ class Host:
     disk_mb: int = -1
     bandwidth_mbps: int = -1
 
-    def active_power_consumption_per_mi(self):
-        return (self.power_peak_watt - self.power_idle_watt) / self.cpu_speed_mips
+    def active_power_consumption(self, task: Task):
+        return task.length * (self.power_peak_watt - self.power_idle_watt) / self.cpu_speed_mips
 
 
 @dataclass
 class VmAssignment:
-    workflow_id: int
     task_id: int
     vm_id: int
     start_time: float
@@ -105,3 +104,14 @@ class Solution:
         dataset = Dataset.from_json(data.pop("dataset"))
         vm_assignments = [VmAssignment(**vm_assignment) for vm_assignment in data.pop("vm_assignments")]
         return Solution(dataset=dataset, vm_assignments=vm_assignments)
+
+    def makespan(self) -> float:
+        return max(assignment.end_time for assignment in self.vm_assignments)
+
+    def energy_consumption(self) -> float:
+        return sum(
+            self.dataset.hosts[self.dataset.vms[assignment.vm_id].host_id].active_power_consumption(
+                self.dataset.tasks[assignment.task_id]
+            )
+            for assignment in self.vm_assignments
+        )
