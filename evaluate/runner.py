@@ -1,7 +1,9 @@
 import time
 from typing import Any
 
+import networkx as nx
 import pandas as pd
+from matplotlib import pyplot as plt
 
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
@@ -9,6 +11,9 @@ from evaluate.algorithms.agent import AgentScheduler
 from evaluate.algorithms.base import BaseScheduler
 from evaluate.algorithms.heft import HeftScheduler
 from evaluate.algorithms.random import RandomScheduler
+from evaluate.plotters.color import draw_agraph
+from evaluate.plotters.gantt_chart import plot_gantt_chart
+from evaluate.plotters.workflow_graph import plot_workflow_graphs
 
 
 def run_evaluation(dataset: Dataset):
@@ -35,6 +40,13 @@ def run_evaluation(dataset: Dataset):
             }
         )
 
+        _, axes = plt.subplots(nrows=1, ncols=2)
+        g_w: nx.DiGraph = nx.DiGraph()
+        a_w = plot_workflow_graphs(g_w, solution.dataset.tasks)
+        draw_agraph(axes[0], a_w)
+        plot_gantt_chart(axes[1], solution)
+        plt.show()
+
     df = pd.DataFrame(data)
     print(df)
 
@@ -44,9 +56,9 @@ if __name__ == "__main__":
         seed=0,
         host_count=4,
         vm_count=10,
-        workflow_count=10,
-        gnp_min_n=20,
-        gnp_max_n=20,
+        workflow_count=2,
+        gnp_min_n=5,
+        gnp_max_n=5,
         max_memory_gb=10,
         min_cpu_speed=500,
         max_cpu_speed=5000,

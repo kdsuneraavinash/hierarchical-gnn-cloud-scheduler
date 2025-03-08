@@ -30,6 +30,9 @@ class Vm:
     def is_compatible(self, task: Task):
         return self.memory_mb >= task.req_memory_mb
 
+    def execution_time(self, task: Task):
+        return task.length / self.cpu_speed_mips
+
 
 @dataclass
 class Host:
@@ -51,7 +54,6 @@ class VmAssignment:
     task_id: int
     vm_id: int
     start_time: float
-    end_time: float
 
 
 @dataclass
@@ -106,12 +108,18 @@ class Solution:
         return Solution(dataset=dataset, vm_assignments=vm_assignments)
 
     def makespan(self) -> float:
-        return max(assignment.end_time for assignment in self.vm_assignments)
+        makespan: float = 0
+        for assignment in self.vm_assignments:
+            task = self.dataset.tasks[assignment.task_id]
+            vm = self.dataset.vms[assignment.vm_id]
+            makespan = max(makespan, assignment.start_time + vm.execution_time(task))
+        return makespan
 
     def energy_consumption(self) -> float:
-        return sum(
-            self.dataset.hosts[self.dataset.vms[assignment.vm_id].host_id].active_power_consumption(
-                self.dataset.tasks[assignment.task_id]
-            )
-            for assignment in self.vm_assignments
-        )
+        energy_consumption: float = 0
+        for assignment in self.vm_assignments:
+            task = self.dataset.tasks[assignment.task_id]
+            vm = self.dataset.vms[assignment.vm_id]
+            host = self.dataset.hosts[vm.host_id]
+            energy_consumption += host.active_power_consumption(task)
+        return energy_consumption

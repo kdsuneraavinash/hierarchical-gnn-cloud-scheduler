@@ -51,9 +51,8 @@ def create_env_obs(
                 (task_completion_time[p_id] for p_id, c_id in task_dependencies if c_id == t_id),
                 default=0,
             ) + min(
-                dataset.tasks[t_id].length / vm.cpu_speed_mips
-                for vm in dataset.vms
-                if vm.is_compatible(dataset.tasks[t_id])
+                (vm.execution_time(dataset.tasks[t_id]) for vm in dataset.vms if vm.is_compatible(dataset.tasks[t_id])),
+                default=float("inf"),
             )
     task_completion_time_arr = np.array(task_completion_time)
 
@@ -68,7 +67,7 @@ def create_env_obs(
 
     # Task-VM execution time matrix - P(i, k)
     # For incompatible task-vm combinations, fill the time cost with the average time cost of other compatible tasks
-    task_vm_time_cost_o = np.array([[task.length / vm.cpu_speed_mips for vm in dataset.vms] for task in dataset.tasks])
+    task_vm_time_cost_o = np.array([[vm.execution_time(task) for vm in dataset.vms] for task in dataset.tasks])
     total_time_per_task = (task_vm_comp_arr * task_vm_time_cost_o).sum(axis=1)
     mean_time_per_task: np.ndarray = total_time_per_task / task_vm_comp_arr.sum(axis=1)
     mean_time_per_task = mean_time_per_task.reshape(-1, 1).repeat(len(dataset.vms), axis=1)

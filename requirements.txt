@@ -7,6 +7,9 @@ tyro==0.9.16
 tensorboard==2.19.0
 tqdm==4.67.1
 wandb==0.19.7
+matplotlib==3.10.1
+networkx==3.4.2
+pygraphviz==1.14
 
 mypy==1.15.0
 icecream==2.1.4

@@ -50,7 +50,7 @@ class Simulation:
 
         child_task_ids = [c_id for (p_id, c_id) in self.task_dependencies if p_id == task_id]
         parent_task_ids = [p_id for (p_id, c_id) in self.task_dependencies if c_id == task_id]
-        processing_time = task.length / vm.cpu_speed_mips
+        processing_time = vm.execution_time(task)
 
         new_task_states = copy.deepcopy(self.task_states)
         new_vm_states = copy.deepcopy(self.vm_states)
@@ -99,7 +99,7 @@ class Simulation:
     # ------------------------------------------------------------------------------------------------------------------
 
     def to_assignments(self) -> list[VmAssignment]:
-        assignments: list[VmAssignment] = []
+        assignments: list[tuple[float, VmAssignment]] = []
         for task_id, task_state in enumerate(self.task_states):
             if task_state.assigned_vm_id is None:
                 continue  # No VM Assigned
@@ -107,9 +107,8 @@ class Simulation:
                 task_id=task_id,
                 vm_id=task_state.assigned_vm_id,
                 start_time=task_state.start_time,
-                end_time=task_state.completion_time,
             )
-            assignments.append(assignment)
+            assignments.append((task_state.completion_time, assignment))
 
-        assignments.sort(key=lambda x: x.end_time)
-        return assignments
+        assignments.sort(key=lambda x: x[0])
+        return [assignment[1] for assignment in assignments]
