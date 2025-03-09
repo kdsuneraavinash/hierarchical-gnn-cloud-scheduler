@@ -2,13 +2,10 @@ from abc import ABC, abstractmethod
 
 from algorithms.base_dynamic import BaseDynamicScheduler
 from dataset.models import Dataset
-from env.simulation import Simulation
 from env.state import SimulationState
 
 
 class BaseGreedyScheduler(BaseDynamicScheduler, ABC):
-    _simulation: Simulation
-
     def __init__(self, name: str):
         super().__init__(name)
 
