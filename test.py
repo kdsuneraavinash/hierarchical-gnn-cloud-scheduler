@@ -3,6 +3,7 @@ import time
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
@@ -17,6 +18,7 @@ from algorithms.round_robin import RoundRobinScheduler
 from constants import INT_INFINITY
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
+from visualizers.summary_chart import plot_summary_chart
 
 
 def higlight_best_results(table: ProgressTable, col_index: int) -> None:
@@ -92,6 +94,10 @@ def run_evaluation(datasets: list[Dataset]) -> None:
     higlight_best_results(summary_table, 2)
     higlight_best_results(summary_table, 3)
     summary_table.close()
+
+    _, ax = plt.subplots(figsize=(8, 6))
+    plot_summary_chart(ax, table.to_df())
+    plt.show()
 
 
 if __name__ == "__main__":
