@@ -38,17 +38,18 @@ class MinMinScheduler(BaseGreedyScheduler):
                 continue
 
             min_start_time: float = max(
-                (
-                    state.task_states[parent_task.id].completion_time
-                    for parent_task in dataset.tasks
-                    if task_id in parent_task.child_ids
+                state.vm_states[vm.id].completion_time,
+                max(
+                    (
+                        state.task_states[parent_task.id].completion_time
+                        for parent_task in dataset.tasks
+                        if task_id in parent_task.child_ids
+                    ),
+                    default=0,
                 ),
-                default=0,
             )
 
-            completion_time = max(state.vm_states[vm.id].completion_time, min_start_time) + vm.execution_time(
-                dataset.tasks[task_id]
-            )
+            completion_time = min_start_time + vm.execution_time(dataset.tasks[task_id])
             if best_vm_completion_time > completion_time:
                 best_vm = vm
                 best_vm_completion_time = completion_time
