@@ -8,9 +8,11 @@ from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
 from algorithms.base_abstract import BaseAbstractScheduler
+from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
 from algorithms.gin_agent import GinAgentScheduler
 from algorithms.heft import HeftScheduler
+from algorithms.least_loaded_first import LeastLoadedFirstScheduler
 from algorithms.max_min import MaxMinScheduler
 from algorithms.min_min import MinMinScheduler
 from algorithms.random import RandomScheduler
@@ -32,9 +34,11 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         HeftScheduler(),
         FerptsScheduler(),
         RandomScheduler(),
+        LeastLoadedFirstScheduler(),
         MinMinScheduler(),
         MaxMinScheduler(),
         RoundRobinScheduler(),
+        EnergyAwareSchduler(),
         GinAgentScheduler(name="Proposed", model_path="logs/1741426371_test/model.pt"),
     ]
 
