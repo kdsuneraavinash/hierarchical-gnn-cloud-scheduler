@@ -356,7 +356,7 @@ def test_agent(agent: GinAgent, args: Args):
         dataset_args = args.dataset.copy_with_seed(100_000 + seed_index)
         dataset = generate_dataset(dataset_args)
 
-        test_scheduler = AgentScheduler(agent=agent)
+        test_scheduler = AgentScheduler(name="Agent", agent=agent)
         assignments = test_scheduler.schedule(dataset)
         solution = Solution(dataset, assignments)
 
