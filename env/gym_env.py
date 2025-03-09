@@ -3,8 +3,9 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
+from constants import MAX_OBS_SIZE
 from dataset.generator import DatasetArgs, generate_dataset
-from env.observation import MAX_OBS_SIZE, create_env_obs, encode_env_obs
+from env.observation import create_env_obs, encode_env_obs
 from env.simulation import Simulation
 
 

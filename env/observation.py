@@ -4,10 +4,9 @@ from typing import Any
 import numpy as np
 import torch
 
+from constants import MAX_OBS_SIZE
 from dataset.models import Dataset
 from env.state import TaskState, VmState
-
-MAX_OBS_SIZE = 100_000
 
 # Dataclasses
 # ------------------------------------------------------------------------------------------------------------------
