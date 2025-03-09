@@ -23,12 +23,14 @@ class TaskAgentActor(nn.Module):
         self.device = device
 
         self.utility_vector = utility_vector
+        # [2] -> [hidden] -> [hidden] -> [hidden] -> [embedding]
         self.task_encoder = GIN(
             in_channels=2,
             hidden_channels=hidden_dim,
             num_layers=3,
             out_channels=embedding_dim,
         ).to(device)
+        # [3*embedding] -> [hidden] -> [1]
         self.task_decoder = nn.Sequential(
             nn.Linear(3 * embedding_dim, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
@@ -63,12 +65,14 @@ class VmAgentActor(nn.Module):
         self.device = device
 
         self.utility_vector = utility_vector
+        # [2] -> [hidden] -> [embedding]
         self.vm_encoder = nn.Sequential(
             nn.Linear(2, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, embedding_dim),
         ).to(device)
+        # [3*embedding] -> [hidden] -> [1]
         self.vm_decoder = nn.Sequential(
             nn.Linear(3 * embedding_dim, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
@@ -102,18 +106,21 @@ class AgentCritic(nn.Module):
         super().__init__()
         self.device = device
 
+        # [2] -> [hidden] -> [hidden] -> [hidden] -> [embedding]
         self.task_encoder = GIN(
             in_channels=2,
             hidden_channels=hidden_dim,
             num_layers=3,
             out_channels=embedding_dim,
         ).to(device)
+        # [2] -> [hidden] -> [embedding]
         self.vm_encoder = nn.Sequential(
             nn.Linear(2, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, embedding_dim),
         ).to(device)
+        # [2*embedding] -> [hidden] -> [1]
         self.state_value_network = nn.Sequential(
             nn.Linear(2 * embedding_dim, hidden_dim),
             nn.ReLU(),
