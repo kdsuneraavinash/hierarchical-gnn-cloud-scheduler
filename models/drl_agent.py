@@ -80,22 +80,38 @@ class AgentCritic(nn.Module):
         super().__init__()
         self.device = device
 
-        # [4] -> [hidden] -> [hidden] -> [embedding]
-        self.network = nn.Sequential(
-            nn.Linear(4, hidden_dim),
+        # [2] -> [hidden] -> [hidden]
+        self.task_encoder = nn.Sequential(
+            nn.Linear(2, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
+        ).to(device)
+        # [2] -> [hidden] -> [hidden]
+        self.vm_encoder = nn.Sequential(
+            nn.Linear(2, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+        ).to(device)
+        # [2*hidden_dim] -> [hidden] -> [1]
+        self.state_value_network = nn.Sequential(
+            nn.Linear(2 * hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, 1),
         ).to(device)
 
     def forward(self, obs: EnvObsTensor) -> torch.Tensor:
-        task_features = [obs.task_completion_time, obs.task_state_scheduled]
-        vm_features = [obs.vm_completion_time, obs.task_vm_time_cost.mean(dim=0)]
+        task_features = torch.stack([obs.task_completion_time, obs.task_state_scheduled], dim=-1)  # (Nt, 2)
+        task_h: torch.Tensor = self.task_encoder(task_features)  # (Nt, E)
+        task_emb = mean_pool(task_h, self.device)  # hG - (1, E)
 
-        features = torch.stack([*task_features, *vm_features], dim=-1)  # (Nt, 4)
-        state_value: torch.Tensor = self.network(features)
+        vm_features = torch.stack([obs.vm_completion_time, obs.task_vm_time_cost.mean(dim=0)], dim=-1)  # (Nv, 2)
+        vm_h: torch.Tensor = self.vm_encoder(vm_features)  # (Nv, E)
+        vm_emb = mean_pool(vm_h, self.device)  # (1, E)
+
+        global_emb = torch.cat([task_emb, vm_emb], dim=-1)  # (1, 2E)
+        state_value: torch.Tensor = self.state_value_network(global_emb)
         return state_value.squeeze()
 
 
