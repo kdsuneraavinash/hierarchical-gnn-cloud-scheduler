@@ -1,4 +1,5 @@
-from dataset.models import Dataset, Task
+from dataset.models import Dataset
+from env.simulation import SimulationState
 from evaluate.algorithms.min_min import MinMinScheduler
 
 
@@ -13,14 +14,16 @@ class MaxMinScheduler(MinMinScheduler):
     def __init__(self):
         super().__init__("Max--Min")
 
-    def select_task(self, ready_tasks: list[Task], dataset: Dataset) -> Task:
+    def select_task(self, dataset: Dataset, state: SimulationState) -> int:
         """Choose the task with the largest length."""
         largest_task = None
         largest_task_length = -float("inf")
-        for task in ready_tasks:
+        for task in dataset.tasks:
+            if not state.task_states[task.id].is_ready:
+                continue
             if task.length > largest_task_length:
                 largest_task_length = task.length
                 largest_task = task
         assert largest_task is not None
 
-        return largest_task
+        return largest_task.id

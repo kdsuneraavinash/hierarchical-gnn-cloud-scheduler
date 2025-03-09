@@ -8,8 +8,8 @@ from progress_table.v1.progress_table import TableProgressBar
 
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
-from evaluate.algorithms.agent import AgentScheduler
-from evaluate.algorithms.base import BaseScheduler
+from evaluate.algorithms.base_abstract import BaseAbstractScheduler
+from evaluate.algorithms.gin_agent import GinAgentScheduler
 from evaluate.algorithms.heft import HeftScheduler
 from evaluate.algorithms.max_min import MaxMinScheduler
 from evaluate.algorithms.min_min import MinMinScheduler
@@ -24,13 +24,13 @@ def higlight_best_results(table: ProgressTable, col_index: int):
 
 
 def run_evaluation(datasets: list[Dataset]):
-    schedulers: list[BaseScheduler] = [
+    schedulers: list[BaseAbstractScheduler] = [
         HeftScheduler(),
         RandomScheduler(),
         MinMinScheduler(),
         MaxMinScheduler(),
         RoundRobinScheduler(),
-        AgentScheduler(name="Proposed", model_path="logs/1741426371_test/model.pt"),
+        GinAgentScheduler(name="Proposed", model_path="logs/1741426371_test/model.pt"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=float("inf"), pbar_embedded=False, pbar_show_eta=True)

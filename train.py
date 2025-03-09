@@ -19,7 +19,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
-from evaluate.algorithms.agent import AgentScheduler
+from evaluate.algorithms.gin_agent import GinAgentScheduler
 from models.agent import GinAgent
 
 
@@ -372,7 +372,7 @@ def test_agent(agent: GinAgent, args: Args):
         dataset_args = args.dataset.copy_with_seed(100_000 + seed_index)
         dataset = generate_dataset(dataset_args)
 
-        test_scheduler = AgentScheduler(name="Agent", agent=agent)
+        test_scheduler = GinAgentScheduler(name="Agent", agent=agent)
         assignments = test_scheduler.schedule(dataset)
         solution = Solution(dataset, assignments)
 

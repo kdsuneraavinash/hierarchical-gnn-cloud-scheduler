@@ -1,18 +1,18 @@
 import random
 
-from dataset.models import Dataset, Task, Vm
-from evaluate.algorithms.base_ready import BaseReadyScheduler
+from dataset.models import Dataset
+from env.simulation import SimulationState
+from evaluate.algorithms.base_greedy import BaseGreedyScheduler
 
 
-class RandomScheduler(BaseReadyScheduler):
+class RandomScheduler(BaseGreedyScheduler):
     def __init__(self):
         super().__init__("Random")
 
-    def select_task(self, ready_tasks: list[Task], dataset: Dataset) -> Task:
+    def select_task(self, dataset: Dataset, state: SimulationState) -> int:
         """Choose the next task (with no preference)."""
-        return random.choice(ready_tasks)
+        return random.choice([task.id for task in dataset.tasks if state.task_states[task.id].is_ready])
 
-    def select_vm(self, task: Task, dataset: Dataset) -> Vm:
+    def select_vm(self, task_id: int, dataset: Dataset, state: SimulationState) -> int:
         """Schedule the task on the next VM in the list."""
-        compatible_vms = [vm for vm in dataset.vms if vm.is_compatible(task)]
-        return random.choice(compatible_vms)
+        return random.choice([vm.id for vm in dataset.vms if vm.is_compatible(dataset.tasks[task_id])])

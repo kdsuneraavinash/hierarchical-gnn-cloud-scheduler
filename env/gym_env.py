@@ -34,12 +34,12 @@ class GymEnvironment(gym.Env):
 
         obs = create_env_obs(
             dataset=self.simulation.dataset,
-            task_states=self.simulation.task_states,
-            vm_states=self.simulation.vm_states,
-            task_dependencies=self.simulation.task_dependencies,
+            task_states=self.simulation.state.task_states,
+            vm_states=self.simulation.state.vm_states,
+            task_dependencies=self.simulation.state.task_dependencies,
         )
         self.prev_makespan = obs.task_completion_time.max()
-        self.prev_energy_consumption = sum(task.energy_consumption for task in self.simulation.task_states)
+        self.prev_energy_consumption = sum(task.energy_consumption for task in self.simulation.state.task_states)
         return encode_env_obs(obs), {}
 
     # Step
@@ -56,20 +56,20 @@ class GymEnvironment(gym.Env):
 
         obs = create_env_obs(
             dataset=self.simulation.dataset,
-            task_states=self.simulation.task_states,
-            vm_states=self.simulation.vm_states,
-            task_dependencies=self.simulation.task_dependencies,
+            task_states=self.simulation.state.task_states,
+            vm_states=self.simulation.state.vm_states,
+            task_dependencies=self.simulation.state.task_dependencies,
         )
 
         # Penalize invalid actions
         if error:
-            penalty = sum(-1000 if task.assigned_vm_id is None else 0 for task in self.simulation.task_states)
+            penalty = sum(-1000 if task.assigned_vm_id is None else 0 for task in self.simulation.state.task_states)
             print(f"Error: {error}")
             return encode_env_obs(obs), penalty, True, False, {"error": error}
 
         prev_makespan = self.prev_makespan
         curr_makespan = obs.task_completion_time.max()
-        curr_energy_consumption = sum(task.energy_consumption for task in self.simulation.task_states)
+        curr_energy_consumption = sum(task.energy_consumption for task in self.simulation.state.task_states)
         self.prev_makespan = curr_makespan
         self.prev_energy_consumption = curr_energy_consumption
 

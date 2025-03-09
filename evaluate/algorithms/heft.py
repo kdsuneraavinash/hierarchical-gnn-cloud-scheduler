@@ -1,21 +1,21 @@
-from dataset.models import Dataset, Task, Vm, VmAssignment
-from evaluate.algorithms.base import BaseScheduler
+from dataset.models import Dataset, Task, Vm
+from evaluate.algorithms.base_static import BaseStaticScheduler
 
 
-class HeftScheduler(BaseScheduler):
+class HeftScheduler(BaseStaticScheduler):
     """Implementation of the HEFT (Heterogeneous Earliest Finish Time) algorithm."""
 
     def __init__(self):
         super().__init__("HEFT")
 
-    def schedule(self, dataset: Dataset) -> list[VmAssignment]:
+    def compute_assignments(self, dataset: Dataset) -> list[tuple[int, int]]:
         # Compute task priorities based on upward rank
         task_rank = self.compute_task_priorities(dataset.tasks, dataset.vms)
         sorted_tasks = sorted(dataset.tasks, key=lambda t: task_rank[t.id], reverse=True)
 
         vm_ready_times: dict[int, float] = {vm.id: 0.0 for vm in dataset.vms}
         task_completion_times: dict[int, float] = {}
-        assignments: list[VmAssignment] = []
+        assignments: list[tuple[int, int]] = []
         for task in sorted_tasks:
             best_vm, earliest_finish_time = None, float("inf")
 
@@ -43,7 +43,7 @@ class HeftScheduler(BaseScheduler):
             task_completion_times[task.id] = earliest_finish_time
             start_time = earliest_finish_time - vm.execution_time(task)
 
-            assignments.append(VmAssignment(task.id, best_vm.id, start_time))
+            assignments.append((task.id, best_vm.id))
 
         return assignments
 

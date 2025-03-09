@@ -1,8 +1,9 @@
-from dataset.models import Dataset, Task, Vm
-from evaluate.algorithms.base_ready import BaseReadyScheduler
+from dataset.models import Dataset
+from env.simulation import SimulationState
+from evaluate.algorithms.base_greedy import BaseGreedyScheduler
 
 
-class MinMinScheduler(BaseReadyScheduler):
+class MinMinScheduler(BaseGreedyScheduler):
     """
     Implementation of the MinMin scheduling algorithm.
 
@@ -13,37 +14,41 @@ class MinMinScheduler(BaseReadyScheduler):
     def __init__(self, name: str | None = None):
         super().__init__(name or "Min--Min")
 
-    def select_task(self, ready_tasks: list[Task], dataset: Dataset) -> Task:
+    def select_task(self, dataset: Dataset, state: SimulationState) -> int:
         """Choose the task with the smallest length."""
         smallest_task = None
         smallest_task_length = float("inf")
-        for task in ready_tasks:
+        for task in dataset.tasks:
+            if not state.task_states[task.id].is_ready:
+                continue
             if task.length < smallest_task_length:
                 smallest_task_length = task.length
                 smallest_task = task
         assert smallest_task is not None
 
-        return smallest_task
+        return smallest_task.id
 
-    def select_vm(self, task: Task, dataset: Dataset) -> Vm:
+    def select_vm(self, task_id: int, dataset: Dataset, state: SimulationState) -> int:
         """Schedule the task on the VM that will complete the task the fastest."""
         # Select the best VM by comparing the completion times
         best_vm = None
         best_vm_completion_time = float("inf")
         for vm in dataset.vms:
-            if not vm.is_compatible(task):
+            if not vm.is_compatible(dataset.tasks[task_id]):
                 continue
 
             min_start_time: float = max(
                 (
-                    self.task_states[parent_task.id].completion_time
+                    state.task_states[parent_task.id].completion_time
                     for parent_task in dataset.tasks
-                    if task.id in parent_task.child_ids
+                    if task_id in parent_task.child_ids
                 ),
                 default=0,
             )
 
-            completion_time = max(self.vm_states[vm.id].completion_time, min_start_time) + vm.execution_time(task)
+            completion_time = max(state.vm_states[vm.id].completion_time, min_start_time) + vm.execution_time(
+                dataset.tasks[task_id]
+            )
             if best_vm_completion_time > completion_time:
                 best_vm = vm
                 best_vm_completion_time = completion_time
@@ -51,4 +56,4 @@ class MinMinScheduler(BaseReadyScheduler):
         if best_vm is None:
             raise Exception("No VM found for task")
 
-        return best_vm
+        return best_vm.id

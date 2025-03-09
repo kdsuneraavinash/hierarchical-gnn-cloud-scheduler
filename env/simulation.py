@@ -1,14 +1,20 @@
 import copy
+from dataclasses import dataclass
 
 from dataset.models import Dataset, VmAssignment
 from env.state import TaskState, VmState
 
 
-class Simulation:
-    dataset: Dataset
+@dataclass
+class SimulationState:
     task_states: list[TaskState]
     vm_states: list[VmState]
     task_dependencies: set[tuple[int, int]]
+
+
+class Simulation:
+    dataset: Dataset
+    state: SimulationState
 
     # Initialization
     # ------------------------------------------------------------------------------------------------------------------
@@ -27,9 +33,7 @@ class Simulation:
 
         # Map to the state
         self.dataset = dataset
-        self.task_states = task_states
-        self.vm_states = vm_states
-        self.task_dependencies = task_dependencies
+        self.state = SimulationState(task_states, vm_states, task_dependencies)
 
     # Assignment
     # ------------------------------------------------------------------------------------------------------------------
@@ -39,21 +43,21 @@ class Simulation:
         vm = self.dataset.vms[vm_id]
 
         # Checks for action
-        if not (0 <= task_id < len(self.task_states)):
+        if not (0 <= task_id < len(self.state.task_states)):
             return f"{task_id=} {vm_id=}: Invalid task (out of range)", True
-        if self.task_states[task_id].assigned_vm_id is not None:
+        if self.state.task_states[task_id].assigned_vm_id is not None:
             return f"{task_id=} {vm_id=}: Already scheduled task", True
-        if not self.task_states[task_id].is_ready:
+        if not self.state.task_states[task_id].is_ready:
             return f"{task_id=} {vm_id=}: Not ready task", True
         if not vm.is_compatible(task):
             return f"{task_id=} {vm_id=}: Task/VM are not compatible", True
 
-        child_task_ids = [c_id for (p_id, c_id) in self.task_dependencies if p_id == task_id]
-        parent_task_ids = [p_id for (p_id, c_id) in self.task_dependencies if c_id == task_id]
+        child_task_ids = [c_id for (p_id, c_id) in self.state.task_dependencies if p_id == task_id]
+        parent_task_ids = [p_id for (p_id, c_id) in self.state.task_dependencies if c_id == task_id]
         processing_time = vm.execution_time(task)
 
-        new_task_states = copy.deepcopy(self.task_states)
-        new_vm_states = copy.deepcopy(self.vm_states)
+        new_task_states = copy.deepcopy(self.state.task_states)
+        new_vm_states = copy.deepcopy(self.state.vm_states)
 
         # Update scheduled states
         new_task_states[task_id].assigned_vm_id = vm_id
@@ -63,16 +67,16 @@ class Simulation:
         new_task_states[task_id].is_ready = False
         for child_id in child_task_ids:
             new_task_states[child_id].is_ready = True
-            child_parent_task_ids = [p_id for (p_id, c_id) in self.task_dependencies if c_id == child_id]
+            child_parent_task_ids = [p_id for (p_id, c_id) in self.state.task_dependencies if c_id == child_id]
             for child_parent_task_id in child_parent_task_ids:
                 if new_task_states[child_parent_task_id].assigned_vm_id is None:
                     new_task_states[child_id].is_ready = False
                     break
 
         # Update completion times
-        start_time = self.vm_states[vm_id].completion_time
+        start_time = self.state.vm_states[vm_id].completion_time
         for parent_id in parent_task_ids:
-            start_time = max(start_time, self.task_states[parent_id].completion_time)
+            start_time = max(start_time, self.state.task_states[parent_id].completion_time)
         new_task_states[task_id].start_time = start_time
         new_task_states[task_id].completion_time = start_time + processing_time
         new_vm_states[vm_id].completion_time = start_time + processing_time
@@ -81,18 +85,16 @@ class Simulation:
         new_task_states[task_id].energy_consumption = self.dataset.hosts[vm.host_id].active_power_consumption(task)
 
         # New dependencies (a new edge between the old task in the VM and this task)
-        new_task_dependencies = copy.deepcopy(self.task_dependencies)
-        vm_prev_task_id = self.vm_states[vm_id].assigned_task_id
+        new_task_dependencies = copy.deepcopy(self.state.task_dependencies)
+        vm_prev_task_id = self.state.vm_states[vm_id].assigned_task_id
         if vm_prev_task_id is not None:
             new_task_dependencies.add((vm_prev_task_id, task_id))
 
         # Change the state
-        self.task_states = new_task_states
-        self.vm_states = new_vm_states
-        self.task_dependencies = new_task_dependencies
+        self.state = SimulationState(new_task_states, new_vm_states, new_task_dependencies)
 
         # Find whether there are any more tasks remaining
-        done = all(task_state.assigned_vm_id is not None for task_state in self.task_states)
+        done = all(task_state.assigned_vm_id is not None for task_state in self.state.task_states)
         return None, done
 
     # Step
@@ -100,7 +102,7 @@ class Simulation:
 
     def to_assignments(self) -> list[VmAssignment]:
         assignments: list[tuple[float, VmAssignment]] = []
-        for task_id, task_state in enumerate(self.task_states):
+        for task_id, task_state in enumerate(self.state.task_states):
             if task_state.assigned_vm_id is None:
                 continue  # No VM Assigned
             assignment = VmAssignment(
