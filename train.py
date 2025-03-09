@@ -22,6 +22,7 @@ from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
 from models.base_agent import BaseAgent
+from models.drl_agent import DrlAgent
 from models.gin_agent import GinAgent
 
 
@@ -29,6 +30,9 @@ from models.gin_agent import GinAgent
 class Args:
     exp_name: str = "test"
     """the name of this experiment"""
+
+    agent_type: str = "gin"
+    """the type of agent (gin, drl)"""
 
     seed: int = 1
     """seed of the experiment"""
@@ -120,8 +124,12 @@ def make_env(idx: int, args: Args) -> gym.Env[np.ndarray[tuple[int, ...], Any], 
     return RecordEpisodeStatistics(env)
 
 
-def make_agent(device: torch.device) -> BaseAgent:
-    return GinAgent(device)
+def make_agent(device: torch.device, args: Args) -> BaseAgent:
+    if args.agent_type == "gin":
+        return GinAgent(device)
+    elif args.agent_type == "drl":
+        return DrlAgent(device)
+    raise ValueError(f"Unknown agent type: {args.agent_type}")
 
 
 # Training Agent
@@ -170,7 +178,7 @@ def train(args: Args) -> None:
     assert obs_space.shape is not None
     assert act_space.shape is not None
 
-    agent = make_agent(device)
+    agent = make_agent(device, args)
     writer.add_text("agent", f"```{agent}```")
 
     last_model_save = 0
@@ -377,7 +385,7 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float]:
         dataset_args = args.dataset.copy_with_seed(100_000 + seed_index)
         dataset = generate_dataset(dataset_args)
 
-        test_scheduler = DrlAgentScheduler(name="Agent", agent=agent, agent_type="gin")
+        test_scheduler = DrlAgentScheduler(name="Agent", agent=agent, agent_type=args.agent_type)
         assignments = test_scheduler.schedule(dataset)
         solution = Solution(dataset, assignments)
 
