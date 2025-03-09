@@ -1,5 +1,5 @@
+from algorithms.base_static import BaseStaticScheduler
 from dataset.models import Dataset, Task, Vm
-from evaluate.algorithms.base_static import BaseStaticScheduler
 
 
 class HeftScheduler(BaseStaticScheduler):

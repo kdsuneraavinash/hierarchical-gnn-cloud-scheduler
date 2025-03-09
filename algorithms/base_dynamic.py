@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 
+from algorithms.base_abstract import BaseAbstractScheduler
 from dataset.models import Dataset, VmAssignment
-from env.simulation import Simulation, SimulationState
-from evaluate.algorithms.base_abstract import BaseAbstractScheduler
+from env.simulation import Simulation
+from env.state import SimulationState
 
 
 class BaseDynamicScheduler(BaseAbstractScheduler, ABC):

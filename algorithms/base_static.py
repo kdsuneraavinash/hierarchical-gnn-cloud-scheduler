@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
+from algorithms.base_abstract import BaseAbstractScheduler
 from dataset.models import Dataset, VmAssignment
 from env.simulation import Simulation
-from evaluate.algorithms.base_abstract import BaseAbstractScheduler
 
 
 class BaseStaticScheduler(BaseAbstractScheduler, ABC):

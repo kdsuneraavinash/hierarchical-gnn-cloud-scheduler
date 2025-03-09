@@ -1,8 +1,8 @@
 import random
 
+from algorithms.base_greedy import BaseGreedyScheduler
 from dataset.models import Dataset
-from env.simulation import SimulationState
-from evaluate.algorithms.base_greedy import BaseGreedyScheduler
+from env.state import SimulationState
 
 
 class RandomScheduler(BaseGreedyScheduler):

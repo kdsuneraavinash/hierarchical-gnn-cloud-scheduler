@@ -1,15 +1,7 @@
 import copy
-from dataclasses import dataclass
 
 from dataset.models import Dataset, VmAssignment
-from env.state import TaskState, VmState
-
-
-@dataclass
-class SimulationState:
-    task_states: list[TaskState]
-    vm_states: list[VmState]
-    task_dependencies: set[tuple[int, int]]
+from env.state import SimulationState, TaskState, VmState
 
 
 class Simulation:

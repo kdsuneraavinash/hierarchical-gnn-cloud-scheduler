@@ -16,10 +16,10 @@ from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard import SummaryWriter
 
+from algorithms.gin_agent import GinAgentScheduler
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
-from evaluate.algorithms.gin_agent import GinAgentScheduler
 from models.agent import GinAgent
 
 

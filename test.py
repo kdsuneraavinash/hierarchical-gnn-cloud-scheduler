@@ -6,15 +6,15 @@ import torch
 from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
+from algorithms.base_abstract import BaseAbstractScheduler
+from algorithms.gin_agent import GinAgentScheduler
+from algorithms.heft import HeftScheduler
+from algorithms.max_min import MaxMinScheduler
+from algorithms.min_min import MinMinScheduler
+from algorithms.random import RandomScheduler
+from algorithms.round_robin import RoundRobinScheduler
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
-from evaluate.algorithms.base_abstract import BaseAbstractScheduler
-from evaluate.algorithms.gin_agent import GinAgentScheduler
-from evaluate.algorithms.heft import HeftScheduler
-from evaluate.algorithms.max_min import MaxMinScheduler
-from evaluate.algorithms.min_min import MinMinScheduler
-from evaluate.algorithms.random import RandomScheduler
-from evaluate.algorithms.round_robin import RoundRobinScheduler
 
 
 def higlight_best_results(table: ProgressTable, col_index: int):

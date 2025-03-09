@@ -2,7 +2,7 @@ import networkx as nx
 from matplotlib import pyplot as plt
 
 from dataset.models import Solution
-from evaluate.plotters.utils import draw_agraph, get_color
+from visualizers.utils import draw_agraph, get_color
 
 
 def plot_workflow_graphs(ax: plt.Axes, solution: Solution):

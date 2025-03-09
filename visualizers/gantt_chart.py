@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 
 from dataset.models import Solution
-from evaluate.plotters.utils import get_color
+from visualizers.utils import get_color
 
 # Graphing functions for Gantt chart
 # ----------------------------------------------------------------------------------------------------------------------

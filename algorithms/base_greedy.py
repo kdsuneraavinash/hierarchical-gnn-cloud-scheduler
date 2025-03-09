@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 
+from algorithms.base_dynamic import BaseDynamicScheduler
 from dataset.models import Dataset
-from env.simulation import Simulation, SimulationState
-from evaluate.algorithms.base_dynamic import BaseDynamicScheduler
+from env.simulation import Simulation
+from env.state import SimulationState
 
 
 class BaseGreedyScheduler(BaseDynamicScheduler, ABC):

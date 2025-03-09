@@ -1,6 +1,6 @@
+from algorithms.min_min import MinMinScheduler
 from dataset.models import Dataset
-from env.simulation import SimulationState
-from evaluate.algorithms.min_min import MinMinScheduler
+from env.state import SimulationState
 
 
 class MaxMinScheduler(MinMinScheduler):
