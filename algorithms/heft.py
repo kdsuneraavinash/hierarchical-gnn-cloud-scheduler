@@ -5,7 +5,7 @@ from dataset.models import Dataset, Task, Vm
 class HeftScheduler(BaseStaticScheduler):
     """Implementation of the HEFT (Heterogeneous Earliest Finish Time) algorithm."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("HEFT")
 
     def compute_assignments(self, dataset: Dataset) -> list[tuple[int, int]]:
@@ -47,14 +47,13 @@ class HeftScheduler(BaseStaticScheduler):
 
         return assignments
 
-    @staticmethod
-    def compute_task_priorities(tasks: list[Task], vms: list[Vm]) -> dict:
+    def compute_task_priorities(self, tasks: list[Task], vms: list[Vm]) -> dict[int, float]:
         """Compute task priorities based on upward rank."""
 
         average_vm_speed = sum(vm.cpu_speed_mips for vm in vms) / len(vms)
         task_rank: dict[int, float] = {}
 
-        def compute_upward_rank(task: Task):
+        def compute_upward_rank(task: Task) -> float:
             if task.id in task_rank:
                 return task_rank[task.id]
 

@@ -9,7 +9,7 @@ def get_color(color_id: int) -> str:
     return color_map[color_id % len(color_map)]
 
 
-def draw_agraph(ax: plt.Axes, a: pgv.AGraph):
+def draw_agraph(ax: plt.Axes, a: pgv.AGraph) -> None:
     """
     Draw the provided AGraph on the provided Axes.
     """

@@ -6,7 +6,7 @@ from env.state import SimulationState
 
 
 class RandomScheduler(BaseGreedyScheduler):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("Random")
 
     def select_task(self, dataset: Dataset, state: SimulationState) -> int:

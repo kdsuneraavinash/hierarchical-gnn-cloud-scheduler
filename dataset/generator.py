@@ -2,6 +2,7 @@ import json
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Callable
 
 import numpy as np
 import tyro
@@ -43,7 +44,7 @@ class DatasetArgs:
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
-    def copy_with_seed(self, new_seed: int | None):
+    def copy_with_seed(self, new_seed: int | None) -> "DatasetArgs":
         dataset_args_values = self.__dict__.copy()
         dataset_args_values["seed"] = new_seed
         return DatasetArgs(**dataset_args_values)
@@ -76,7 +77,7 @@ def generate_hosts(args: DatasetArgs, rng: np.random.RandomState) -> list[Host]:
     """
 
     with open(Path(__file__).parent / "data" / "host_specs.json", "r") as f:
-        available_hosts: list = json.load(f)
+        available_hosts: list[dict[str, Any]] = json.load(f)
 
     hosts: list[Host] = []
     for i in range(args.host_count):
@@ -129,7 +130,7 @@ def generate_task_memory(args: DatasetArgs, rng: np.random.RandomState) -> int:
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def generate_task_length(args: DatasetArgs, rng: np.random.RandomState) -> float:
+def generate_task_length(args: DatasetArgs, rng: np.random.RandomState) -> Any | float:
     """
     Generate a random task length based on the specified method. <br/>
     Available methods: uniform, normal, left_skewed, right_skewed <br/>
@@ -145,6 +146,8 @@ def generate_task_length(args: DatasetArgs, rng: np.random.RandomState) -> float
     # so we set the standard deviation to be 1/6 of the range
     mean = (low + high) / 2
     std = (high - low) / 6
+
+    method: Callable[[], float]
     if args.task_length_dist == "normal":
         method = lambda: stats.norm.rvs(loc=mean, scale=std, random_state=rng)
     elif args.task_length_dist == "left_skewed":
@@ -197,7 +200,7 @@ def generate_dag(args: DatasetArgs, rng: np.random.RandomState) -> dict[int, set
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def generate_poisson_delay(args: DatasetArgs, rng: np.random.RandomState) -> float:
+def generate_poisson_delay(args: DatasetArgs, rng: np.random.RandomState) -> Any | float:
     """
     Generate a random delay between workflows in a Poisson process.
     The delay is exponentially distributed with parameter lambda.

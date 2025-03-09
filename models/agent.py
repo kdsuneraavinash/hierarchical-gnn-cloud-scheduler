@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn.glob import global_mean_pool
+from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn.models import GIN
 
 from env.observation import EnvObsTensor, decode_env_obs
@@ -9,7 +9,8 @@ from env.observation import EnvObsTensor, decode_env_obs
 def mean_pool(embedding: torch.Tensor, device: torch.device, num_batches: int = 1) -> torch.Tensor:
     batch_vector = torch.arange(num_batches, dtype=torch.long, device=device)
     batch_vector = batch_vector.repeat_interleave(embedding.shape[0] // num_batches)
-    return global_mean_pool(embedding, batch=batch_vector)
+    mean_pool: torch.Tensor = global_mean_pool(embedding, batch=batch_vector)
+    return mean_pool
 
 
 # Task Agent Actor
@@ -224,4 +225,5 @@ class GinAgent(nn.Module):
         vm_dist = torch.distributions.Categorical(vm_probs)
         chosen_vm = vm_dist.sample()
 
-        return chosen_task * num_vms + chosen_vm
+        chosen_action: torch.Tensor = chosen_task * num_vms + chosen_vm
+        return chosen_action

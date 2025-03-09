@@ -5,7 +5,7 @@ from dataset.models import Solution
 from visualizers.utils import draw_agraph, get_color
 
 
-def plot_workflow_graphs(ax: plt.Axes, solution: Solution):
+def plot_workflow_graphs(ax: plt.Axes, solution: Solution) -> None:
     """
     Plot the workflows on the provided DiGraph.
     """

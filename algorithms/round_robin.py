@@ -12,7 +12,7 @@ class RoundRobinScheduler(BaseGreedyScheduler):
 
     vm_index: int = 0
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("Round--Robin")
 
     def select_task(self, dataset: Dataset, state: SimulationState) -> int:

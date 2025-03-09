@@ -17,6 +17,7 @@ from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard import SummaryWriter
 
 from algorithms.gin_agent import GinAgentScheduler
+from constants import INT_INFINITY
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
@@ -113,12 +114,12 @@ class Args:
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def make_env(idx: int, args: Args):
+def make_env(idx: int, args: Args) -> gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]:
     env = GymEnvironment(dataset_args=args.dataset)
     return RecordEpisodeStatistics(env)
 
 
-def make_agent(device: torch.device):
+def make_agent(device: torch.device) -> GinAgent:
     return GinAgent(device)
 
 
@@ -126,7 +127,7 @@ def make_agent(device: torch.device):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def train(args: Args):
+def train(args: Args) -> None:
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
@@ -188,10 +189,10 @@ def train(args: Args):
     values = torch.zeros((args.num_steps, args.num_envs)).to(device)
 
     # Variables used to compute returns
-    next_obs: np.ndarray
-    reward: np.ndarray
-    terminations: np.ndarray
-    truncations: np.ndarray
+    next_obs: np.ndarray[tuple[int, ...], Any]
+    reward: np.ndarray[tuple[int, ...], Any]
+    terminations: np.ndarray[tuple[int, ...], Any]
+    truncations: np.ndarray[tuple[int, ...], Any]
     infos: dict[str, Any]
 
     # TRY NOT TO MODIFY: start the game
@@ -201,7 +202,7 @@ def train(args: Args):
     next_obs_tensor = torch.Tensor(next_obs).to(device)
     next_done_tensor = torch.zeros(args.num_envs).to(device)
 
-    table = ProgressTable(print_header_every_n_rows=float("inf"), pbar_embedded=False, pbar_show_eta=True)
+    table = ProgressTable(print_header_every_n_rows=INT_INFINITY, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(args.total_timesteps))
     table.add_column("iter")
     table.add_column("global_step")
@@ -364,7 +365,7 @@ def train(args: Args):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def test_agent(agent: GinAgent, args: Args):
+def test_agent(agent: GinAgent, args: Args) -> tuple[float, float]:
     total_makespan = 0.0
     total_energy_consumption = 0.0
 

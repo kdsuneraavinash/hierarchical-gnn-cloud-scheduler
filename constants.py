@@ -1,0 +1,1 @@
+INT_INFINITY = 2**32

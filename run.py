@@ -2,15 +2,13 @@ import random
 
 import numpy as np
 import torch
-from icecream import ic
 
 from dataset.generator import DatasetArgs
 from env.gym_env import GymEnvironment
-from env.observation import decode_env_obs
 from models.agent import GinAgent
 
 
-def main():
+def main() -> None:
     random.seed(0)
     torch.manual_seed(0)
     np.random.seed(0)
@@ -33,10 +31,9 @@ def main():
     )
     obs, info = env.reset(seed=0)
     tensor_obs = torch.Tensor(obs)
-    ic(decode_env_obs(tensor_obs))
     while True:
         action, *_ = agent.get_action_and_value(tensor_obs.reshape(1, -1))
-        obs, reward, terminated, truncated, info = env.step(int(action.item()))
+        obs, reward, terminated, truncated, info = env.step(np.int64(action.item()))
         tensor_obs = torch.Tensor(obs)
         if terminated or truncated:
             break

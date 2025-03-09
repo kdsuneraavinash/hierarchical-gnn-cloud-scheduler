@@ -8,7 +8,7 @@ from env.observation import MAX_OBS_SIZE, create_env_obs, encode_env_obs
 from env.simulation import Simulation
 
 
-class GymEnvironment(gym.Env):
+class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     prev_makespan: float = 0
     prev_energy_consumption: float = 0
 
@@ -17,14 +17,14 @@ class GymEnvironment(gym.Env):
         self.dataset_args = dataset_args
         self.simulation: Simulation | None = None
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(MAX_OBS_SIZE,), dtype=np.float64)
-        self.action_space = gym.spaces.Discrete(2)
+        self.action_space = gym.spaces.Discrete(1)
 
     # Reset
     # ------------------------------------------------------------------------------------------------------------------
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[np.ndarray, dict[str, Any]]:
+    ) -> tuple[np.ndarray[tuple[int, ...], Any], dict[str, Any]]:
         """Resets the environment and initializes the simulation."""
         super().reset(seed=seed, options=options)
 
@@ -45,7 +45,7 @@ class GymEnvironment(gym.Env):
     # Step
     # ------------------------------------------------------------------------------------------------------------------
 
-    def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
+    def step(self, action: np.int64) -> tuple[np.ndarray[tuple[int, ...], Any], float, bool, bool, dict[str, Any]]:
         """Performs a step in the environment given an action."""
         assert self.simulation is not None, "Environment must be reset before calling step"
 

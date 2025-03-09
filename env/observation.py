@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import torch
@@ -14,13 +15,13 @@ MAX_OBS_SIZE = 100_000
 
 @dataclass
 class EnvObs:
-    task_completion_time: np.ndarray
-    task_state_scheduled: np.ndarray
-    vm_completion_time: np.ndarray
-    task_vm_time_cost: np.ndarray
-    task_vm_compatibilities: np.ndarray
-    task_state_ready: np.ndarray
-    task_dependencies: np.ndarray
+    task_completion_time: np.ndarray[tuple[int, ...], Any]
+    task_state_scheduled: np.ndarray[tuple[int, ...], Any]
+    vm_completion_time: np.ndarray[tuple[int, ...], Any]
+    task_vm_time_cost: np.ndarray[tuple[int, ...], Any]
+    task_vm_compatibilities: np.ndarray[tuple[int, ...], Any]
+    task_state_ready: np.ndarray[tuple[int, ...], Any]
+    task_dependencies: np.ndarray[tuple[int, ...], Any]
 
 
 @dataclass
@@ -69,7 +70,7 @@ def create_env_obs(
     # For incompatible task-vm combinations, fill the time cost with the average time cost of other compatible tasks
     task_vm_time_cost_o = np.array([[vm.execution_time(task) for vm in dataset.vms] for task in dataset.tasks])
     total_time_per_task = (task_vm_comp_arr * task_vm_time_cost_o).sum(axis=1)
-    mean_time_per_task: np.ndarray = total_time_per_task / task_vm_comp_arr.sum(axis=1)
+    mean_time_per_task: np.ndarray[tuple[int, ...], Any] = total_time_per_task / task_vm_comp_arr.sum(axis=1)
     mean_time_per_task = mean_time_per_task.reshape(-1, 1).repeat(len(dataset.vms), axis=1)
     task_vm_time_cost_arr = np.where(task_vm_comp_arr == 0, mean_time_per_task, task_vm_time_cost_o)
 
@@ -94,7 +95,7 @@ def create_env_obs(
 # ------------------------------------------------------------------------------------------------------------------
 
 
-def encode_env_obs(obs: EnvObs) -> np.ndarray:
+def encode_env_obs(obs: EnvObs) -> np.ndarray[tuple[int, ...], Any]:
     num_tasks = obs.task_state_scheduled.shape[0]
     num_vms = obs.vm_completion_time.shape[0]
     num_task_deps = obs.task_dependencies.shape[1]

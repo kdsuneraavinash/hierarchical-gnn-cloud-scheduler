@@ -11,7 +11,7 @@ class MaxMinScheduler(MinMinScheduler):
     on the VM that will complete the task the fastest.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("Max--Min")
 
     def select_task(self, dataset: Dataset, state: SimulationState) -> int:

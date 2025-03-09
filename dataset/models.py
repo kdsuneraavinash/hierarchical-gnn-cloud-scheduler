@@ -1,5 +1,6 @@
 import dataclasses
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -27,10 +28,10 @@ class Vm:
     bandwidth_mbps: int = -1
     vmm: str = "Xen"
 
-    def is_compatible(self, task: Task):
+    def is_compatible(self, task: Task) -> bool:
         return self.memory_mb >= task.req_memory_mb
 
-    def execution_time(self, task: Task):
+    def execution_time(self, task: Task) -> float:
         return task.length / self.cpu_speed_mips
 
 
@@ -45,7 +46,7 @@ class Host:
     disk_mb: int = -1
     bandwidth_mbps: int = -1
 
-    def active_power_consumption(self, task: Task):
+    def active_power_consumption(self, task: Task) -> float:
         return task.length * (self.power_peak_watt - self.power_idle_watt) / self.cpu_speed_mips
 
 
@@ -63,11 +64,11 @@ class Dataset:
     vms: list[Vm]
     hosts: list[Host]
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
 
     @staticmethod
-    def from_json(data: dict) -> "Dataset":
+    def from_json(data: dict[str, Any]) -> "Dataset":
         workflows = [Workflow(**workflow) for workflow in data.pop("workflows")]
         tasks = [Task(**task) for task in data.pop("tasks")]
         vms = [Vm(**vm) for vm in data.pop("vms")]
@@ -77,7 +78,7 @@ class Dataset:
         dataset.check_sanity()
         return dataset
 
-    def check_sanity(self):
+    def check_sanity(self) -> None:
         # Sanity check - we should be able to use index and id interchangeably
         for i, workflow in enumerate(self.workflows):
             assert workflow.id == i, f"Sanity Check Failed: workflow ID mismatch, {workflow=} in index {i}"
@@ -98,11 +99,11 @@ class Solution:
     dataset: Dataset
     vm_assignments: list[VmAssignment]
 
-    def to_json(self):
+    def to_json(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
 
     @staticmethod
-    def from_json(data: dict) -> "Solution":
+    def from_json(data: dict[str, Any]) -> "Solution":
         dataset = Dataset.from_json(data.pop("dataset"))
         vm_assignments = [VmAssignment(**vm_assignment) for vm_assignment in data.pop("vm_assignments")]
         return Solution(dataset=dataset, vm_assignments=vm_assignments)
