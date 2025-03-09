@@ -16,11 +16,12 @@ from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard import SummaryWriter
 
-from algorithms.gin_agent import GinAgentScheduler
+from algorithms.drl_agent import DrlAgentScheduler
 from constants import INT_INFINITY
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
+from models.base_agent import BaseAgent
 from models.gin_agent import GinAgent
 
 
@@ -119,7 +120,7 @@ def make_env(idx: int, args: Args) -> gym.Env[np.ndarray[tuple[int, ...], Any], 
     return RecordEpisodeStatistics(env)
 
 
-def make_agent(device: torch.device) -> GinAgent:
+def make_agent(device: torch.device) -> BaseAgent:
     return GinAgent(device)
 
 
@@ -347,11 +348,14 @@ def train(args: Args) -> None:
             writer.add_scalar("tests/energy_consumption", test_results[1], global_step)
             table.update("makespan", value=test_results[0])
             table.update("energy_consumption", value=test_results[1])
-            table.next_row()
 
+        table.update("phase", value="done")
         if (global_step - last_model_save) >= 10_000:
+            table.update("phase", value="saved")
             torch.save(agent.state_dict(), f"{args.output_dir}/{args.run_name}/model_{global_step}.pt")
             last_model_save = global_step
+
+        table.next_row()
 
     torch.save(agent.state_dict(), f"{args.output_dir}/{args.run_name}/model.pt")
 
@@ -365,7 +369,7 @@ def train(args: Args) -> None:
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def test_agent(agent: GinAgent, args: Args) -> tuple[float, float]:
+def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float]:
     total_makespan = 0.0
     total_energy_consumption = 0.0
 
@@ -373,7 +377,7 @@ def test_agent(agent: GinAgent, args: Args) -> tuple[float, float]:
         dataset_args = args.dataset.copy_with_seed(100_000 + seed_index)
         dataset = generate_dataset(dataset_args)
 
-        test_scheduler = GinAgentScheduler(name="Agent", agent=agent)
+        test_scheduler = DrlAgentScheduler(name="Agent", agent=agent, agent_type="gin")
         assignments = test_scheduler.schedule(dataset)
         solution = Solution(dataset, assignments)
 

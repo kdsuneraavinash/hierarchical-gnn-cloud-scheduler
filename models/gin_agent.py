@@ -3,7 +3,8 @@ import torch.nn as nn
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn.models import GIN
 
-from env.observation import EnvObsTensor, decode_env_obs
+from env.observation import EnvObsTensor
+from models.base_agent import BaseAgent
 
 
 def mean_pool(embedding: torch.Tensor, device: torch.device, num_batches: int = 1) -> torch.Tensor:
@@ -145,92 +146,12 @@ class AgentCritic(nn.Module):
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class GinAgent(nn.Module):
+class GinAgent(BaseAgent):
     def __init__(self, device: torch.device):
-        super().__init__()
-        self.device = device
+        super().__init__(device)
 
         embedding_dim = 16
         utility_vector = nn.Parameter(torch.randn(embedding_dim, device=device))
         self.task_actor = TaskAgentActor(utility_vector, hidden_dim=64, embedding_dim=embedding_dim, device=device)
         self.vm_actor = VmAgentActor(utility_vector, hidden_dim=64, embedding_dim=embedding_dim, device=device)
         self.critic = AgentCritic(hidden_dim=64, embedding_dim=embedding_dim, device=device)
-
-    def get_value(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.to(self.device)
-        batch_size = x.shape[0]
-        values = []
-
-        for batch_index in range(batch_size):
-            decoded_obs = decode_env_obs(x[batch_index])
-            value = self.critic(decoded_obs)
-            values.append(value)
-
-        return torch.stack(values).to(self.device)
-
-    def get_action_and_value(
-        self, x: torch.Tensor, action: torch.Tensor | None = None
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        x = x.to(self.device)
-        batch_size = x.shape[0]
-        all_chosen_actions, all_log_probs, all_entropies, all_values = [], [], [], []
-
-        for batch_index in range(batch_size):
-            decoded_obs = decode_env_obs(x[batch_index])
-            num_vms = decoded_obs.vm_completion_time.shape[0]
-
-            # --- Task Selection ---
-            task_logits = self.task_actor(decoded_obs)  # (Nt,)
-            task_probs = torch.softmax(task_logits, dim=0)
-            task_dist = torch.distributions.Categorical(task_probs)
-            chosen_task = task_dist.sample() if action is None else action[batch_index] // num_vms
-            task_log_prob = task_dist.log_prob(chosen_task)
-            task_entropy = task_dist.entropy()
-
-            # --- VM Selection ---
-            vm_logits = self.vm_actor(decoded_obs, chosen_task)  # (Nv,)
-            vm_probs = torch.softmax(vm_logits, dim=0)
-            vm_dist = torch.distributions.Categorical(vm_probs)
-            chosen_vm = vm_dist.sample() if action is None else action[batch_index] % num_vms
-            vm_log_prob = vm_dist.log_prob(chosen_vm)
-            vm_entropy = vm_dist.entropy()
-
-            # --- Compute Final Action & Value ---
-            chosen_action = chosen_task * num_vms + chosen_vm  # Encode action
-            total_log_prob = task_log_prob + vm_log_prob  # Combined log probability
-            total_entropy = task_entropy + vm_entropy  # Combined entropy
-
-            value = self.critic(decoded_obs)  # Value estimate from the critic
-
-            # --- Append Results ---
-            all_chosen_actions.append(chosen_action)
-            all_log_probs.append(total_log_prob)
-            all_entropies.append(total_entropy)
-            all_values.append(value)
-
-        chosen_actions = torch.stack(all_chosen_actions).to(self.device)
-        log_probs = torch.stack(all_log_probs).to(self.device)
-        entropies = torch.stack(all_entropies).to(self.device)
-        values = torch.stack(all_values).to(self.device)
-
-        return chosen_actions, log_probs, entropies, values
-
-    def get_action_unbatched(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.to(self.device)
-        decoded_obs = decode_env_obs(x)
-        num_vms = decoded_obs.vm_completion_time.shape[0]
-
-        # --- Task Selection ---
-        task_logits = self.task_actor(decoded_obs)  # (Nt,)
-        task_probs = torch.softmax(task_logits, dim=0)
-        task_dist = torch.distributions.Categorical(task_probs)
-        chosen_task = task_dist.sample()
-
-        # --- VM Selection ---
-        vm_logits = self.vm_actor(decoded_obs, chosen_task)  # (Nv,)
-        vm_probs = torch.softmax(vm_logits, dim=0)
-        vm_dist = torch.distributions.Categorical(vm_probs)
-        chosen_vm = vm_dist.sample()
-
-        chosen_action: torch.Tensor = chosen_task * num_vms + chosen_vm
-        return chosen_action
