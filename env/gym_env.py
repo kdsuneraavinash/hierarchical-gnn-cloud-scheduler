@@ -3,7 +3,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
-from constants import MAX_OBS_SIZE
+from constants import INT_INFINITY, MAX_OBS_SIZE
 from dataset.generator import DatasetArgs, generate_dataset
 from env.observation import create_env_obs, encode_env_obs
 from env.simulation import Simulation
@@ -18,7 +18,7 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         self.dataset_args = dataset_args
         self.simulation: Simulation | None = None
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(MAX_OBS_SIZE,), dtype=np.float64)
-        self.action_space = gym.spaces.Discrete(1)
+        self.action_space = gym.spaces.Discrete(INT_INFINITY, start=0)
 
     # Reset
     # ------------------------------------------------------------------------------------------------------------------
