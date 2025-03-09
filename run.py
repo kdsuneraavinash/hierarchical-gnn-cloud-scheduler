@@ -5,7 +5,7 @@ import torch
 
 from dataset.generator import DatasetArgs
 from env.gym_env import GymEnvironment
-from models.agent import GinAgent
+from models.gin_agent import GinAgent
 
 
 def main() -> None:

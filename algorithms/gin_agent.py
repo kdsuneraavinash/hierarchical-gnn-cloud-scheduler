@@ -4,7 +4,7 @@ from algorithms.base_dynamic import BaseDynamicScheduler
 from dataset.models import Dataset
 from env.observation import create_env_obs, encode_env_obs
 from env.state import SimulationState
-from models.agent import GinAgent
+from models.gin_agent import GinAgent
 
 
 class GinAgentScheduler(BaseDynamicScheduler):

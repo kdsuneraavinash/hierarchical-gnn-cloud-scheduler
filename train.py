@@ -21,7 +21,7 @@ from constants import INT_INFINITY
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
-from models.agent import GinAgent
+from models.gin_agent import GinAgent
 
 
 @dataclass
