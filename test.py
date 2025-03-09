@@ -7,6 +7,7 @@ from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
 from algorithms.base_abstract import BaseAbstractScheduler
+from algorithms.ferpts import FerptsScheduler
 from algorithms.gin_agent import GinAgentScheduler
 from algorithms.heft import HeftScheduler
 from algorithms.max_min import MaxMinScheduler
@@ -27,6 +28,7 @@ def higlight_best_results(table: ProgressTable, col_index: int) -> None:
 def run_evaluation(datasets: list[Dataset]) -> None:
     schedulers: list[BaseAbstractScheduler] = [
         HeftScheduler(),
+        FerptsScheduler(),
         RandomScheduler(),
         MinMinScheduler(),
         MaxMinScheduler(),
