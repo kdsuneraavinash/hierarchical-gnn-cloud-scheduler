@@ -20,7 +20,7 @@ from evaluate.algorithms.round_robin import RoundRobinScheduler
 def higlight_best_results(table: ProgressTable, col_index: int):
     sorted_indices = np.array([x[col_index] for x in table.to_list() if x[col_index] is not None]).argsort()
     table.at[int(sorted_indices[0]), col_index, "C"] = "bold yellow"
-    table.at[int(sorted_indices[1]), col_index, "C"] = "bold red"
+    table.at[int(sorted_indices[1]), col_index, "C"] = "yellow"
 
 
 def run_evaluation(datasets: list[Dataset]):
@@ -33,7 +33,7 @@ def run_evaluation(datasets: list[Dataset]):
         AgentScheduler(name="Proposed", model_path="logs/1741426371_test/model.pt"),
     ]
 
-    table = ProgressTable(num_decimal_places=4, print_header_every_n_rows=float("inf"), pbar_embedded=False)
+    table = ProgressTable(print_header_every_n_rows=float("inf"), pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(len(schedulers) * len(datasets)))
     summary_data: list[tuple[str, float, float, float]] = []
 

@@ -12,9 +12,9 @@ import torch.nn as nn
 import torch.optim as optim
 import tyro
 from gymnasium.wrappers import RecordEpisodeStatistics
-from icecream import ic
+from progress_table import ProgressTable
+from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
 
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
@@ -177,7 +177,6 @@ def train(args: Args):
         agent.load_state_dict(torch.load(str(model_path), weights_only=True))
         print(f"Loaded model from {model_path}")
 
-    ic(agent)
     optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
 
     # ALGO Logic: Storage setup
@@ -202,8 +201,19 @@ def train(args: Args):
     next_obs_tensor = torch.Tensor(next_obs).to(device)
     next_done_tensor = torch.zeros(args.num_envs).to(device)
 
-    pbar = tqdm(total=args.total_timesteps)
+    table = ProgressTable(print_header_every_n_rows=float("inf"), pbar_embedded=False, pbar_show_eta=True)
+    progress_bar: TableProgressBar = table.pbar(range(args.total_timesteps))
+    table.add_column("iter")
+    table.add_column("global_step")
+    table.add_column("phase", width=10)
+    table.add_column("makespan", width=15)
+    table.add_column("energy_consumption", width=15)
+
     for iteration in range(1, args.num_iterations + 1):
+        table.update("iter", value=iteration)
+        table.update("global_step", value=global_step)
+        table.update("phase", value="running")
+
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
             frac = 1.0 - (iteration - 1.0) / args.num_iterations
@@ -230,9 +240,11 @@ def train(args: Args):
 
             if "episode" in infos:
                 for i in range(args.num_envs):
-                    pbar.update(global_step - pbar.n)
                     writer.add_scalar("charts/episodic_return", infos["episode"]["r"][i], global_step)
                     writer.add_scalar("charts/episodic_length", infos["episode"]["l"][i], global_step)
+
+        progress_bar.set_step(global_step)
+        table.update("phase", value="training")
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -327,10 +339,14 @@ def train(args: Args):
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
+        table.update("phase", value="testing")
         with torch.no_grad():
             test_results = test_agent(agent, args)
             writer.add_scalar("tests/makespan", test_results[0], global_step)
             writer.add_scalar("tests/energy_consumption", test_results[1], global_step)
+            table.update("makespan", value=test_results[0])
+            table.update("energy_consumption", value=test_results[1])
+            table.next_row()
 
         if (global_step - last_model_save) >= 10_000:
             torch.save(agent.state_dict(), f"{args.output_dir}/{args.run_name}/model_{global_step}.pt")
@@ -341,7 +357,7 @@ def train(args: Args):
     envs.close()
     writer.close()
 
-    pbar.close()
+    table.close()
 
 
 # Testing Agent
