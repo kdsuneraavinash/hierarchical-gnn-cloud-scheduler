@@ -4,9 +4,8 @@ from algorithms.base_dynamic import BaseDynamicScheduler
 from dataset.models import Dataset
 from env.observation import create_env_obs, encode_env_obs
 from env.state import SimulationState
+from models.agent import make_agent
 from models.base_agent import BaseAgent
-from models.drl_agent import DrlAgent
-from models.gin_agent import GinAgent
 
 
 class DrlAgentScheduler(BaseDynamicScheduler):
@@ -22,12 +21,7 @@ class DrlAgentScheduler(BaseDynamicScheduler):
         if agent is not None:
             self.agent = agent
         elif model_path is not None:
-            if agent_type == "gin":
-                self.agent = GinAgent(device=torch.device("cpu"))
-            elif agent_type == "drl":
-                self.agent = DrlAgent(device=torch.device("cpu"))
-            else:
-                raise ValueError("Agent type is not known")
+            self.agent = make_agent(agent_type, torch.device("cpu"))
             self.agent.load_state_dict(torch.load(model_path, weights_only=True))
         else:
             raise ValueError("Must provide one of model path or agent")

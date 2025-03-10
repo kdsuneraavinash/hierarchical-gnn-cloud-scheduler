@@ -21,9 +21,8 @@ from constants import INT_INFINITY
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
+from models.agent import make_agent
 from models.base_agent import BaseAgent
-from models.drl_agent import DrlAgent
-from models.gin_agent import GinAgent
 
 
 @dataclass
@@ -124,14 +123,6 @@ def make_env(idx: int, args: Args) -> gym.Env[np.ndarray[tuple[int, ...], Any], 
     return RecordEpisodeStatistics(env)
 
 
-def make_agent(device: torch.device, args: Args) -> BaseAgent:
-    if args.agent_type == "gin":
-        return GinAgent(device)
-    elif args.agent_type == "drl":
-        return DrlAgent(device)
-    raise ValueError(f"Unknown agent type: {args.agent_type}")
-
-
 # Training Agent
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -178,7 +169,7 @@ def train(args: Args) -> None:
     assert obs_space.shape is not None
     assert act_space.shape is not None
 
-    agent = make_agent(device, args)
+    agent = make_agent(args.agent_type, device)
     writer.add_text("agent", f"```{agent}```")
 
     last_model_save = 0
