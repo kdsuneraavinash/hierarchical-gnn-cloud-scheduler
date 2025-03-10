@@ -36,10 +36,11 @@ class BaseAgent(nn.Module, ABC):
 
         for batch_index in range(batch_size):
             decoded_obs = decode_env_obs(x[batch_index])
-            num_vms = decoded_obs.vm_completion_time.shape[0]
+            num_vms = decoded_obs.vm_features.shape[0]
 
             # --- Task Selection ---
-            task_logits: torch.Tensor = self.task_actor(decoded_obs)  # (Nt,)
+            task_response: tuple[torch.Tensor, torch.Tensor] = self.task_actor(decoded_obs)
+            task_logits, task_hs = task_response  # (Nt,), (Nt, E)
             task_probs = torch.softmax(task_logits, dim=0)
             task_dist = torch.distributions.Categorical(task_probs)
             chosen_task = task_dist.sample() if action is None else action[batch_index] // num_vms
@@ -47,7 +48,7 @@ class BaseAgent(nn.Module, ABC):
             task_entropy = task_dist.entropy()
 
             # --- VM Selection ---
-            vm_logits: torch.Tensor = self.vm_actor(decoded_obs, chosen_task)  # (Nv,)
+            vm_logits: torch.Tensor = self.vm_actor(decoded_obs, task_hs[chosen_task])  # (Nv,)
             vm_probs = torch.softmax(vm_logits, dim=0)
             vm_dist = torch.distributions.Categorical(vm_probs)
             chosen_vm = vm_dist.sample() if action is None else action[batch_index] % num_vms
@@ -77,16 +78,17 @@ class BaseAgent(nn.Module, ABC):
     def get_action_unbatched(self, x: torch.Tensor) -> torch.Tensor:
         x = x.to(self.device)
         decoded_obs = decode_env_obs(x)
-        num_vms = decoded_obs.vm_completion_time.shape[0]
+        num_vms = decoded_obs.vm_features.shape[0]
 
         # --- Task Selection ---
-        task_logits: torch.Tensor = self.task_actor(decoded_obs)  # (Nt,)
+        task_response: tuple[torch.Tensor, torch.Tensor] = self.task_actor(decoded_obs)  # (Nt,)
+        task_logits, task_hs = task_response  # (Nt,), (Nt, E)
         task_probs = torch.softmax(task_logits, dim=0)
         task_dist = torch.distributions.Categorical(task_probs)
         chosen_task = task_dist.sample()
 
         # --- VM Selection ---
-        vm_logits: torch.Tensor = self.vm_actor(decoded_obs, chosen_task)  # (Nv,)
+        vm_logits: torch.Tensor = self.vm_actor(decoded_obs, task_hs[chosen_task])  # (Nv,)
         vm_probs = torch.softmax(vm_logits, dim=0)
         vm_dist = torch.distributions.Categorical(vm_probs)
         chosen_vm = vm_dist.sample()

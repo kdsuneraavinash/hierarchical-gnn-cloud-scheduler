@@ -146,3 +146,11 @@ class Solution:
             host = self.dataset.hosts[vm.host_id]
             energy_consumption += host.active_power_consumption(task)
         return energy_consumption
+
+    def sla_penalty(self) -> float:
+        sla_penalty: float = 0
+        for assignment in self.vm_assignments:
+            task = self.dataset.tasks[assignment.task_id]
+            vm = self.dataset.vms[assignment.vm_id]
+            sla_penalty += vm.penalty(task)
+        return sla_penalty

@@ -209,6 +209,7 @@ def train(args: Args) -> None:
     table.add_column("phase", width=10)
     table.add_column("makespan", width=15)
     table.add_column("energy_consumption", width=15)
+    table.add_column("sla_penalty", width=15)
 
     for iteration in range(1, args.num_iterations + 1):
         table.update("iter", value=iteration)
@@ -345,8 +346,10 @@ def train(args: Args) -> None:
             test_results = test_agent(agent, args)
             writer.add_scalar("tests/makespan", test_results[0], global_step)
             writer.add_scalar("tests/energy_consumption", test_results[1], global_step)
+            writer.add_scalar("tests/sla_penalty", test_results[2], global_step)
             table.update("makespan", value=test_results[0])
             table.update("energy_consumption", value=test_results[1])
+            table.update("sla_penalty", value=test_results[2])
 
         table.update("phase", value="done")
         if (global_step - last_model_save) >= 10_000:
@@ -368,9 +371,10 @@ def train(args: Args) -> None:
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float]:
+def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
     total_makespan = 0.0
     total_energy_consumption = 0.0
+    total_sla_penalty = 0.0
 
     for seed_index in range(args.test_iterations):
         dataset_args = args.dataset.copy_with_seed(100_000 + seed_index)
@@ -382,10 +386,12 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float]:
 
         total_makespan += solution.makespan()
         total_energy_consumption += solution.energy_consumption()
+        total_sla_penalty += solution.sla_penalty()
 
     avg_makespan = total_makespan / args.test_iterations
     avg_energy_consumption = total_energy_consumption / args.test_iterations
-    return avg_makespan, avg_energy_consumption
+    avg_sla_penalty = total_sla_penalty / args.test_iterations
+    return avg_makespan, avg_energy_consumption, avg_sla_penalty
 
 
 if __name__ == "__main__":

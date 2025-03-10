@@ -16,14 +16,16 @@ from env.state import TaskState, VmState
 class EnvObs:
     task_features: np.ndarray[tuple[int, ...], Any]
     vm_features: np.ndarray[tuple[int, ...], Any]
-    task_dependency_edges: np.ndarray[tuple[int, ...], Any]
+    task_mask: np.ndarray[tuple[int, ...], Any]
+    task_dependencies: np.ndarray[tuple[int, ...], Any]
 
 
 @dataclass
 class EnvObsTensor:
     task_features: torch.Tensor  # (Nt, Ft)
     vm_features: torch.Tensor  # (Nv, Fv)
-    task_dependency_edges: torch.Tensor  # (2, Nd)
+    task_mask: torch.Tensor  # (Nv,)
+    task_dependencies: torch.Tensor  # (2, Nd)
 
 
 # Create
@@ -48,7 +50,8 @@ def create_env_obs(
                 dataset.tasks[t_id].priority,
             )
             for t_id in range(len(task_states))
-        ]
+        ],
+        dtype=np.float64,
     )
     vm_features = np.array(
         [
@@ -61,19 +64,22 @@ def create_env_obs(
                 dataset.vms[v_id].has_gpu,
             )
             for v_id in range(len(vm_states))
-        ]
+        ],
+        dtype=np.float64,
     )
 
     assert task_features.shape[1] == NUM_TASK_FEATURES, f"Unexpected feature count for tasks: {task_features.shape[1]}"
     assert vm_features.shape[1] == NUM_VM_FEATURES, f"Unexpected feature count for VMs: {vm_features.shape[1]}"
 
     # Task dependencies
-    task_dependency_edges = np.array(list(task_dependencies)).T.reshape(2, -1)
+    task_dependencies_arr = np.array(list(task_dependencies)).T.reshape(2, -1)
+    task_mask = np.array([task_state.is_ready for task_state in task_states])
 
     return EnvObs(
         task_features=task_features,
         vm_features=vm_features,
-        task_dependency_edges=task_dependency_edges,
+        task_mask=task_mask,
+        task_dependencies=task_dependencies_arr,
     )
 
 
@@ -84,14 +90,15 @@ def create_env_obs(
 def encode_env_obs(obs: EnvObs) -> np.ndarray[tuple[int, ...], Any]:
     num_tasks = obs.task_features.shape[0]
     num_vms = obs.vm_features.shape[0]
-    num_task_deps = obs.task_dependency_edges.shape[1]
+    num_task_deps = obs.task_dependencies.shape[1]
 
     arr = np.concatenate(
         [
             np.array([num_tasks, num_vms, num_task_deps], dtype=np.int32),  # Header
-            np.asarray(obs.task_features, dtype=np.int32).flatten(),  # num_tasks*NUM_TASK_FEATURES
-            np.asarray(obs.vm_features, dtype=np.int32).flatten(),  # num_vms*NUM_VM_FEATURES
-            np.asarray(obs.task_dependency_edges, dtype=np.int32).flatten(),  # num_task_deps*2
+            np.asarray(obs.task_features, dtype=np.float64).flatten(),  # num_tasks*NUM_TASK_FEATURES
+            np.asarray(obs.vm_features, dtype=np.float64).flatten(),  # num_vms*NUM_VM_FEATURES
+            np.asarray(obs.task_mask, dtype=np.int32),  # num_tasks
+            np.asarray(obs.task_dependencies, dtype=np.int32).flatten(),  # num_task_deps*2
         ]
     )
 
@@ -113,11 +120,13 @@ def decode_env_obs(tensor: torch.Tensor) -> EnvObsTensor:
     num_task_deps = int(tensor[2].long().item())
     tensor = tensor[3:]
 
-    task_features = tensor[: num_tasks * NUM_TASK_FEATURES].reshape(num_tasks, -1).long()
+    task_features = tensor[: num_tasks * NUM_TASK_FEATURES].reshape(num_tasks, -1)
     tensor = tensor[num_tasks * NUM_TASK_FEATURES :]
-    vm_features = tensor[: num_vms * NUM_VM_FEATURES].reshape(num_vms, -1).long()
+    vm_features = tensor[: num_vms * NUM_VM_FEATURES].reshape(num_vms, -1)
     tensor = tensor[num_vms * NUM_VM_FEATURES :]
-    task_dependency_edges = tensor[: num_task_deps * 2].reshape(2, num_task_deps).long()
+    task_mask = tensor[:num_tasks].long()
+    tensor = tensor[num_tasks:]
+    task_dependencies = tensor[: num_task_deps * 2].reshape(2, num_task_deps).long()
     tensor = tensor[num_task_deps * 2 :]
 
     assert not tensor.any(), "There are non-zero elements in the padding"
@@ -125,5 +134,6 @@ def decode_env_obs(tensor: torch.Tensor) -> EnvObsTensor:
     return EnvObsTensor(
         task_features=task_features,
         vm_features=vm_features,
-        task_dependency_edges=task_dependency_edges,
+        task_mask=task_mask,
+        task_dependencies=task_dependencies,
     )
