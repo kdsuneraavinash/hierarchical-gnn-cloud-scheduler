@@ -54,7 +54,7 @@ class Args:
     """number of test iterations"""
 
     # Algorithm specific arguments
-    total_timesteps: int = 500_000
+    total_timesteps: int = 200_000
     """total timesteps of the experiments"""
     learning_rate: float = 2.5e-4
     """the learning rate of the optimizer"""
@@ -92,7 +92,7 @@ class Args:
             host_count=4,
             vm_count=10,
             workflow_count=10,
-            gnp_min_n=20,
+            gnp_min_n=1,
             gnp_max_n=20,
             max_memory_gb=10,
             min_cpu_speed=500,

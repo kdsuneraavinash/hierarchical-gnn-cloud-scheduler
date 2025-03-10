@@ -77,7 +77,7 @@ def create_env_obs(
     task_state_ready_arr = np.array([task_state.is_ready for task_state in task_states])
 
     # Task dependencies
-    task_dependencies_arr = np.array(list(task_dependencies)).T
+    task_dependencies_arr = np.array(list(task_dependencies)).T.reshape(2, -1)
 
     return EnvObs(
         task_completion_time=task_completion_time_arr,

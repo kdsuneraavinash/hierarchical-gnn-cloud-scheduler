@@ -58,8 +58,8 @@ def generate_dataset(args: DatasetArgs) -> Dataset:
 
     hosts = generate_hosts(args, rng)
     vms = generate_vms(args, rng)
-    tasks = generate_tasks(args, rng)
     workflows = generate_workflows(args, rng)
+    tasks = generate_tasks(args, rng)
 
     dataset = Dataset(workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
     dataset.check_sanity()
@@ -79,8 +79,11 @@ def generate_hosts(args: DatasetArgs, rng: np.random.RandomState) -> list[Host]:
     with open(Path(__file__).parent / "data" / "host_specs.json", "r") as f:
         available_hosts: list[dict[str, Any]] = json.load(f)
 
+    host_count = rng.randint(2, args.host_count + 1)
+    args.context["host_count"] = str(host_count)
+
     hosts: list[Host] = []
-    for i in range(args.host_count):
+    for i in range(host_count):
         spec = available_hosts[rng.randint(0, len(available_hosts))]
         hosts.append(
             Host(
@@ -106,11 +109,15 @@ def generate_vms(args: DatasetArgs, rng: np.random.RandomState) -> list[Vm]:
     Generate a list of VMs with the specified number of VMs.
     """
 
+    host_count = int(args.context["host_count"])
+    vm_count = rng.randint(2, args.vm_count + 1)
+    args.context["vm_count"] = str(vm_count)
+
     vms: list[Vm] = []
-    for i in range(args.vm_count):
+    for i in range(vm_count):
         ram_mb = rng.randint(1, args.max_memory_gb + 1) * 1024
         cpu_speed = rng.randint(args.min_cpu_speed, args.max_cpu_speed + 1)
-        host_id = rng.randint(0, args.host_count)
+        host_id = rng.randint(0, host_count)
         vms.append(Vm(i, host_id, cpu_speed, memory_mb=ram_mb, disk_mb=1024, bandwidth_mbps=50, vmm="Xen"))
 
     args.context["vm_max_memory"] = str(max(vm.memory_mb for vm in vms))
@@ -218,8 +225,10 @@ def generate_tasks(args: DatasetArgs, rng: np.random.RandomState) -> list[Task]:
     Generate a list of tasks.
     """
 
+    workflow_count = int(args.context["workflow_count"])
+
     tasks: list[Task] = []
-    for workflow_id in range(args.workflow_count):
+    for workflow_id in range(workflow_count):
         dag = generate_dag(args, rng)
         tasks.extend(
             [
@@ -246,9 +255,12 @@ def generate_workflows(args: DatasetArgs, rng: np.random.RandomState) -> list[Wo
     Generate a list of workflows.
     """
 
+    workflow_count = rng.randint(2, args.workflow_count + 1)
+    args.context["workflow_count"] = str(workflow_count)
+
     arrival_time = 0
     workflows: list[Workflow] = []
-    for workflow_id in range(args.workflow_count):
+    for workflow_id in range(workflow_count):
         arrival_time += int(generate_poisson_delay(args, rng))
         workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
 
