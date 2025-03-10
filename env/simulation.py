@@ -41,8 +41,6 @@ class Simulation:
             return f"{task_id=} {vm_id=}: Already scheduled task", True
         if not self.state.task_states[task_id].is_ready:
             return f"{task_id=} {vm_id=}: Not ready task", True
-        if not vm.is_compatible(task):
-            return f"{task_id=} {vm_id=}: Task/VM are not compatible", True
 
         child_task_ids = [c_id for (p_id, c_id) in self.state.task_dependencies if p_id == task_id]
         parent_task_ids = [p_id for (p_id, c_id) in self.state.task_dependencies if c_id == task_id]

@@ -23,7 +23,4 @@ class RoundRobinScheduler(BaseGreedyScheduler):
     def select_vm(self, task_id: int, dataset: Dataset, state: SimulationState) -> int:
         """Schedule the task on the next VM in the list."""
         self.vm_index = (self.vm_index + 1) % len(dataset.vms)
-        while not dataset.vms[self.vm_index].is_compatible(dataset.tasks[task_id]):
-            self.vm_index = (self.vm_index + 1) % len(dataset.vms)
-
         return self.vm_index

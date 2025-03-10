@@ -25,8 +25,6 @@ class EnergyAwareSchduler(BaseDynamicScheduler):
             task = dataset.tasks[task_id]
 
             for vm in dataset.vms:
-                if not vm.is_compatible(task):
-                    continue
                 energy = dataset.hosts[vm.host_id].active_power_consumption(task)
                 completion_time = state.vm_states[vm.id].completion_time
 

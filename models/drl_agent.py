@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import global_mean_pool
 
+from constants import NUM_TASK_FEATURES, NUM_VM_FEATURES
 from env.observation import EnvObsTensor
 from models.base_agent import BaseAgent
 
@@ -22,9 +23,9 @@ class TaskAgentActor(nn.Module):
         super().__init__()
         self.device = device
 
-        # [2] -> [hidden] -> [hidden] -> [1]
+        # [NUM_TASK_FEATURES] -> [hidden] -> [hidden] -> [1]
         self.network = nn.Sequential(
-            nn.Linear(2, hidden_dim),
+            nn.Linear(NUM_TASK_FEATURES, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
@@ -34,12 +35,8 @@ class TaskAgentActor(nn.Module):
         ).to(device)
 
     def forward(self, obs: EnvObsTensor) -> torch.Tensor:
-        task_features = torch.stack([obs.task_completion_time, obs.task_state_scheduled], dim=-1)  # (Nt, 2)
-        task_scores: torch.Tensor = self.network(task_features)  # (Nt, 1)
-        task_scores = task_scores.flatten()  # (Nt)
-
-        task_scores[obs.task_state_ready == 0] = -1e8
-        return task_scores
+        task_scores: torch.Tensor = self.network(obs.task_features)  # (Nt, 1)
+        return task_scores.flatten()  # (Nt)
 
 
 # VM Agent Actor
@@ -51,9 +48,9 @@ class VmAgentActor(nn.Module):
         super().__init__()
         self.device = device
 
-        # [2] -> [hidden] -> [hidden] -> [embedding]
+        # [NUM_VM_FEATURES] -> [hidden] -> [hidden] -> [embedding]
         self.network = nn.Sequential(
-            nn.Linear(2, hidden_dim),
+            nn.Linear(NUM_TASK_FEATURES + NUM_VM_FEATURES, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
@@ -63,12 +60,8 @@ class VmAgentActor(nn.Module):
         ).to(device)
 
     def forward(self, obs: EnvObsTensor, task_id: torch.Tensor) -> torch.Tensor:
-        vm_features = torch.stack([obs.vm_completion_time, obs.task_vm_time_cost[task_id]], dim=-1)  # (Nv, 2)
-        vm_scores: torch.Tensor = self.network(vm_features)  # (Nv, 1)
-        vm_scores = vm_scores.flatten()  # (Nv)
-
-        vm_scores[torch.where(obs.task_vm_compatibilities[task_id] == 0)] = -1e8
-        return vm_scores
+        vm_scores: torch.Tensor = self.network(obs.vm_features)  # (Nv, 1)
+        return vm_scores.flatten()  # (Nv)
 
 
 # Agent Critic

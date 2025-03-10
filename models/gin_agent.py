@@ -83,7 +83,9 @@ class VmAgentActor(nn.Module):
 
     def forward(self, obs: EnvObsTensor, task_id: torch.Tensor) -> torch.Tensor:
         # --- Encode VMs ---
-        vm_features = torch.stack([obs.vm_completion_time, obs.task_vm_time_cost[task_id]], dim=-1)  # (Nv, 2)
+        vm_features = torch.stack(
+            [obs.vm_completion_time, obs.task_vm_time_cost[task_id], obs.task_vm_compatibilities[task_id]], dim=-1
+        )  # (Nv, 2)
         vm_h: torch.Tensor = self.vm_encoder(vm_features)  # hv^L - (Nv, E)
         graph_embedding = mean_pool(vm_h, self.device)  # hG - (1, E)
 

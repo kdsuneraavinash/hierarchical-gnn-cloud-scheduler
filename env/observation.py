@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from constants import MAX_OBS_SIZE
+from constants import MAX_OBS_SIZE, NUM_TASK_FEATURES, NUM_VM_FEATURES
 from dataset.models import Dataset
 from env.state import TaskState, VmState
 
@@ -14,24 +14,16 @@ from env.state import TaskState, VmState
 
 @dataclass
 class EnvObs:
-    task_completion_time: np.ndarray[tuple[int, ...], Any]
-    task_state_scheduled: np.ndarray[tuple[int, ...], Any]
-    vm_completion_time: np.ndarray[tuple[int, ...], Any]
-    task_vm_time_cost: np.ndarray[tuple[int, ...], Any]
-    task_vm_compatibilities: np.ndarray[tuple[int, ...], Any]
-    task_state_ready: np.ndarray[tuple[int, ...], Any]
-    task_dependencies: np.ndarray[tuple[int, ...], Any]
+    task_features: np.ndarray[tuple[int, ...], Any]
+    vm_features: np.ndarray[tuple[int, ...], Any]
+    task_dependency_edges: np.ndarray[tuple[int, ...], Any]
 
 
 @dataclass
 class EnvObsTensor:
-    task_completion_time: torch.Tensor  # (Nt)
-    task_state_scheduled: torch.Tensor  # (Nt)
-    vm_completion_time: torch.Tensor  # (Nv)
-    task_vm_time_cost: torch.Tensor  # (Nt, Nv)
-    task_vm_compatibilities: torch.Tensor  # (Nt, Nv)
-    task_state_ready: torch.Tensor  # (Nt)
-    task_dependencies: torch.Tensor  # (Nd)
+    task_features: torch.Tensor  # (Nt, Ft)
+    vm_features: torch.Tensor  # (Nv, Fv)
+    task_dependency_edges: torch.Tensor  # (2, Nd)
 
 
 # Create
@@ -41,52 +33,47 @@ class EnvObsTensor:
 def create_env_obs(
     dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState], task_dependencies: set[tuple[int, int]]
 ) -> EnvObs:
-    # Task completion time - LB(O_i)
-    # For tasks that are not scheduled, fill the completion time with the maximum completion time
-    # max(LB(O_parent) + min(P(i, k)))
-    task_completion_time = [task_state.completion_time for task_state in task_states]
-    for t_id, task_state in enumerate(task_states):
-        if task_state.assigned_vm_id is None:
-            task_completion_time[t_id] = max(
-                (task_completion_time[p_id] for p_id, c_id in task_dependencies if c_id == t_id),
-                default=0,
-            ) + min(
-                (vm.execution_time(dataset.tasks[t_id]) for vm in dataset.vms if vm.is_compatible(dataset.tasks[t_id])),
-                default=float("inf"),
+    task_features = np.array(
+        [
+            (
+                task_states[t_id].is_ready,
+                int(task_states[t_id].assigned_vm_id is not None),
+                task_states[t_id].completion_time,
+                dataset.tasks[t_id].length,
+                dataset.tasks[t_id].req_cpu_speed_mips,
+                dataset.tasks[t_id].req_memory_gb,
+                dataset.tasks[t_id].req_disk_gb,
+                dataset.tasks[t_id].req_bandwidth_mbps,
+                dataset.tasks[t_id].req_gpu,
+                dataset.tasks[t_id].priority,
             )
-    task_completion_time_arr = np.array(task_completion_time)
+            for t_id in range(len(task_states))
+        ]
+    )
+    vm_features = np.array(
+        [
+            (
+                vm_states[v_id].completion_time,
+                dataset.vms[v_id].cpu_speed_mips,
+                dataset.vms[v_id].memory_gb,
+                dataset.vms[v_id].disk_gb,
+                dataset.vms[v_id].bandwidth_mbps,
+                dataset.vms[v_id].has_gpu,
+            )
+            for v_id in range(len(vm_states))
+        ]
+    )
 
-    # Whether a task is already scheduled - I(O_i)
-    task_state_scheduled_arr = np.array([task_state.assigned_vm_id is not None for task_state in task_states])
-
-    # VM completion time - T(M_k)
-    vm_completion_time_arr = np.array([vm_state.completion_time for vm_state in vm_states])
-
-    # Whether a task is compatible with a VM - Constraint
-    task_vm_comp_arr = np.array([[int(vm.is_compatible(task)) for vm in dataset.vms] for task in dataset.tasks])
-
-    # Task-VM execution time matrix - P(i, k)
-    # For incompatible task-vm combinations, fill the time cost with the average time cost of other compatible tasks
-    task_vm_time_cost_o = np.array([[vm.execution_time(task) for vm in dataset.vms] for task in dataset.tasks])
-    total_time_per_task = (task_vm_comp_arr * task_vm_time_cost_o).sum(axis=1)
-    mean_time_per_task: np.ndarray[tuple[int, ...], Any] = total_time_per_task / task_vm_comp_arr.sum(axis=1)
-    mean_time_per_task = mean_time_per_task.reshape(-1, 1).repeat(len(dataset.vms), axis=1)
-    task_vm_time_cost_arr = np.where(task_vm_comp_arr == 0, mean_time_per_task, task_vm_time_cost_o)
-
-    # Whether a task is ready to be scheduled - Constraint
-    task_state_ready_arr = np.array([task_state.is_ready for task_state in task_states])
+    assert task_features.shape[1] == NUM_TASK_FEATURES, f"Unexpected feature count for tasks: {task_features.shape[1]}"
+    assert vm_features.shape[1] == NUM_VM_FEATURES, f"Unexpected feature count for VMs: {vm_features.shape[1]}"
 
     # Task dependencies
-    task_dependencies_arr = np.array(list(task_dependencies)).T.reshape(2, -1)
+    task_dependency_edges = np.array(list(task_dependencies)).T.reshape(2, -1)
 
     return EnvObs(
-        task_completion_time=task_completion_time_arr,
-        task_state_scheduled=task_state_scheduled_arr,
-        vm_completion_time=vm_completion_time_arr,
-        task_vm_time_cost=task_vm_time_cost_arr,
-        task_vm_compatibilities=task_vm_comp_arr,
-        task_state_ready=task_state_ready_arr,
-        task_dependencies=task_dependencies_arr,
+        task_features=task_features,
+        vm_features=vm_features,
+        task_dependency_edges=task_dependency_edges,
     )
 
 
@@ -95,20 +82,16 @@ def create_env_obs(
 
 
 def encode_env_obs(obs: EnvObs) -> np.ndarray[tuple[int, ...], Any]:
-    num_tasks = obs.task_state_scheduled.shape[0]
-    num_vms = obs.vm_completion_time.shape[0]
-    num_task_deps = obs.task_dependencies.shape[1]
+    num_tasks = obs.task_features.shape[0]
+    num_vms = obs.vm_features.shape[0]
+    num_task_deps = obs.task_dependency_edges.shape[1]
 
     arr = np.concatenate(
         [
             np.array([num_tasks, num_vms, num_task_deps], dtype=np.int32),  # Header
-            np.asarray(obs.task_completion_time, dtype=np.float64),  # num_tasks
-            np.asarray(obs.task_state_scheduled, dtype=np.int32),  # num_tasks
-            np.asarray(obs.vm_completion_time, dtype=np.float64),  # num_vms
-            np.asarray(obs.task_vm_time_cost, dtype=np.float64).flatten(),  # num_tasks*num_vms
-            np.asarray(obs.task_vm_compatibilities, dtype=np.int32).flatten(),  # num_tasks*num_vms
-            np.asarray(obs.task_state_ready, dtype=np.int32),  # num_tasks
-            np.asarray(obs.task_dependencies, dtype=np.int32).flatten(),  # num_task_deps*2
+            np.asarray(obs.task_features, dtype=np.int32).flatten(),  # num_tasks*NUM_TASK_FEATURES
+            np.asarray(obs.vm_features, dtype=np.int32).flatten(),  # num_vms*NUM_VM_FEATURES
+            np.asarray(obs.task_dependency_edges, dtype=np.int32).flatten(),  # num_task_deps*2
         ]
     )
 
@@ -130,29 +113,17 @@ def decode_env_obs(tensor: torch.Tensor) -> EnvObsTensor:
     num_task_deps = int(tensor[2].long().item())
     tensor = tensor[3:]
 
-    task_completion_time = tensor[:num_tasks]
-    tensor = tensor[num_tasks:]
-    task_state_scheduled = tensor[:num_tasks].long()
-    tensor = tensor[num_tasks:]
-    vm_completion_time = tensor[:num_vms]
-    tensor = tensor[num_vms:]
-    task_vm_time_cost = tensor[: num_tasks * num_vms].reshape(num_tasks, num_vms)
-    tensor = tensor[num_tasks * num_vms :]
-    task_vm_compatibilities = tensor[: num_tasks * num_vms].reshape(num_tasks, num_vms)
-    tensor = tensor[num_tasks * num_vms :]
-    task_state_ready = tensor[:num_tasks].long()
-    tensor = tensor[num_tasks:]
-    task_dependencies = tensor[: num_task_deps * 2].reshape(2, num_task_deps).long()
+    task_features = tensor[: num_tasks * NUM_TASK_FEATURES].reshape(num_tasks, -1).long()
+    tensor = tensor[num_tasks * NUM_TASK_FEATURES :]
+    vm_features = tensor[: num_vms * NUM_VM_FEATURES].reshape(num_vms, -1).long()
+    tensor = tensor[num_vms * NUM_VM_FEATURES :]
+    task_dependency_edges = tensor[: num_task_deps * 2].reshape(2, num_task_deps).long()
     tensor = tensor[num_task_deps * 2 :]
 
     assert not tensor.any(), "There are non-zero elements in the padding"
 
     return EnvObsTensor(
-        task_completion_time=task_completion_time,
-        task_state_scheduled=task_state_scheduled,
-        vm_completion_time=vm_completion_time,
-        task_vm_time_cost=task_vm_time_cost,
-        task_vm_compatibilities=task_vm_compatibilities,
-        task_state_ready=task_state_ready,
-        task_dependencies=task_dependencies,
+        task_features=task_features,
+        vm_features=vm_features,
+        task_dependency_edges=task_dependency_edges,
     )

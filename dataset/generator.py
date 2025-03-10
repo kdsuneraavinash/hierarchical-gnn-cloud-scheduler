@@ -19,14 +19,28 @@ class DatasetArgs:
     """number of hosts"""
     vm_count: int = 3
     """number of VMs"""
+    min_memory_gb: int = 1
+    """minimum amount of RAM for a VM (in GB)"""
     max_memory_gb: int = 10
     """maximum amount of RAM for a VM (in GB)"""
+    min_disk_gb: int = 1
+    """minimum amount of disk for a VM (in GB)"""
+    max_disk_gb: int = 10
+    """maximum amount of disk for a VM (in GB)"""
+    min_bandwidth_mb: int = 10
+    """minimum amount of bandwidth for a VM (in MB)"""
+    max_bandwidth_mb: int = 100
+    """maximum amount of bandwidth for a VM (in MB)"""
+    gpu_percentage: float = 0.5
+    """percentage of VMs with GPU access (probability)"""
     min_cpu_speed: int = 500
     """minimum CPU speed in MIPS"""
     max_cpu_speed: int = 5000
     """maximum CPU speed in MIPS"""
-    workflow_count: int = 5
-    """number of workflows"""
+    min_workflow_count: int = 2
+    """minimum number of workflows"""
+    max_workflow_count: int = 5
+    """maximum number of workflows"""
     dag_method: str = "gnp"
     """DAG generation method (pegasus, gnp)"""
     gnp_min_n: int = 1
@@ -41,6 +55,8 @@ class DatasetArgs:
     """maximum task length"""
     arrival_rate: float = 3
     """arrival rate of workflows/second (for dynamic arrival)"""
+    task_priority_levels: int = 5
+    """number of priority levels of a task"""
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
@@ -90,8 +106,8 @@ def generate_hosts(args: DatasetArgs, rng: np.random.RandomState) -> list[Host]:
                 id=i,
                 cores=int(spec["cores"]),
                 cpu_speed_mips=int(spec["cpu_speed_gips"] * 1e3),
-                memory_mb=int(spec["memory_gb"] * 1024),
-                disk_mb=int(spec["disk_tb"] * 1e6),
+                memory_gb=int(spec["memory_gb"]),
+                disk_gb=int(spec["disk_tb"] * 1e3),
                 bandwidth_mbps=int(spec["bandwidth_gbps"] * 1024),
                 power_idle_watt=int(spec["power_idle_watt"]),
                 power_peak_watt=int(spec["power_peak_watt"]),
@@ -113,24 +129,18 @@ def generate_vms(args: DatasetArgs, rng: np.random.RandomState) -> list[Vm]:
     vm_count = rng.randint(2, args.vm_count + 1)
     args.context["vm_count"] = str(vm_count)
 
-    vms: list[Vm] = []
-    for i in range(vm_count):
-        ram_mb = rng.randint(1, args.max_memory_gb + 1) * 1024
-        cpu_speed = rng.randint(args.min_cpu_speed, args.max_cpu_speed + 1)
-        host_id = rng.randint(0, host_count)
-        vms.append(Vm(i, host_id, cpu_speed, memory_mb=ram_mb, disk_mb=1024, bandwidth_mbps=50, vmm="Xen"))
-
-    args.context["vm_max_memory"] = str(max(vm.memory_mb for vm in vms))
-    return vms
-
-
-# Generating Memory
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-def generate_task_memory(args: DatasetArgs, rng: np.random.RandomState) -> int:
-    vm_max_memory = int(args.context["vm_max_memory"])
-    return (1 + rng.randint(0, vm_max_memory // 1024)) * 1024
+    return [
+        Vm(
+            id=i,
+            host_id=rng.randint(0, host_count),
+            cpu_speed_mips=rng.randint(args.min_cpu_speed, args.max_cpu_speed + 1),
+            memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
+            disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
+            bandwidth_mbps=rng.randint(args.min_bandwidth_mb, args.max_bandwidth_mb + 1),
+            has_gpu=rng.random() <= args.gpu_percentage,
+        )
+        for i in range(vm_count)
+    ]
 
 
 # Generating Task Length
@@ -236,8 +246,13 @@ def generate_tasks(args: DatasetArgs, rng: np.random.RandomState) -> list[Task]:
                     id=len(tasks) + task_id,
                     workflow_id=workflow_id,
                     length=int(generate_task_length(args, rng)),
-                    req_memory_mb=generate_task_memory(args, rng),
                     child_ids=[len(tasks) + child_id for child_id in child_ids],
+                    req_cpu_speed_mips=rng.randint(args.min_cpu_speed, args.max_cpu_speed + 1),
+                    req_memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
+                    req_disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
+                    req_bandwidth_mbps=rng.randint(args.min_bandwidth_mb, args.max_bandwidth_mb + 1),
+                    req_gpu=rng.random() <= args.gpu_percentage,
+                    priority=rng.randint(0, args.task_priority_levels + 1) / args.task_priority_levels,
                 )
                 for task_id, child_ids in dag.items()
             ]
@@ -255,7 +270,7 @@ def generate_workflows(args: DatasetArgs, rng: np.random.RandomState) -> list[Wo
     Generate a list of workflows.
     """
 
-    workflow_count = rng.randint(2, args.workflow_count + 1)
+    workflow_count = rng.randint(args.min_workflow_count, args.max_workflow_count + 1)
     args.context["workflow_count"] = str(workflow_count)
 
     arrival_time = 0

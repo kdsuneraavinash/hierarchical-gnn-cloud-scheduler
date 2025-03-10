@@ -12,7 +12,7 @@ def plot_workflow_graphs(ax: plt.Axes, solution: Solution) -> None:
 
     g_w: nx.DiGraph = nx.DiGraph()
     for task in solution.dataset.tasks:
-        node_label = f"T{task.id}\n{task.length} MI\n{task.req_memory_mb // 1024} GB"
+        node_label = f"T{task.id}\n{task.length} MI\n{task.req_memory_gb // 1024} GB"
         node_color = get_color(task.workflow_id)
         g_w.add_node(str(task.id), label=node_label, fillcolor=node_color, style="filled", fontname="Arial")
         for child_id in task.child_ids:

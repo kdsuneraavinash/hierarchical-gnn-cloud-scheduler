@@ -32,13 +32,13 @@ def plot_gantt_chart(ax: plt.Axes, solution: Solution, label: bool = True) -> No
             ax.text(
                 x=assigned_task.start_time + execution_time / 2,
                 y=int(assigned_task.vm_id),
-                s=f"T{task.id}\n{task.length}MI\n{task.req_memory_mb // 1024}GB",
+                s=f"T{task.id}\n{task.length}MI\n{task.req_memory_gb // 1024}GB",
                 ha="center",
                 va="center",
             )
 
     ax.set_yticks(range(len(solution.dataset.vms)))
     ax.set_yticklabels(
-        [f"VM {vm.id}\n{int(vm.cpu_speed_mips)}MIPS\n{vm.memory_mb // 1024}GB" for vm in solution.dataset.vms]
+        [f"VM {vm.id}\n{int(vm.cpu_speed_mips)}MIPS\n{vm.memory_gb // 1024}GB" for vm in solution.dataset.vms]
     )
     ax.set_xlabel("Time")

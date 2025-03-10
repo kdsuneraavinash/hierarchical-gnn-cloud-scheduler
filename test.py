@@ -39,7 +39,8 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         MaxMinScheduler(),
         RoundRobinScheduler(),
         EnergyAwareSchduler(),
-        DrlAgentScheduler(name="Proposed", model_path="logs/1741426371_test/model.pt", agent_type="gin"),
+        DrlAgentScheduler(name="GIN", model_path="logs/1741578417_gin/model.pt", agent_type="gin"),
+        DrlAgentScheduler(name="DRL", model_path="logs/1741586970_drl/model.pt", agent_type="drl"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=INT_INFINITY, pbar_embedded=False, pbar_show_eta=True)
@@ -114,10 +115,10 @@ if __name__ == "__main__":
         generate_dataset(
             DatasetArgs(
                 seed=200_000 + i,
-                host_count=4,
-                vm_count=10,
-                workflow_count=10,
-                gnp_min_n=20,
+                host_count=3,
+                vm_count=5,
+                max_workflow_count=5,
+                gnp_min_n=5,
                 gnp_max_n=20,
                 max_memory_gb=10,
                 min_cpu_speed=500,

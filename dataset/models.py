@@ -14,8 +14,13 @@ class Task:
     id: int
     workflow_id: int
     length: int
-    req_memory_mb: int
     child_ids: list[int]
+    req_cpu_speed_mips: int
+    req_memory_gb: int
+    req_disk_gb: int
+    req_bandwidth_mbps: int
+    req_gpu: bool
+    priority: float
 
 
 @dataclass
@@ -23,13 +28,30 @@ class Vm:
     id: int
     host_id: int
     cpu_speed_mips: int
-    memory_mb: int
-    disk_mb: int = -1
-    bandwidth_mbps: int = -1
-    vmm: str = "Xen"
+    memory_gb: int
+    disk_gb: int
+    bandwidth_mbps: int
+    has_gpu: bool
 
-    def is_compatible(self, task: Task) -> bool:
-        return self.memory_mb >= task.req_memory_mb
+    def is_fully_compatible(self, task: Task) -> bool:
+        return self.compatibility(task) > 0
+
+    def compatibility(self, task: Task) -> float:
+        score: float = 1
+        if self.memory_gb < task.req_memory_gb:
+            score -= 0.4
+        if self.cpu_speed_mips < task.req_cpu_speed_mips:
+            score -= 0.3
+        if self.disk_gb < task.req_disk_gb:
+            score -= 0.2
+        if self.bandwidth_mbps < task.req_bandwidth_mbps:
+            score -= 0.1
+        if (not self.has_gpu) and task.req_gpu:
+            score -= 0.3
+        return max(score, 0.0)
+
+    def penalty(self, task: Task) -> float:
+        return (1 - self.compatibility(task)) * task.priority
 
     def execution_time(self, task: Task) -> float:
         return task.length / self.cpu_speed_mips
@@ -42,8 +64,8 @@ class Host:
     cpu_speed_mips: int
     power_idle_watt: int
     power_peak_watt: int
-    memory_mb: int = -1
-    disk_mb: int = -1
+    memory_gb: int = -1
+    disk_gb: int = -1
     bandwidth_mbps: int = -1
 
     def active_power_consumption(self, task: Task) -> float:

@@ -18,7 +18,7 @@ def main() -> None:
         dataset_args=DatasetArgs(
             host_count=2,
             vm_count=2,
-            workflow_count=10,
+            max_workflow_count=10,
             gnp_min_n=20,
             gnp_max_n=20,
             max_memory_gb=10,

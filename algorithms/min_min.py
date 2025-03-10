@@ -34,9 +34,6 @@ class MinMinScheduler(BaseGreedyScheduler):
         best_vm = None
         best_vm_completion_time = float("inf")
         for vm in dataset.vms:
-            if not vm.is_compatible(dataset.tasks[task_id]):
-                continue
-
             min_start_time: float = max(
                 state.vm_states[vm.id].completion_time,
                 max(
