@@ -35,7 +35,7 @@ class DrlAgentScheduler(BaseDynamicScheduler):
         )
         encoded_obs = encode_env_obs(obs)
         encoded_obs_tensor = torch.Tensor(encoded_obs, device=self.agent.device)
-        action = self.agent.get_action_unbatched(encoded_obs_tensor)
+        action, _, _, _ = self.agent.get_action_and_value_unbatched(encoded_obs_tensor)
         task_id = int(action.item()) // len(dataset.vms)
         vm_id = int(action.item()) % len(dataset.vms)
 

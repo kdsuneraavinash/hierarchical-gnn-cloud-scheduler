@@ -4,7 +4,7 @@ from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn.models import GIN
 
 from constants import NUM_TASK_FEATURES, NUM_VM_FEATURES
-from env.observation import EnvObsTensor, decode_env_obs
+from env.observation import decode_env_obs
 from models.base_agent import BaseAgent
 
 
@@ -32,9 +32,8 @@ class TaskEncoder(nn.Module):
             out_channels=embedding_dim,
         ).to(device)
 
-    def forward(self, obs: EnvObsTensor) -> tuple[torch.Tensor, torch.Tensor]:
-        task_features = obs.task_features  # (Nt, Ft)
-        task_encoding: torch.Tensor = self.network(task_features, edge_index=obs.task_dependencies)  # (Nt, E)
+    def forward(self, task_features: torch.Tensor, dependencies: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        task_encoding: torch.Tensor = self.network(task_features, edge_index=dependencies)  # (Nt, E)
         task_pool = mean_pool(task_encoding, self.device)  # (1, E)
 
         return task_encoding, task_pool
@@ -56,8 +55,7 @@ class VmEncoder(nn.Module):
             nn.Linear(hidden_dim, embedding_dim),
         ).to(device)
 
-    def forward(self, obs: EnvObsTensor) -> tuple[torch.Tensor, torch.Tensor]:
-        vm_features = obs.vm_features  # (Nv, Fv)
+    def forward(self, vm_features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         vm_encoding: torch.Tensor = self.network(vm_features)  # (Nv, E)
         vm_pool = mean_pool(vm_encoding, self.device)  # (1, E)
 
@@ -138,102 +136,59 @@ class GinAgent(BaseAgent):
         self.vm_actor = AgentActor(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
         self.critic = AgentCritic(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
 
-    def get_value(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.to(self.device)
-        batch_size = x.shape[0]
-        values = []
+    def get_value_unbatched(self, x: torch.Tensor) -> torch.Tensor:
+        decoded_obs = decode_env_obs(x.to(self.device))
 
-        for batch_index in range(batch_size):
-            decoded_obs = decode_env_obs(x[batch_index])
+        task_features = decoded_obs.task_features  # (Nt, Ft)
+        _, task_pool = self.task_encoder(task_features, decoded_obs.task_dependencies)  # (1, E)
+        avg_vm_features = decoded_obs.vm_features.mean(dim=0)  # (Nv, Fv)
+        _, avg_vm_pool = self.vm_encoder(avg_vm_features)  # (1, E)
 
-            task_encoding_response: tuple[torch.Tensor, torch.Tensor] = self.task_encoder(decoded_obs)
-            _, task_pool = task_encoding_response  # (Nt, E), (1, E)
-            vm_encoding_response: tuple[torch.Tensor, torch.Tensor] = self.vm_encoder(decoded_obs)
-            _, vm_pool = vm_encoding_response  # (Nv, E), (1, E)
-            value: torch.Tensor = self.critic(task_pool, vm_pool)
-            values.append(value)
+        value: torch.Tensor = self.critic(task_pool, avg_vm_pool)
 
-        return torch.stack(values).to(self.device)
+        return value
 
-    def get_action_and_value(
+    def get_action_and_value_unbatched(
         self, x: torch.Tensor, action: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        x = x.to(self.device)
-        batch_size = x.shape[0]
-        all_chosen_actions, all_log_probs, all_entropies, all_values = [], [], [], []
+        decoded_obs = decode_env_obs(x.to(self.device))
+        num_vms = decoded_obs.vm_features.shape[1]
 
-        for batch_index in range(batch_size):
-            decoded_obs = decode_env_obs(x[batch_index])
-            num_vms = decoded_obs.vm_features.shape[0]
+        # --- Encode Tasks ---
+        task_features = decoded_obs.task_features  # (Nt, Ft)
+        dependencies = decoded_obs.task_dependencies
+        task_encoding, task_pool = self.task_encoder(task_features, dependencies)  # (Nt, E), (1, E)
 
-            # --- Encode ---
-            task_encoding_response: tuple[torch.Tensor, torch.Tensor] = self.task_encoder(decoded_obs)
-            task_encoding, task_pool = task_encoding_response  # (Nt, E), (1, E)
-            vm_encoding_response: tuple[torch.Tensor, torch.Tensor] = self.vm_encoder(decoded_obs)
-            vm_encoding, vm_pool = vm_encoding_response  # (Nv, E), (1, E)
-
-            # --- Task Selection ---
-            task_mask = decoded_obs.task_mask  # (Nt,)
-            task_logits: torch.Tensor = self.task_actor(task_encoding, task_mask, task_pool, vm_pool)  # (Nt,)
-            task_probs = torch.softmax(task_logits, dim=0)
-            task_dist = torch.distributions.Categorical(task_probs)
-            chosen_task = task_dist.sample() if action is None else action[batch_index] // num_vms
-            task_log_prob = task_dist.log_prob(chosen_task)
-            task_entropy = task_dist.entropy()
-
-            # --- VM Selection ---
-            vm_mask = torch.ones(num_vms)  # (Nv,)
-            vm_logits: torch.Tensor = self.vm_actor(vm_encoding, vm_mask, task_pool, vm_pool)  # (Nv,)
-            vm_probs = torch.softmax(vm_logits, dim=0)
-            vm_dist = torch.distributions.Categorical(vm_probs)
-            chosen_vm = vm_dist.sample() if action is None else action[batch_index] % num_vms
-            vm_log_prob = vm_dist.log_prob(chosen_vm)
-            vm_entropy = vm_dist.entropy()
-
-            # --- Compute Final Action & Value ---
-            chosen_action = chosen_task * num_vms + chosen_vm  # Encode action
-            total_log_prob = task_log_prob + vm_log_prob  # Combined log probability
-            total_entropy = task_entropy + vm_entropy  # Combined entropy
-
-            value: torch.Tensor = self.critic(task_pool, vm_pool)  # Value estimate from the critic
-
-            # --- Append Results ---
-            all_chosen_actions.append(chosen_action)
-            all_log_probs.append(total_log_prob)
-            all_entropies.append(total_entropy)
-            all_values.append(value)
-
-        chosen_actions = torch.stack(all_chosen_actions).to(self.device)
-        log_probs = torch.stack(all_log_probs).to(self.device)
-        entropies = torch.stack(all_entropies).to(self.device)
-        values = torch.stack(all_values).to(self.device)
-
-        return chosen_actions, log_probs, entropies, values
-
-    def get_action_unbatched(self, x: torch.Tensor) -> torch.Tensor:
-        x = x.to(self.device)
-        decoded_obs = decode_env_obs(x)
-        num_vms = decoded_obs.vm_features.shape[0]
-
-        # --- Encode ---
-        task_encoding_response: tuple[torch.Tensor, torch.Tensor] = self.task_encoder(decoded_obs)
-        task_encoding, task_pool = task_encoding_response  # (Nt, E), (1, E)
-        vm_encoding_response: tuple[torch.Tensor, torch.Tensor] = self.vm_encoder(decoded_obs)
-        vm_encoding, vm_pool = vm_encoding_response  # (Nv, E), (1, E)
+        # --- Encode the average VM ---
+        avg_vm_features = decoded_obs.vm_features.mean(dim=0)  # (Nv, Fv)
+        _, avg_vm_pool = self.vm_encoder(avg_vm_features)  # (Nv, E), (1, E)
 
         # --- Task Selection ---
         task_mask = decoded_obs.task_mask  # (Nt,)
-        task_logits: torch.Tensor = self.task_actor(task_encoding, task_mask, task_pool, vm_pool)  # (Nt,)
+        task_logits: torch.Tensor = self.task_actor(task_encoding, task_mask, task_pool, avg_vm_pool)  # (Nt,)
         task_probs = torch.softmax(task_logits, dim=0)
         task_dist = torch.distributions.Categorical(task_probs)
-        chosen_task = task_dist.sample()
+        chosen_task = task_dist.sample() if action is None else action // num_vms
+        task_log_prob = task_dist.log_prob(chosen_task)
+        task_entropy = task_dist.entropy()
+
+        # --- Encode the specific VM ---
+        vm_features = decoded_obs.vm_features.mean(dim=0)  # (Nv, Fv)
+        vm_encoding, vm_pool = self.vm_encoder(vm_features)  # (Nv, E), (1, E)
 
         # --- VM Selection ---
         vm_mask = torch.ones(num_vms)  # (Nv,)
         vm_logits: torch.Tensor = self.vm_actor(vm_encoding, vm_mask, task_pool, vm_pool)  # (Nv,)
         vm_probs = torch.softmax(vm_logits, dim=0)
         vm_dist = torch.distributions.Categorical(vm_probs)
-        chosen_vm = vm_dist.sample()
+        chosen_vm = vm_dist.sample() if action is None else action % num_vms
+        vm_log_prob = vm_dist.log_prob(chosen_vm)
+        vm_entropy = vm_dist.entropy()
 
-        chosen_action: torch.Tensor = chosen_task * num_vms + chosen_vm
-        return chosen_action
+        # --- Compute Final Action & Value ---
+        chosen_action = chosen_task * num_vms + chosen_vm  # Encode action
+        total_log_prob = task_log_prob + vm_log_prob  # Combined log probability
+        total_entropy = task_entropy + vm_entropy  # Combined entropy
+        value: torch.Tensor = self.critic(task_pool, vm_pool)  # Value estimate from the critic
+
+        return chosen_action, total_log_prob, total_entropy, value

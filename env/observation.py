@@ -23,7 +23,7 @@ class EnvObs:
 @dataclass
 class EnvObsTensor:
     task_features: torch.Tensor  # (Nt, Ft)
-    vm_features: torch.Tensor  # (Nv, Fv)
+    vm_features: torch.Tensor  # (Nt, Nv, Fv)
     task_mask: torch.Tensor  # (Nv,)
     task_dependencies: torch.Tensor  # (2, Nd)
 
@@ -35,19 +35,22 @@ class EnvObsTensor:
 def create_env_obs(
     dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState], task_dependencies: set[tuple[int, int]]
 ) -> EnvObs:
+    # For tasks that are not scheduled, fill the completion time with the maximum completion time
+    # max(LB(O_parent) + min(P(i, k)))
+    task_completion_time = [task_state.completion_time for task_state in task_states]
+    best_vm = max(dataset.vms, key=lambda vm: vm.cpu_speed_mips)
+    for t_id, task_state in enumerate(task_states):
+        if task_state.assigned_vm_id is not None:
+            task_completion_time[t_id] = max(
+                (task_completion_time[p_id] for p_id, c_id in task_dependencies if c_id == t_id), default=0
+            ) + best_vm.execution_time(dataset.tasks[t_id])
+
     task_features = np.array(
         [
             (
-                task_states[t_id].is_ready,
                 int(task_states[t_id].assigned_vm_id is not None),
-                task_states[t_id].completion_time,
+                task_completion_time[t_id],
                 dataset.tasks[t_id].length,
-                dataset.tasks[t_id].req_cpu_speed_mips,
-                dataset.tasks[t_id].req_memory_gb,
-                dataset.tasks[t_id].req_disk_gb,
-                dataset.tasks[t_id].req_bandwidth_mbps,
-                dataset.tasks[t_id].req_gpu,
-                dataset.tasks[t_id].priority,
             )
             for t_id in range(len(task_states))
         ],
@@ -55,21 +58,20 @@ def create_env_obs(
     )
     vm_features = np.array(
         [
-            (
-                vm_states[v_id].completion_time,
-                1 / dataset.vms[v_id].cpu_speed_mips,
-                dataset.vms[v_id].memory_gb,
-                dataset.vms[v_id].disk_gb,
-                dataset.vms[v_id].bandwidth_mbps,
-                dataset.vms[v_id].has_gpu,
-            )
-            for v_id in range(len(vm_states))
+            [
+                (
+                    vm_states[v_id].completion_time,
+                    dataset.vms[v_id].execution_time(dataset.tasks[t_id]),
+                )
+                for v_id in range(len(vm_states))
+            ]
+            for t_id in range(len(task_states))
         ],
         dtype=np.float64,
     )
 
-    assert task_features.shape[1] == NUM_TASK_FEATURES, f"Unexpected feature count for tasks: {task_features.shape[1]}"
-    assert vm_features.shape[1] == NUM_VM_FEATURES, f"Unexpected feature count for VMs: {vm_features.shape[1]}"
+    assert task_features.shape[-1] == NUM_TASK_FEATURES, f"Unexpected feature count for tasks: {task_features.shape[1]}"
+    assert vm_features.shape[-1] == NUM_VM_FEATURES, f"Unexpected feature count for VMs: {vm_features.shape[1]}"
 
     # Task dependencies
     task_dependencies_arr = np.array(list(task_dependencies)).T.reshape(2, -1)
@@ -89,14 +91,14 @@ def create_env_obs(
 
 def encode_env_obs(obs: EnvObs) -> np.ndarray[tuple[int, ...], Any]:
     num_tasks = obs.task_features.shape[0]
-    num_vms = obs.vm_features.shape[0]
+    num_vms = obs.vm_features.shape[1]
     num_task_deps = obs.task_dependencies.shape[1]
 
     arr = np.concatenate(
         [
             np.array([num_tasks, num_vms, num_task_deps], dtype=np.int32),  # Header
             np.asarray(obs.task_features, dtype=np.float64).flatten(),  # num_tasks*NUM_TASK_FEATURES
-            np.asarray(obs.vm_features, dtype=np.float64).flatten(),  # num_vms*NUM_VM_FEATURES
+            np.asarray(obs.vm_features, dtype=np.float64).flatten(),  # num_tasks*num_vms*NUM_VM_FEATURES
             np.asarray(obs.task_mask, dtype=np.int32),  # num_tasks
             np.asarray(obs.task_dependencies, dtype=np.int32).flatten(),  # num_task_deps*2
         ]
@@ -122,8 +124,8 @@ def decode_env_obs(tensor: torch.Tensor) -> EnvObsTensor:
 
     task_features = tensor[: num_tasks * NUM_TASK_FEATURES].reshape(num_tasks, -1)
     tensor = tensor[num_tasks * NUM_TASK_FEATURES :]
-    vm_features = tensor[: num_vms * NUM_VM_FEATURES].reshape(num_vms, -1)
-    tensor = tensor[num_vms * NUM_VM_FEATURES :]
+    vm_features = tensor[: num_tasks * num_vms * NUM_VM_FEATURES].reshape(num_tasks, num_vms, -1)
+    tensor = tensor[num_tasks * num_vms * NUM_VM_FEATURES :]
     task_mask = tensor[:num_tasks].long()
     tensor = tensor[num_tasks:]
     task_dependencies = tensor[: num_task_deps * 2].reshape(2, num_task_deps).long()

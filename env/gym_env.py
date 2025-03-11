@@ -73,13 +73,14 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         curr_makespan = max(vm.completion_time for vm in self.simulation.state.vm_states)
         curr_energy_consumption = sum(task.energy_consumption for task in self.simulation.state.task_states)
         new_sla_penalty = self.simulation.dataset.vms[vm_id].penalty(self.simulation.dataset.tasks[task_id])
+        new_makespan = curr_makespan - self.prev_makespan
 
         self.prev_makespan = curr_makespan
         self.prev_energy_consumption = curr_energy_consumption
         self.prev_sla_penalty += new_sla_penalty
 
         if not done:
-            reward = -new_sla_penalty
+            reward = -new_makespan
             return encode_env_obs(obs), reward, False, False, {}
 
         reward = -self.prev_makespan
