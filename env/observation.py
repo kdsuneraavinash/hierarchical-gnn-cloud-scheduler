@@ -64,6 +64,7 @@ def create_env_obs(
                 (
                     vm_states[v_id].completion_time,
                     dataset.vms[v_id].execution_time(dataset.tasks[t_id]),
+                    dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption(dataset.tasks[t_id]),
                 )
                 for v_id in range(len(vm_states))
             ]
