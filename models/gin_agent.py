@@ -7,19 +7,11 @@ from constants import NUM_TASK_FEATURES, NUM_VM_FEATURES
 from env.observation import decode_env_obs
 from models.base_agent import BaseAgent
 
-
-def mean_pool(embedding: torch.Tensor, device: torch.device, num_batches: int = 1) -> torch.Tensor:
-    batch_vector = torch.arange(num_batches, dtype=torch.long, device=device)
-    batch_vector = batch_vector.repeat_interleave(embedding.shape[0] // num_batches)
-    mean_pool: torch.Tensor = global_mean_pool(embedding, batch=batch_vector)
-    return mean_pool
-
-
 # Encoders
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class TaskEncoder(nn.Module):
+class GinTaskEncoder(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
@@ -34,12 +26,12 @@ class TaskEncoder(nn.Module):
 
     def forward(self, task_features: torch.Tensor, dependencies: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         task_encoding: torch.Tensor = self.network(task_features, edge_index=dependencies)  # (Nt, E)
-        task_pool = mean_pool(task_encoding, self.device)  # (1, E)
+        task_pool = global_mean_pool(task_encoding, batch=None)  # (1, E)
 
         return task_encoding, task_pool
 
 
-class VmEncoder(nn.Module):
+class GinVmEncoder(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
@@ -57,7 +49,7 @@ class VmEncoder(nn.Module):
 
     def forward(self, vm_features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         vm_encoding: torch.Tensor = self.network(vm_features)  # (Nv, E)
-        vm_pool = mean_pool(vm_encoding, self.device)  # (1, E)
+        vm_pool = global_mean_pool(vm_encoding, batch=None)  # (1, E)
 
         return vm_encoding, vm_pool
 
@@ -66,7 +58,7 @@ class VmEncoder(nn.Module):
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class AgentActor(nn.Module):
+class GinAgentActor(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
@@ -99,7 +91,7 @@ class AgentActor(nn.Module):
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class AgentCritic(nn.Module):
+class GinAgentCritic(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
@@ -124,17 +116,15 @@ class AgentCritic(nn.Module):
 
 
 class GinAgent(BaseAgent):
-    def __init__(self, device: torch.device):
+    def __init__(self, device: torch.device, embedding_dim: int = 32, hidden_dim: int = 64):
         super().__init__(device)
         self.device = device
 
-        embedding_dim = 32
-        hidden_dim = 64
-        self.task_encoder = TaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.vm_encoder = VmEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.task_actor = AgentActor(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.vm_actor = AgentActor(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.critic = AgentCritic(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.task_encoder = GinTaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.vm_encoder = GinVmEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.task_actor = GinAgentActor(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.vm_actor = GinAgentActor(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.critic = GinAgentCritic(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
 
     def get_value_unbatched(self, x: torch.Tensor) -> torch.Tensor:
         decoded_obs = decode_env_obs(x.to(self.device))

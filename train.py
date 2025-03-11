@@ -90,8 +90,9 @@ class Args:
         default_factory=lambda: DatasetArgs(
             host_count=4,
             vm_count=10,
+            min_workflow_count=10,
             max_workflow_count=10,
-            gnp_min_n=1,
+            gnp_min_n=20,
             gnp_max_n=20,
             max_memory_gb=10,
             min_cpu_speed=500,
