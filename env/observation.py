@@ -53,6 +53,10 @@ def create_env_obs(
                 int(task_states[t_id].assigned_vm_id is not None),
                 task_completion_time[t_id],
                 dataset.tasks[t_id].length,
+                dataset.tasks[t_id].priority,
+                dataset.preference.makespan,
+                dataset.preference.energy_consumption,
+                dataset.preference.sla_penalty,
             )
             for t_id in range(len(task_states))
         ],
@@ -65,6 +69,10 @@ def create_env_obs(
                     vm_states[v_id].completion_time,
                     dataset.vms[v_id].execution_time(dataset.tasks[t_id]),
                     dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption(dataset.tasks[t_id]),
+                    dataset.vms[v_id].penalty(dataset.tasks[t_id]),
+                    dataset.preference.makespan,
+                    dataset.preference.energy_consumption,
+                    dataset.preference.sla_penalty,
                 )
                 for v_id in range(len(vm_states))
             ]
