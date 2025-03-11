@@ -15,10 +15,14 @@ from dataset.models import Dataset, Host, Task, Vm, Workflow
 class DatasetArgs:
     seed: int | None = 42
     """random seed"""
-    host_count: int = 2
+    task_count: int
+    """number of tasks"""
+    max_host_count: int
     """number of hosts"""
-    vm_count: int = 3
+    max_vm_count: int
     """number of VMs"""
+    max_tasks_per_workflow: int = 10
+    """maximum number of tasks per workflow"""
     min_memory_gb: int = 1
     """minimum amount of RAM for a VM (in GB)"""
     max_memory_gb: int = 10
@@ -37,16 +41,6 @@ class DatasetArgs:
     """minimum CPU speed in MIPS"""
     max_cpu_speed: int = 5000
     """maximum CPU speed in MIPS"""
-    min_workflow_count: int = 2
-    """minimum number of workflows"""
-    max_workflow_count: int = 5
-    """maximum number of workflows"""
-    dag_method: str = "gnp"
-    """DAG generation method (pegasus, gnp)"""
-    gnp_min_n: int = 1
-    """minimum number of tasks per workflow (for G(n,p) method)"""
-    gnp_max_n: int = 10
-    """maximum number of tasks per workflow (for G(n,p) method)"""
     task_length_dist: str = "normal"
     """task length distribution (normal, uniform, left_skewed, right_skewed)"""
     min_task_length: int = 500
@@ -55,7 +49,7 @@ class DatasetArgs:
     """maximum task length"""
     arrival_rate: float = 3
     """arrival rate of workflows/second (for dynamic arrival)"""
-    task_priority_levels: int = 5
+    max_task_priority: int = 5
     """number of priority levels of a task"""
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
@@ -95,7 +89,7 @@ def generate_hosts(args: DatasetArgs, rng: np.random.RandomState) -> list[Host]:
     with open(Path(__file__).parent / "data" / "host_specs.json", "r") as f:
         available_hosts: list[dict[str, Any]] = json.load(f)
 
-    host_count = rng.randint(2, args.host_count + 1)
+    host_count = rng.randint(2, args.max_host_count + 1)
     args.context["host_count"] = str(host_count)
 
     hosts: list[Host] = []
@@ -126,7 +120,7 @@ def generate_vms(args: DatasetArgs, rng: np.random.RandomState) -> list[Vm]:
     """
 
     host_count = int(args.context["host_count"])
-    vm_count = rng.randint(2, args.vm_count + 1)
+    vm_count = rng.randint(2, args.max_vm_count + 1)
     args.context["vm_count"] = str(vm_count)
 
     return [
@@ -192,7 +186,7 @@ def generate_dag(args: DatasetArgs, rng: np.random.RandomState) -> dict[int, set
     If p is set to log(n + eps) / n where n is the number of generated nodes.
     """
 
-    n = rng.randint(args.gnp_min_n, args.gnp_max_n + 1)
+    n = int(args.context["workflow_task_count"])
     if n == 1:
         return {0: set()}
 
@@ -236,9 +230,11 @@ def generate_tasks(args: DatasetArgs, rng: np.random.RandomState) -> list[Task]:
     """
 
     workflow_count = int(args.context["workflow_count"])
+    workflow_task_counts = args.context["workflow_task_counts"].split(",")
 
     tasks: list[Task] = []
     for workflow_id in range(workflow_count):
+        args.context["workflow_task_count"] = workflow_task_counts[workflow_id]
         dag = generate_dag(args, rng)
         tasks.extend(
             [
@@ -252,12 +248,13 @@ def generate_tasks(args: DatasetArgs, rng: np.random.RandomState) -> list[Task]:
                     req_disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
                     req_bandwidth_mbps=rng.randint(args.min_bandwidth_mb, args.max_bandwidth_mb + 1),
                     req_gpu=rng.random() <= args.gpu_percentage,
-                    priority=rng.randint(0, args.task_priority_levels + 1) / args.task_priority_levels,
+                    priority=rng.randint(0, args.max_task_priority + 1),
                 )
                 for task_id, child_ids in dag.items()
             ]
         )
 
+    assert len(tasks) == args.task_count, f"Unexpected number of tasks generated: {len(tasks)}"
     return tasks
 
 
@@ -270,12 +267,18 @@ def generate_workflows(args: DatasetArgs, rng: np.random.RandomState) -> list[Wo
     Generate a list of workflows.
     """
 
-    workflow_count = rng.randint(args.min_workflow_count, args.max_workflow_count + 1)
-    args.context["workflow_count"] = str(workflow_count)
+    workflow_task_counts: list[int] = []
+    while sum(workflow_task_counts) < args.task_count:
+        task_count = rng.randint(1, args.max_tasks_per_workflow + 1)
+        task_count_cap = args.task_count - sum(workflow_task_counts)
+        workflow_task_counts.append(min(task_count, task_count_cap))
+
+    args.context["workflow_count"] = str(len(workflow_task_counts))
+    args.context["workflow_task_counts"] = str(",".join(map(str, workflow_task_counts)))
 
     arrival_time = 0
     workflows: list[Workflow] = []
-    for workflow_id in range(workflow_count):
+    for workflow_id in range(len(workflow_task_counts)):
         arrival_time += int(generate_poisson_delay(args, rng))
         workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
 

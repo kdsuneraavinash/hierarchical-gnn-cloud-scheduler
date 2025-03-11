@@ -1,5 +1,6 @@
 import random
 
+import icecream
 import numpy as np
 import torch
 
@@ -16,25 +17,21 @@ def main() -> None:
     agent = GinAgent(torch.device("cpu"))
     env = GymEnvironment(
         dataset_args=DatasetArgs(
-            host_count=2,
-            vm_count=2,
-            max_workflow_count=10,
-            gnp_min_n=20,
-            gnp_max_n=20,
-            max_memory_gb=10,
-            min_cpu_speed=500,
-            max_cpu_speed=5000,
-            min_task_length=500,
-            max_task_length=100_000,
-            dag_method="gnp",
+            task_count=100,
+            max_host_count=2,
+            max_vm_count=2,
+            max_tasks_per_workflow=20,
         )
     )
     obs, info = env.reset(seed=0)
     tensor_obs = torch.Tensor(obs)
+    curr_iter = 0
     while True:
         action, *_ = agent.get_action_and_value(tensor_obs.reshape(1, -1))
         obs, reward, terminated, truncated, info = env.step(np.int64(action.item()))
         tensor_obs = torch.Tensor(obs)
+        icecream.ic(curr_iter, action, reward)
+        curr_iter += 1
         if terminated or truncated:
             break
 
