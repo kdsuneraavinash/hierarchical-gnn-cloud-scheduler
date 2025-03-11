@@ -57,7 +57,7 @@ def create_env_obs(
         [
             (
                 vm_states[v_id].completion_time,
-                dataset.vms[v_id].cpu_speed_mips,
+                1 / dataset.vms[v_id].cpu_speed_mips,
                 dataset.vms[v_id].memory_gb,
                 dataset.vms[v_id].disk_gb,
                 dataset.vms[v_id].bandwidth_mbps,

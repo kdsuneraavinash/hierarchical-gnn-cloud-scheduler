@@ -8,10 +8,6 @@ from dataset.generator import DatasetArgs, generate_dataset
 from env.observation import create_env_obs, encode_env_obs
 from env.simulation import Simulation
 
-MAKESPAN_ALPHA = 10
-ENERGY_CONSUMPTION_ALPHA = 1
-SLA_PENALTY_ALPHA = 200
-
 
 class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     prev_makespan: float = 0
@@ -77,25 +73,15 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         curr_makespan = max(vm.completion_time for vm in self.simulation.state.vm_states)
         curr_energy_consumption = sum(task.energy_consumption for task in self.simulation.state.task_states)
         new_sla_penalty = self.simulation.dataset.vms[vm_id].penalty(self.simulation.dataset.tasks[task_id])
-        new_makespan = curr_makespan - self.prev_makespan
-        new_energy_consumption = curr_energy_consumption - self.prev_energy_consumption
 
         self.prev_makespan = curr_makespan
         self.prev_energy_consumption = curr_energy_consumption
         self.prev_sla_penalty += new_sla_penalty
 
         if not done:
-            reward = -(
-                MAKESPAN_ALPHA * new_makespan
-                + ENERGY_CONSUMPTION_ALPHA * new_energy_consumption
-                + SLA_PENALTY_ALPHA * new_sla_penalty
-            )
+            reward = -new_sla_penalty
             return encode_env_obs(obs), reward, False, False, {}
 
-        reward = -(
-            MAKESPAN_ALPHA * self.prev_makespan
-            + ENERGY_CONSUMPTION_ALPHA * self.prev_sla_penalty
-            + SLA_PENALTY_ALPHA * self.prev_energy_consumption
-        )
+        reward = -self.prev_makespan
         info = {"assignments": self.simulation.to_assignments()}
         return encode_env_obs(obs), reward, False, True, info

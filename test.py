@@ -39,13 +39,12 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         MaxMinScheduler(),
         RoundRobinScheduler(),
         EnergyAwareSchduler(),
-        DrlAgentScheduler(name="GIN", model_path="logs/1741578417_gin/model.pt", agent_type="gin"),
-        DrlAgentScheduler(name="DRL", model_path="logs/1741586970_drl/model.pt", agent_type="drl"),
+        DrlAgentScheduler(name="GIN", model_path="logs/1741631214_gin-sla/model.pt", agent_type="gin"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=INT_INFINITY, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(len(schedulers) * len(datasets)))
-    summary_data: list[tuple[str, float, float, float]] = []
+    summary_data: list[tuple[str, float, float, float, float]] = []
 
     for sch_i, scheduler in enumerate(schedulers):
         table.update("name", scheduler.name, width=15)
@@ -58,7 +57,8 @@ def run_evaluation(datasets: list[Dataset]) -> None:
             table.update("index", value=d_i)
             table.update("makespan", value=solution.makespan())
             table.update("energy_consumption", value=solution.energy_consumption())
-            table.update("run_time", value=run_end_time - run_start_time)
+            table.update("sla_penalty", value=solution.sla_penalty())
+            table.update("runtime", value=run_end_time - run_start_time)
             table.next_row()
             progress_bar.update(1)
 
@@ -66,17 +66,20 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         sch_end_i = sch_start_i + len(datasets)
         sch_makespan = table.at[sch_start_i:sch_end_i, 2]
         sch_e_consumption = table.at[sch_start_i:sch_end_i, 3]
-        sch_run_time = table.at[sch_start_i:sch_end_i, 4]
+        sch_sla_penalty = table.at[sch_start_i:sch_end_i, 4]
+        sch_runtime = table.at[sch_start_i:sch_end_i, 5]
 
         avg_makespan = sum(sch_makespan) / len(sch_makespan)
         avg_energy = sum(sch_e_consumption) / len(sch_e_consumption)
-        avg_runtime = sum(sch_run_time) / len(sch_run_time)
-        summary_data.append((scheduler.name, avg_makespan, avg_energy, avg_runtime))
+        avg_sla_penalty = sum(sch_sla_penalty) / len(sch_sla_penalty)
+        avg_runtime = sum(sch_runtime) / len(sch_runtime)
+        summary_data.append((scheduler.name, avg_makespan, avg_energy, avg_sla_penalty, avg_runtime))
 
         table.update("name", scheduler.name)
         table.update("makespan", value=avg_makespan, cell_color="bold")
         table.update("energy_consumption", value=avg_energy, cell_color="bold")
-        table.update("run_time", value=avg_runtime, cell_color="bold")
+        table.update("sla_penalty", value=avg_sla_penalty, cell_color="bold")
+        table.update("runtime", value=avg_runtime, cell_color="bold")
         table.next_row(split=True)
 
         # _, axes = plt.subplots(nrows=1, ncols=2)
@@ -93,11 +96,13 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         summary_table.update("name", row[0], width=15)
         summary_table.update("makespan", row[1], width=20)
         summary_table.update("energy_consumption", row[2], width=20)
-        summary_table.update("run_time", row[3], width=20)
+        summary_table.update("sla_penalty", row[3], width=20)
+        summary_table.update("runtime", row[4], width=10)
         summary_table.next_row()
     higlight_best_results(summary_table, 1)
     higlight_best_results(summary_table, 2)
     higlight_best_results(summary_table, 3)
+    higlight_best_results(summary_table, 4)
     summary_table.close()
 
     _, ax = plt.subplots(figsize=(8, 6))
@@ -115,10 +120,10 @@ if __name__ == "__main__":
         generate_dataset(
             DatasetArgs(
                 seed=200_000 + i,
-                host_count=3,
-                vm_count=5,
-                max_workflow_count=5,
-                gnp_min_n=5,
+                host_count=4,
+                vm_count=10,
+                max_workflow_count=10,
+                gnp_min_n=1,
                 gnp_max_n=20,
                 max_memory_gb=10,
                 min_cpu_speed=500,
