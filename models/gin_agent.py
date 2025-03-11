@@ -149,7 +149,7 @@ class GinAgent(BaseAgent):
         dependencies = decoded_obs.task_dependencies
         task_encoding, task_pool = self.task_encoder(task_features, dependencies)  # (Nt, E), (1, E)
 
-        # --- Encode the average VM ---
+        # --- Encode VMs (avg properties across tasks) ---
         avg_vm_features = decoded_obs.vm_features.mean(dim=0)  # (Nv, Fv)
         _, avg_vm_pool = self.vm_encoder(avg_vm_features)  # (Nv, E), (1, E)
 
@@ -162,12 +162,12 @@ class GinAgent(BaseAgent):
         task_log_prob = task_dist.log_prob(chosen_task)
         task_entropy = task_dist.entropy()
 
-        # --- Encode the specific VM ---
-        vm_features = decoded_obs.vm_features.mean(dim=0)  # (Nv, Fv)
+        # --- Encode the specific VM (with specific properties to the selected task) ---
+        vm_features = decoded_obs.vm_features[chosen_task]  # (Nv, Fv)
         vm_encoding, vm_pool = self.vm_encoder(vm_features)  # (Nv, E), (1, E)
 
         # --- VM Selection ---
-        vm_mask = torch.ones(num_vms)  # (Nv,)
+        vm_mask = torch.ones(num_vms, device=self.device)  # (Nv,)
         vm_logits: torch.Tensor = self.vm_actor(vm_encoding, vm_mask, task_pool, vm_pool)  # (Nv,)
         vm_probs = torch.softmax(vm_logits, dim=0)
         vm_dist = torch.distributions.Categorical(vm_probs)

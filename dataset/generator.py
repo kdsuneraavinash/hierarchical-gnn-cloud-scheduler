@@ -19,7 +19,7 @@ class DatasetArgs:
     """number of hosts"""
     max_vm_count: int
     """number of VMs"""
-    max_tasks_per_workflow: int = 10
+    max_tasks_per_workflow: int
     """maximum number of tasks per workflow"""
     min_memory_gb: int = 1
     """minimum amount of RAM for a VM (in GB)"""
