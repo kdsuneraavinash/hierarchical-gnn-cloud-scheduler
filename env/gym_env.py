@@ -12,10 +12,6 @@ from env.simulation import Simulation
 class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     _rng: np.random.RandomState | None = None
 
-    prev_makespan: float = 0
-    prev_energy_consumption: float = 0
-    prev_sla_penalty: float = 0
-
     def __init__(self, dataset_args: DatasetArgs):
         super().__init__()
         self.dataset_args = dataset_args
@@ -43,9 +39,6 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             vm_states=self.simulation.state.vm_states,
             task_dependencies=self.simulation.state.task_dependencies,
         )
-        self.prev_makespan = max(vm.completion_time for vm in self.simulation.state.vm_states)
-        self.prev_energy_consumption = sum(task.energy_consumption for task in self.simulation.state.task_states)
-        self.prev_sla_penalty = 0
         return encode_env_obs(obs), {}
 
     # Step
@@ -58,7 +51,10 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         vm_count = len(self.simulation.dataset.vms)
         task_id = int(action // vm_count)
         vm_id = int(action % vm_count)
+
+        prev_makespan = max(vm.completion_time for vm in self.simulation.state.vm_states)
         error, done = self.simulation.assign_vm(task_id, vm_id)
+        curr_makespan = max(vm.completion_time for vm in self.simulation.state.vm_states)
 
         obs = create_env_obs(
             dataset=self.simulation.dataset,
@@ -73,21 +69,19 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             print(f"Error: {error}")
             return encode_env_obs(obs), penalty, True, False, {"error": error}
 
-        curr_makespan = max(vm.completion_time for vm in self.simulation.state.vm_states)
-        curr_energy_consumption = sum(task.energy_consumption for task in self.simulation.state.task_states)
+        new_energy_consumption = self.simulation.state.task_states[task_id].energy_consumption
         new_sla_penalty = self.simulation.dataset.vms[vm_id].penalty(self.simulation.dataset.tasks[task_id])
-        # new_makespan = curr_makespan - self.prev_makespan -> Makespan objective
+        new_makespan = curr_makespan - prev_makespan
 
-        self.prev_makespan = curr_makespan
-        self.prev_energy_consumption = curr_energy_consumption
-        self.prev_sla_penalty += new_sla_penalty
+        preference = self.simulation.dataset.preference
+        reward = -(
+            new_makespan * preference.makespan
+            + new_energy_consumption * preference.energy_consumption
+            + new_sla_penalty * preference.sla_penalty
+        )
 
         if not done:
-            # reward = -new_makespan -> Makespan objective
-            reward = -self.simulation.state.task_states[task_id].energy_consumption
             return encode_env_obs(obs), reward, False, False, {}
 
-        # reward = -self.prev_makespan -> Makespan objective
-        reward = -self.prev_energy_consumption
         info = {"assignments": self.simulation.to_assignments()}
         return encode_env_obs(obs), reward, False, True, info

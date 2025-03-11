@@ -8,7 +8,7 @@ import numpy as np
 import tyro
 from scipy import stats
 
-from dataset.models import Dataset, Host, Task, Vm, Workflow
+from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
 
 
 @dataclass
@@ -57,14 +57,32 @@ def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
     """
     Generate a dataset with the specified arguments.
     """
+    preference = generate_preference(args, rng)
     hosts = generate_hosts(args, rng)
     vms = generate_vms(args, rng)
     workflows = generate_workflows(args, rng)
     tasks = generate_tasks(args, rng)
 
-    dataset = Dataset(workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+    dataset = Dataset(preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
     dataset.check_sanity()
     return dataset
+
+
+# Generating Preference
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Preference:
+    makespan = 1
+    energy_consumption = 1
+    sla_penalty = 1
+    total = makespan + energy_consumption + sla_penalty
+
+    return Preference(
+        makespan=makespan / total,
+        energy_consumption=energy_consumption / total,
+        sla_penalty=sla_penalty / total,
+    )
 
 
 # Generating Hosts

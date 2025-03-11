@@ -8,7 +8,6 @@ from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
 from algorithms.base_abstract import BaseAbstractScheduler
-from algorithms.drl_agent import DrlAgentScheduler
 from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
 from algorithms.heft import HeftScheduler
@@ -41,7 +40,6 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
         SlaAwareSchduler(alpha=0.5),
-        DrlAgentScheduler(name="GIN", model_path="logs/1741699077_gin/model.pt", agent_type="gin"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=INT_INFINITY, pbar_embedded=False, pbar_show_eta=True)
@@ -129,6 +127,6 @@ if __name__ == "__main__":
                 max_tasks_per_workflow=20,
             ),
         )
-        for _ in range(10)
+        for _ in range(4)
     ]
     run_evaluation(datasets)
