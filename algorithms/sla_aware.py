@@ -3,13 +3,10 @@ from dataset.models import Dataset, Task, Vm
 from env.state import SimulationState
 
 
-class EnergyAwareSchduler(BaseWeightedCostScheduler):
+class SlaAwareSchduler(BaseWeightedCostScheduler):
     def __init__(self, alpha: float = 1):
-        super().__init__("Energy Aware")
+        super().__init__("SLA Aware")
         self.alpha = alpha
 
     def weighted_cost(self, task: Task, vm: Vm, dataset: Dataset, state: SimulationState) -> float:
-        return (
-            self.alpha * dataset.hosts[vm.host_id].active_power_consumption(task)
-            + (1 - self.alpha) * state.vm_states[vm.id].completion_time
-        )
+        return self.alpha * vm.penalty(task) + (1 - self.alpha) * state.vm_states[vm.id].completion_time
