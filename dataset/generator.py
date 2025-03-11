@@ -13,8 +13,6 @@ from dataset.models import Dataset, Host, Task, Vm, Workflow
 
 @dataclass
 class DatasetArgs:
-    seed: int | None = 42
-    """random seed"""
     task_count: int
     """number of tasks"""
     max_host_count: int
@@ -54,17 +52,12 @@ class DatasetArgs:
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
-    def copy_with_seed(self, new_seed: int | None) -> "DatasetArgs":
-        dataset_args_values = self.__dict__.copy()
-        dataset_args_values["seed"] = new_seed
-        return DatasetArgs(**dataset_args_values)
 
-
-def generate_dataset(args: DatasetArgs) -> Dataset:
+def generate_dataset(seed: int | None, args: DatasetArgs) -> Dataset:
     """
     Generate a dataset with the specified arguments.
     """
-    rng = np.random.RandomState(args.seed)
+    rng = np.random.RandomState(seed)
 
     hosts = generate_hosts(args, rng)
     vms = generate_vms(args, rng)
@@ -286,6 +279,6 @@ def generate_workflows(args: DatasetArgs, rng: np.random.RandomState) -> list[Wo
 
 
 if __name__ == "__main__":
-    dataset = generate_dataset(tyro.cli(DatasetArgs))
+    dataset = generate_dataset(0, tyro.cli(DatasetArgs))
     json_data = json.dumps(dataset.to_json())
     print(json_data)

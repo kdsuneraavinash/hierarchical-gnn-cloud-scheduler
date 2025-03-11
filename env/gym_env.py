@@ -30,8 +30,7 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         """Resets the environment and initializes the simulation."""
         super().reset(seed=seed, options=options)
 
-        dataset_args = self.dataset_args.copy_with_seed(seed)
-        dataset = generate_dataset(dataset_args)
+        dataset = generate_dataset(seed, self.dataset_args)
         self.simulation = Simulation(dataset)
 
         obs = create_env_obs(

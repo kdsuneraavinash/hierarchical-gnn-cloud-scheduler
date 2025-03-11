@@ -370,8 +370,7 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
     total_sla_penalty = 0.0
 
     for seed_index in range(args.test_iterations):
-        dataset_args = args.dataset.copy_with_seed(100_000 + seed_index)
-        dataset = generate_dataset(dataset_args)
+        dataset = generate_dataset(100_000 + seed_index, args.dataset)
 
         test_scheduler = DrlAgentScheduler(name="Agent", agent=agent, agent_type=args.agent_type)
         assignments = test_scheduler.schedule(dataset)

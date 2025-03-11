@@ -118,13 +118,13 @@ if __name__ == "__main__":
 
     datasets = [
         generate_dataset(
-            DatasetArgs(
-                seed=200_000 + i,
+            seed=200_000 + i,
+            args=DatasetArgs(
                 task_count=200,
                 max_host_count=4,
                 max_vm_count=10,
                 max_tasks_per_workflow=20,
-            )
+            ),
         )
         for i in range(10)
     ]
