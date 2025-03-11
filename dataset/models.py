@@ -1,5 +1,7 @@
 import dataclasses
+import json
 from dataclasses import dataclass
+from hashlib import md5
 from typing import Any
 
 
@@ -100,7 +102,7 @@ class Dataset:
         dataset.check_sanity()
         return dataset
 
-    def check_sanity(self) -> None:
+    def check_sanity(self, print_hash: bool = False) -> None:
         # Sanity check - we should be able to use index and id interchangeably
         for i, workflow in enumerate(self.workflows):
             assert workflow.id == i, f"Sanity Check Failed: workflow ID mismatch, {workflow=} in index {i}"
@@ -114,6 +116,12 @@ class Dataset:
         for task in self.tasks:
             for child_id in task.child_ids:
                 assert child_id > task.id, f"Sanity Check Failed: {task=} has child id {child_id} less than task id"
+
+        # It is possible to output the dataset hash for debug purposes
+        if print_hash:
+            obj_str = json.dumps(self.to_json())
+            obj_md5 = md5(obj_str.encode("utf-8"))
+            print("Dataset hash:", obj_md5.hexdigest())
 
 
 @dataclass

@@ -18,7 +18,7 @@ from algorithms.min_min import MinMinScheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.sla_aware import SlaAwareSchduler
-from constants import INT_INFINITY
+from constants import EVALUATION_SEED, INT_INFINITY
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
 from visualizers.summary_chart import plot_summary_chart
@@ -118,9 +118,10 @@ if __name__ == "__main__":
     torch.manual_seed(0)
     torch.backends.cudnn.deterministic = True
 
+    rng = np.random.RandomState(EVALUATION_SEED)
     datasets = [
         generate_dataset(
-            seed=100_000 + i,
+            rng=rng,
             args=DatasetArgs(
                 task_count=200,
                 max_host_count=4,
@@ -128,6 +129,6 @@ if __name__ == "__main__":
                 max_tasks_per_workflow=20,
             ),
         )
-        for i in range(4)
+        for _ in range(10)
     ]
     run_evaluation(datasets)

@@ -53,12 +53,10 @@ class DatasetArgs:
     """additional context for the dataset"""
 
 
-def generate_dataset(seed: int | None, args: DatasetArgs) -> Dataset:
+def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
     """
     Generate a dataset with the specified arguments.
     """
-    rng = np.random.RandomState(seed)
-
     hosts = generate_hosts(args, rng)
     vms = generate_vms(args, rng)
     workflows = generate_workflows(args, rng)
@@ -279,6 +277,7 @@ def generate_workflows(args: DatasetArgs, rng: np.random.RandomState) -> list[Wo
 
 
 if __name__ == "__main__":
-    dataset = generate_dataset(0, tyro.cli(DatasetArgs))
+    rng = np.random.RandomState(0)
+    dataset = generate_dataset(tyro.cli(DatasetArgs), rng)
     json_data = json.dumps(dataset.to_json())
     print(json_data)

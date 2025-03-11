@@ -17,7 +17,7 @@ from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard import SummaryWriter
 
 from algorithms.drl_agent import DrlAgentScheduler
-from constants import INT_INFINITY
+from constants import INT_INFINITY, TEST_SEED
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
@@ -365,12 +365,14 @@ def train(args: Args) -> None:
 
 
 def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
+    test_rng = np.random.RandomState(TEST_SEED)
+
     total_makespan = 0.0
     total_energy_consumption = 0.0
     total_sla_penalty = 0.0
 
-    for seed_index in range(args.test_iterations):
-        dataset = generate_dataset(100_000 + seed_index, args.dataset)
+    for _ in range(args.test_iterations):
+        dataset = generate_dataset(args.dataset, test_rng)
 
         test_scheduler = DrlAgentScheduler(name="Agent", agent=agent, agent_type=args.agent_type)
         assignments = test_scheduler.schedule(dataset)

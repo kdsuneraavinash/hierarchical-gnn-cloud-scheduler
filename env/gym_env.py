@@ -10,6 +10,8 @@ from env.simulation import Simulation
 
 
 class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
+    _rng: np.random.RandomState | None = None
+
     prev_makespan: float = 0
     prev_energy_consumption: float = 0
     prev_sla_penalty: float = 0
@@ -29,8 +31,10 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     ) -> tuple[np.ndarray[tuple[int, ...], Any], dict[str, Any]]:
         """Resets the environment and initializes the simulation."""
         super().reset(seed=seed, options=options)
+        if self._rng is None:
+            self._rng = np.random.RandomState(self.np_random_seed)
 
-        dataset = generate_dataset(seed, self.dataset_args)
+        dataset = generate_dataset(self.dataset_args, self._rng)
         self.simulation = Simulation(dataset)
 
         obs = create_env_obs(
