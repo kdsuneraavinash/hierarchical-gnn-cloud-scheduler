@@ -167,7 +167,7 @@ class GinAgent(BaseAgent):
         vm_encoding, vm_pool = self.vm_encoder(vm_features)  # (Nv, E), (1, E)
 
         # --- VM Selection ---
-        vm_mask = torch.ones(num_vms, device=self.device)  # (Nv,)
+        vm_mask = decoded_obs.vm_mask  # (Nv,)
         vm_logits: torch.Tensor = self.vm_actor(vm_encoding, vm_mask, task_pool, vm_pool)  # (Nv,)
         vm_probs = torch.softmax(vm_logits, dim=0)
         vm_dist = torch.distributions.Categorical(vm_probs)

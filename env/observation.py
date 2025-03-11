@@ -17,6 +17,7 @@ class EnvObs:
     task_features: np.ndarray[tuple[int, ...], Any]
     vm_features: np.ndarray[tuple[int, ...], Any]
     task_mask: np.ndarray[tuple[int, ...], Any]
+    vm_mask: np.ndarray[tuple[int, ...], Any]
     task_dependencies: np.ndarray[tuple[int, ...], Any]
 
 
@@ -25,6 +26,7 @@ class EnvObsTensor:
     task_features: torch.Tensor  # (Nt, Ft)
     vm_features: torch.Tensor  # (Nt, Nv, Fv)
     task_mask: torch.Tensor  # (Nv,)
+    vm_mask: torch.Tensor  # (Nv,)
     task_dependencies: torch.Tensor  # (2, Nd)
 
 
@@ -73,14 +75,15 @@ def create_env_obs(
     assert task_features.shape[-1] == NUM_TASK_FEATURES, f"Unexpected feature count for tasks: {task_features.shape[1]}"
     assert vm_features.shape[-1] == NUM_VM_FEATURES, f"Unexpected feature count for VMs: {vm_features.shape[1]}"
 
-    # Task dependencies
-    task_dependencies_arr = np.array(list(task_dependencies)).T.reshape(2, -1)
     task_mask = np.array([task_state.is_ready for task_state in task_states])
+    vm_mask = np.ones(len(vm_states))  # To denote failures?
+    task_dependencies_arr = np.array(list(task_dependencies)).T.reshape(2, -1)
 
     return EnvObs(
         task_features=task_features,
         vm_features=vm_features,
         task_mask=task_mask,
+        vm_mask=vm_mask,
         task_dependencies=task_dependencies_arr,
     )
 
@@ -100,6 +103,7 @@ def encode_env_obs(obs: EnvObs) -> np.ndarray[tuple[int, ...], Any]:
             np.asarray(obs.task_features, dtype=np.float64).flatten(),  # num_tasks*NUM_TASK_FEATURES
             np.asarray(obs.vm_features, dtype=np.float64).flatten(),  # num_tasks*num_vms*NUM_VM_FEATURES
             np.asarray(obs.task_mask, dtype=np.int32),  # num_tasks
+            np.asarray(obs.vm_mask, dtype=np.int32),  # num_vms
             np.asarray(obs.task_dependencies, dtype=np.int32).flatten(),  # num_task_deps*2
         ]
     )
@@ -128,6 +132,8 @@ def decode_env_obs(tensor: torch.Tensor) -> EnvObsTensor:
     tensor = tensor[num_tasks * num_vms * NUM_VM_FEATURES :]
     task_mask = tensor[:num_tasks].long()
     tensor = tensor[num_tasks:]
+    vm_mask = tensor[:num_vms].long()
+    tensor = tensor[num_vms:]
     task_dependencies = tensor[: num_task_deps * 2].reshape(2, num_task_deps).long()
     tensor = tensor[num_task_deps * 2 :]
 
@@ -137,5 +143,6 @@ def decode_env_obs(tensor: torch.Tensor) -> EnvObsTensor:
         task_features=task_features,
         vm_features=vm_features,
         task_mask=task_mask,
+        vm_mask=vm_mask,
         task_dependencies=task_dependencies,
     )
