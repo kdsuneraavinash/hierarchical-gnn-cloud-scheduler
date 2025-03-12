@@ -2,7 +2,7 @@ import json
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import tyro
@@ -167,19 +167,16 @@ def generate_task_length(args: DatasetArgs, rng: np.random.RandomState) -> Any |
     mean = (low + high) / 2
     std = (high - low) / 6
 
-    method: Callable[[], float]
-    if args.task_length_dist == "normal":
-        method = lambda: stats.norm.rvs(loc=mean, scale=std, random_state=rng)
-    elif args.task_length_dist == "left_skewed":
-        method = lambda: stats.skewnorm.rvs(-5, loc=mean, scale=std, random_state=rng)
-    elif args.task_length_dist == "right_skewed":
-        method = lambda: stats.skewnorm.rvs(5, loc=mean, scale=std, random_state=rng)
-    else:
-        raise ValueError(f"Invalid distribution: {args.task_length_dist}")
-
     value = low - 1
     while value < low or value > high:
-        value = method()
+        if args.task_length_dist == "normal":
+            value = stats.norm.rvs(loc=mean, scale=std, random_state=rng)
+        elif args.task_length_dist == "left_skewed":
+            value = stats.skewnorm.rvs(-5, loc=mean, scale=std, random_state=rng)
+        elif args.task_length_dist == "right_skewed":
+            value = stats.skewnorm.rvs(5, loc=mean, scale=std, random_state=rng)
+        else:
+            raise ValueError(f"Invalid distribution: {args.task_length_dist}")
     return value
 
 
