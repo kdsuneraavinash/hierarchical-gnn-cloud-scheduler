@@ -87,14 +87,14 @@ class GinDecoder(nn.Module):
 
 class GinAgentActor(nn.Module):
     def __init__(self, device: torch.device, embedding_dim: int = 32, hidden_dim: int = 64):
-        super().__init__(device)
+        super().__init__()
         self.device = device
         self.task_encoder = GinTaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
         self.vm_encoder = GinVmEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
         self.task_decoder = GinDecoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
         self.vm_decoder = GinDecoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
 
-    def get_action_unbatched(
+    def forward(
         self, x: torch.Tensor, action: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         decoded_obs = decode_env_obs(x.to(self.device))
@@ -191,6 +191,6 @@ class GinAgent(BaseAgent):
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         decoded_obs = decode_env_obs(x.to(self.device))
         chosen_action, total_log_prob, total_entropy = self.actor(decoded_obs, action)
-        value: torch.Tensor = self.critic(decoded_obs)  # Value estimate from the critic
+        value: torch.Tensor = self.critic(decoded_obs)
 
         return chosen_action, total_log_prob, total_entropy, value
