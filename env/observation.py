@@ -40,12 +40,16 @@ def create_env_obs(
     # For tasks that are not scheduled, fill the completion time with the maximum completion time
     # max(LB(O_parent) + min(P(i, k)))
     task_completion_time = [task_state.completion_time for task_state in task_states]
-    best_vm = max(dataset.vms, key=lambda vm: vm.cpu_speed_mips)
     for t_id, task_state in enumerate(task_states):
-        if task_state.assigned_vm_id is not None:
-            task_completion_time[t_id] = max(
+        if task_state.assigned_vm_id is None:
+            earliest_start_time = max(
                 (task_completion_time[p_id] for p_id, c_id in task_dependencies if c_id == t_id), default=0
-            ) + best_vm.execution_time(dataset.tasks[t_id])
+            )
+            task_completion_time[t_id] = min(
+                max(vm_states[v_id].completion_time, earliest_start_time)
+                + dataset.vms[v_id].execution_time(dataset.tasks[t_id])
+                for v_id in range(len(vm_states))
+            )
 
     task_features = np.array(
         [
