@@ -11,6 +11,9 @@ from env.simulation import Simulation
 
 class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     _rng: np.random.RandomState | None = None
+    _makespan_reward_buffer: list[float] = []
+    _energy_reward_buffer: list[float] = []
+    _sla_reward_buffer: list[float] = []
 
     def __init__(self, dataset_args: DatasetArgs):
         super().__init__()
@@ -73,11 +76,24 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         new_sla_penalty = self.simulation.dataset.vms[vm_id].penalty(self.simulation.dataset.tasks[task_id])
         new_makespan = curr_makespan - prev_makespan
 
+        self._makespan_reward_buffer.append(new_makespan)
+        self._energy_reward_buffer.append(new_energy_consumption)
+        self._sla_reward_buffer.append(new_sla_penalty)
+        norm_makespan = max(float(np.mean(self._makespan_reward_buffer)), 1e-6)
+        norm_energy = max(float(np.mean(self._energy_reward_buffer)), 1e-6)
+        norm_sla = max(float(np.mean(self._sla_reward_buffer)), 1e-6)
+        if len(self._makespan_reward_buffer) > 1000:
+            self._makespan_reward_buffer.pop(0)
+        if len(self._energy_reward_buffer) > 1000:
+            self._energy_reward_buffer.pop(0)
+        if len(self._sla_reward_buffer) > 1000:
+            self._sla_reward_buffer.pop(0)
+
         preference = self.simulation.dataset.preference
         reward = -(
-            new_makespan * preference.makespan
-            + new_energy_consumption * preference.energy_consumption
-            + new_sla_penalty * preference.sla_penalty
+            new_makespan * preference.makespan / norm_makespan
+            + new_energy_consumption * preference.energy_consumption / norm_energy
+            + new_sla_penalty * preference.sla_penalty / norm_sla
         )
 
         if not done:
