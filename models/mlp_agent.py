@@ -3,10 +3,13 @@ import torch.nn as nn
 from torch_geometric.nn import global_mean_pool
 
 from constants import NUM_TASK_FEATURES
-from models.gin_agent import GinAgent, GinTaskEncoder
+from models.gin_agent import GinAgent as BaseAgent
+from models.gin_agent import GinAgentActor as BaseAgentActor
+from models.gin_agent import GinAgentCritic as BaseAgentCritic
+from models.gin_agent import GinTaskEncoder as BaseTaskEncoder
 
 
-class MlpTaskEncoder(GinTaskEncoder):
+class MlpTaskEncoder(BaseTaskEncoder):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__(hidden_dim, embedding_dim, device)
 
@@ -28,7 +31,28 @@ class MlpTaskEncoder(GinTaskEncoder):
         return task_encoding, task_pool
 
 
-class MlpAgent(GinAgent):
+# Actor and Critic
+# ------------------------------------------------------------------------------------------------------------------
+
+
+class MlpAgentActor(BaseAgentActor):
     def __init__(self, device: torch.device, embedding_dim: int = 32, hidden_dim: int = 64):
-        super().__init__(device, embedding_dim=embedding_dim, hidden_dim=hidden_dim)
+        super().__init__(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
         self.task_encoder = MlpTaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+
+
+class MlpAgentCritic(BaseAgentCritic):
+    def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
+        super().__init__(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.task_encoder = MlpTaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+
+
+# Mlp Agent
+# ------------------------------------------------------------------------------------------------------------------
+
+
+class MlpAgent(BaseAgent):
+    def __init__(self, device: torch.device, embedding_dim: int = 32, hidden_dim: int = 64):
+        super().__init__(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.actor = MlpAgentActor(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.critic = MlpAgentCritic(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
