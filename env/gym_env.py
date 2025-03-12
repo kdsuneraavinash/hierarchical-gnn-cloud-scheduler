@@ -5,15 +5,21 @@ import numpy as np
 
 from constants import INT_INFINITY, MAX_OBS_SIZE
 from dataset.generator import DatasetArgs, generate_dataset
-from env.observation import create_env_obs, encode_env_obs
+from env.observation import (
+    create_env_obs,
+    encode_env_obs,
+    task_completion_time_est,
+    task_energy_consumption_est,
+    task_sla_penalty_est,
+)
 from env.simulation import Simulation
 
 
 class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     _rng: np.random.RandomState | None = None
     _makespan_reward_buffer: list[float] = []
-    _energy_reward_buffer: list[float] = []
-    _sla_reward_buffer: list[float] = []
+    _energy_consumptio_reward_buffer: list[float] = []
+    _sla_penalty_reward_buffer: list[float] = []
 
     def __init__(self, dataset_args: DatasetArgs):
         super().__init__()
@@ -35,6 +41,9 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
 
         dataset = generate_dataset(self.dataset_args, self._rng)
         self.simulation = Simulation(dataset)
+        self._makespan_reward_buffer.clear()
+        self._energy_consumptio_reward_buffer.clear()
+        self._sla_penalty_reward_buffer.clear()
 
         obs = create_env_obs(
             dataset=self.simulation.dataset,
@@ -51,49 +60,54 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         """Performs a step in the environment given an action."""
         assert self.simulation is not None, "Environment must be reset before calling step"
 
-        vm_count = len(self.simulation.dataset.vms)
+        dataset = self.simulation.dataset
+        task_states = self.simulation.state.task_states
+        vm_states = self.simulation.state.vm_states
+        task_dependencies = self.simulation.state.task_dependencies
+
+        # Find the action
+        vm_count = len(dataset.vms)
         task_id = int(action // vm_count)
         vm_id = int(action % vm_count)
 
-        prev_makespan = max(vm.completion_time for vm in self.simulation.state.vm_states)
+        # Previous stats
+        prev_makespan = max(task_completion_time_est(dataset, task_states, vm_states, task_dependencies))
+        prev_energy_consumption = sum(task_energy_consumption_est(dataset, task_states))
+        prev_sla_penalty = sum(task_sla_penalty_est(dataset, task_states))
+
+        # Do the action
         error, done = self.simulation.assign_vm(task_id, vm_id)
-        curr_makespan = max(vm.completion_time for vm in self.simulation.state.vm_states)
-
-        obs = create_env_obs(
-            dataset=self.simulation.dataset,
-            task_states=self.simulation.state.task_states,
-            vm_states=self.simulation.state.vm_states,
-            task_dependencies=self.simulation.state.task_dependencies,
-        )
-
-        # Penalize invalid actions
+        obs = create_env_obs(dataset, task_states, vm_states, task_dependencies)
         if error:
-            penalty = sum(-1000 if task.assigned_vm_id is None else 0 for task in self.simulation.state.task_states)
+            penalty = sum(-1000 if task.assigned_vm_id is None else 0 for task in task_states)
             print(f"Error: {error}")
             return encode_env_obs(obs), penalty, True, False, {"error": error}
 
-        new_energy_consumption = self.simulation.state.task_states[task_id].energy_consumption
-        new_sla_penalty = self.simulation.dataset.vms[vm_id].penalty(self.simulation.dataset.tasks[task_id])
-        new_makespan = curr_makespan - prev_makespan
+        # New stats
+        curr_makespan = max(task_completion_time_est(dataset, task_states, vm_states, task_dependencies))
+        curr_energy_consumption = sum(task_energy_consumption_est(dataset, task_states))
+        curr_sla_penalty = sum(task_sla_penalty_est(dataset, task_states))
 
-        self._makespan_reward_buffer.append(new_makespan)
-        self._energy_reward_buffer.append(new_energy_consumption)
-        self._sla_reward_buffer.append(new_sla_penalty)
+        # New delta values as reward
+        makespan_reward = curr_makespan - prev_makespan
+        energy_consumption_reward = curr_energy_consumption - prev_energy_consumption
+        sla_penalty_reward = curr_sla_penalty - prev_sla_penalty
+
+        # Save reward values
+        self._makespan_reward_buffer.append(makespan_reward)
+        self._energy_consumptio_reward_buffer.append(energy_consumption_reward)
+        self._sla_penalty_reward_buffer.append(sla_penalty_reward)
+
+        # Find normalization factor
         norm_makespan = max(float(np.mean(self._makespan_reward_buffer)), 1e-6)
-        norm_energy = max(float(np.mean(self._energy_reward_buffer)), 1e-6)
-        norm_sla = max(float(np.mean(self._sla_reward_buffer)), 1e-6)
-        if len(self._makespan_reward_buffer) > 1000:
-            self._makespan_reward_buffer.pop(0)
-        if len(self._energy_reward_buffer) > 1000:
-            self._energy_reward_buffer.pop(0)
-        if len(self._sla_reward_buffer) > 1000:
-            self._sla_reward_buffer.pop(0)
+        norm_energy = max(float(np.mean(self._energy_consumptio_reward_buffer)), 1e-6)
+        norm_sla = max(float(np.mean(self._sla_penalty_reward_buffer)), 1e-6)
 
-        preference = self.simulation.dataset.preference
+        # Final reward with preference utility
         reward = -(
-            new_makespan * preference.makespan / norm_makespan
-            + new_energy_consumption * preference.energy_consumption / norm_energy
-            + new_sla_penalty * preference.sla_penalty / norm_sla
+            makespan_reward * dataset.preference.makespan / norm_makespan
+            + energy_consumption_reward * dataset.preference.energy_consumption / norm_energy
+            + sla_penalty_reward * dataset.preference.sla_penalty / norm_sla
         )
 
         if not done:

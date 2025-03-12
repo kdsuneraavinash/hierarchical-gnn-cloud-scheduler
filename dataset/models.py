@@ -70,8 +70,12 @@ class Host:
     disk_gb: int = -1
     bandwidth_mbps: int = -1
 
+    @property
+    def active_power_consumption_rate(self) -> float:
+        return (self.power_peak_watt - self.power_idle_watt) / self.cpu_speed_mips
+
     def active_power_consumption(self, task: Task) -> float:
-        return task.length * (self.power_peak_watt - self.power_idle_watt) / self.cpu_speed_mips
+        return task.length * self.active_power_consumption_rate
 
 
 @dataclass
