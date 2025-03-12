@@ -60,33 +60,32 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         """Performs a step in the environment given an action."""
         assert self.simulation is not None, "Environment must be reset before calling step"
 
-        dataset = self.simulation.dataset
-        task_states = self.simulation.state.task_states
-        vm_states = self.simulation.state.vm_states
-        task_dependencies = self.simulation.state.task_dependencies
+        # Previous stats
+        prev_makespan = self._makespan()
+        prev_energy_consumption = self._total_energy_consumption()
+        prev_sla_penalty = self._total_sla_penalty()
 
-        # Find the action
-        vm_count = len(dataset.vms)
+        # Do the action
+        vm_count = len(self.simulation.dataset.vms)
         task_id = int(action // vm_count)
         vm_id = int(action % vm_count)
 
-        # Previous stats
-        prev_makespan = max(task_completion_time_est(dataset, task_states, vm_states, task_dependencies))
-        prev_energy_consumption = sum(task_energy_consumption_est(dataset, task_states))
-        prev_sla_penalty = sum(task_sla_penalty_est(dataset, task_states))
-
-        # Do the action
         error, done = self.simulation.assign_vm(task_id, vm_id)
-        obs = create_env_obs(dataset, task_states, vm_states, task_dependencies)
+        obs = create_env_obs(
+            dataset=self.simulation.dataset,
+            task_states=self.simulation.state.task_states,
+            vm_states=self.simulation.state.vm_states,
+            task_dependencies=self.simulation.state.task_dependencies,
+        )
         if error:
-            penalty = sum(-1000 if task.assigned_vm_id is None else 0 for task in task_states)
+            penalty = sum(-1000 if task.assigned_vm_id is None else 0 for task in self.simulation.state.task_states)
             print(f"Error: {error}")
             return encode_env_obs(obs), penalty, True, False, {"error": error}
 
         # New stats
-        curr_makespan = max(task_completion_time_est(dataset, task_states, vm_states, task_dependencies))
-        curr_energy_consumption = sum(task_energy_consumption_est(dataset, task_states))
-        curr_sla_penalty = sum(task_sla_penalty_est(dataset, task_states))
+        curr_makespan = self._makespan()
+        curr_energy_consumption = self._total_energy_consumption()
+        curr_sla_penalty = self._total_sla_penalty()
 
         # New delta values as reward
         makespan_reward = curr_makespan - prev_makespan
@@ -104,10 +103,11 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         norm_sla = max(float(np.mean(self._sla_penalty_reward_buffer)), 1e-6)
 
         # Final reward with preference utility
+        preference = self.simulation.dataset.preference
         reward = -(
-            makespan_reward * dataset.preference.makespan / norm_makespan
-            + energy_consumption_reward * dataset.preference.energy_consumption / norm_energy
-            + sla_penalty_reward * dataset.preference.sla_penalty / norm_sla
+            makespan_reward * preference.makespan / norm_makespan
+            + energy_consumption_reward * preference.energy_consumption / norm_energy
+            + sla_penalty_reward * preference.sla_penalty / norm_sla
         )
 
         if not done:
@@ -115,3 +115,22 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
 
         info = {"assignments": self.simulation.to_assignments()}
         return encode_env_obs(obs), reward, False, True, info
+
+    def _makespan(self) -> float:
+        assert self.simulation is not None, "Environment must be reset before getting stats"
+        return max(
+            task_completion_time_est(
+                self.simulation.dataset,
+                self.simulation.state.task_states,
+                self.simulation.state.vm_states,
+                self.simulation.state.task_dependencies,
+            )
+        )
+
+    def _total_energy_consumption(self) -> float:
+        assert self.simulation is not None, "Environment must be reset before getting stats"
+        return sum(task_energy_consumption_est(self.simulation.dataset, self.simulation.state.task_states))
+
+    def _total_sla_penalty(self) -> float:
+        assert self.simulation is not None, "Environment must be reset before getting stats"
+        return sum(task_sla_penalty_est(self.simulation.dataset, self.simulation.state.task_states))
