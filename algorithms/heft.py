@@ -27,7 +27,6 @@ class HeftScheduler(BaseStaticScheduler):
                     if task.id in parent_task.child_ids
                 ]
                 start_time = max(ready_time, max(parent_completion_times, default=0.0))
-
                 finish_time = start_time + vm.execution_time(task)
                 if finish_time < earliest_finish_time:
                     best_vm = vm
@@ -38,7 +37,6 @@ class HeftScheduler(BaseStaticScheduler):
 
             vm_ready_times[best_vm.id] = earliest_finish_time
             task_completion_times[task.id] = earliest_finish_time
-            start_time = earliest_finish_time - vm.execution_time(task)
 
             assignments.append((task.id, best_vm.id))
 

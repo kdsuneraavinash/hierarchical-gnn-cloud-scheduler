@@ -1,11 +1,11 @@
 import networkx as nx
-from matplotlib import pyplot as plt
+from matplotlib import axes
 
 from dataset.models import Solution
 from visualizers.utils import draw_agraph, get_color
 
 
-def plot_workflow_graphs(ax: plt.Axes, solution: Solution, labels: list[str] | None = None) -> None:
+def plot_workflow_graphs(ax: axes.Axes, solution: Solution, labels: list[str] | None = None) -> None:
     """
     Plot the workflows on the provided DiGraph.
     """

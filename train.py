@@ -14,7 +14,7 @@ import tyro
 from gymnasium.wrappers import RecordEpisodeStatistics
 from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 
 from algorithms.drl_agent import DrlAgentScheduler
 from constants import INT_INFINITY, TEST_SEED
@@ -187,6 +187,7 @@ def train(args: Args) -> None:
     terminations: np.ndarray[tuple[int, ...], Any]
     truncations: np.ndarray[tuple[int, ...], Any]
     infos: dict[str, Any]
+    approx_kl = v_loss = pg_loss = entropy_loss = old_approx_kl = approx_kl = None
 
     # TRY NOT TO MODIFY: start the game
     global_step = 0
@@ -316,6 +317,7 @@ def train(args: Args) -> None:
                 nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
                 optimizer.step()
 
+            assert approx_kl is not None
             if args.target_kl is not None and approx_kl > args.target_kl:
                 break
 
@@ -324,6 +326,8 @@ def train(args: Args) -> None:
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
+        assert v_loss is not None and pg_loss is not None and entropy_loss is not None
+        assert old_approx_kl is not None and approx_kl is not None
         writer.add_scalar("charts/learning_rate", optimizer.param_groups[0]["lr"], global_step)
         writer.add_scalar("losses/value_loss", v_loss.item(), global_step)
         writer.add_scalar("losses/policy_loss", pg_loss.item(), global_step)

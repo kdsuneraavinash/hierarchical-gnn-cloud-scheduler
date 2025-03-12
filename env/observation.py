@@ -37,9 +37,9 @@ class EnvObsTensor:
 def create_env_obs(
     dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState], task_dependencies: set[tuple[int, int]]
 ) -> EnvObs:
-    task_completion_time = task_completion_time_est()
-    task_energy_consumption = task_energy_consumption_est()
-    task_sla_penalty = task_sla_penalty_est()
+    task_completion_time = task_completion_time_est(dataset, task_states, vm_states, task_dependencies)
+    task_energy_consumption = task_energy_consumption_est(dataset, task_states)
+    task_sla_penalty = task_sla_penalty_est(dataset, task_states)
 
     task_features = np.array(
         [
@@ -187,7 +187,7 @@ def task_energy_consumption_est(dataset: Dataset, task_states: list[TaskState]) 
 
 
 def task_sla_penalty_est(dataset: Dataset, task_states: list[TaskState]) -> list[float]:
-    sla_penalty = [0 for _ in task_states]
+    sla_penalty: list[float] = [0 for _ in task_states]
     for t_id, task_state in enumerate(task_states):
         if task_state.assigned_vm_id is None:
             sla_penalty[t_id] = min(vm.penalty(dataset.tasks[t_id]) for vm in dataset.vms)

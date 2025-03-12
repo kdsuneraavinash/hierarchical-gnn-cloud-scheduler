@@ -1,4 +1,4 @@
-from matplotlib import pyplot as plt
+from matplotlib import axes
 
 from dataset.models import Solution
 from visualizers.utils import get_color
@@ -7,7 +7,7 @@ from visualizers.utils import get_color
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def plot_gantt_chart(ax: plt.Axes, solution: Solution, label: bool = True) -> None:
+def plot_gantt_chart(ax: axes.Axes, solution: Solution, label: bool = True) -> None:
     result_map = {assignment.task_id: assignment for assignment in solution.vm_assignments}
 
     for task in solution.dataset.tasks:

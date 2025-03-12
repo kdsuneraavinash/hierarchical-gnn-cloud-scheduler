@@ -11,7 +11,7 @@ matplotlib==3.10.1
 networkx==3.4.2
 pygraphviz==1.14
 
-mypy==1.15.0
+pyright==1.1.396
 icecream==2.1.4
 pre-commit==4.1.0
 pandas-stubs==2.2.3

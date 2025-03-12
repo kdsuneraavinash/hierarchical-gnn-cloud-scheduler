@@ -1,9 +1,9 @@
-import matplotlib.pyplot as plt
+from matplotlib import axes
 import pandas as pd
 from matplotlib.ticker import StrMethodFormatter
 
 
-def plot_summary_chart(ax: plt.Axes, df: pd.DataFrame) -> None:
+def plot_summary_chart(ax: axes.Axes, df: pd.DataFrame) -> None:
     # Compute the average makespan and energy consumption per name
     avg_df = df.groupby("name", as_index=False).agg({"makespan": "mean", "energy_consumption": "mean"})
 
