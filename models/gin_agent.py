@@ -95,22 +95,21 @@ class GinAgentActor(nn.Module):
         self.vm_decoder = GinDecoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
 
     def forward(
-        self, x: torch.Tensor, action: torch.Tensor | None = None
+        self, obs: EnvObsTensor, action: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        decoded_obs = decode_env_obs(x.to(self.device))
-        num_vms = decoded_obs.vm_features.shape[1]
+        num_vms = obs.vm_features.shape[1]
 
         # --- Encode Tasks ---
-        task_features = decoded_obs.task_features  # (Nt, Ft)
-        dependencies = decoded_obs.task_dependencies
+        task_features = obs.task_features  # (Nt, Ft)
+        dependencies = obs.task_dependencies
         task_encoding, task_pool = self.task_encoder(task_features, dependencies)  # (Nt, E), (1, E)
 
         # --- Encode VMs (avg properties across tasks) ---
-        avg_vm_features = decoded_obs.vm_features.mean(dim=0)  # (Nv, Fv)
+        avg_vm_features = obs.vm_features.mean(dim=0)  # (Nv, Fv)
         _, avg_vm_pool = self.vm_encoder(avg_vm_features)  # (Nv, E), (1, E)
 
         # --- Task Selection ---
-        task_mask = decoded_obs.task_mask  # (Nt,)
+        task_mask = obs.task_mask  # (Nt,)
         task_logits: torch.Tensor = self.task_decoder(task_encoding, task_mask, task_pool, avg_vm_pool)  # (Nt,)
         task_probs = torch.softmax(task_logits, dim=0)
         task_dist = torch.distributions.Categorical(task_probs)
@@ -119,11 +118,11 @@ class GinAgentActor(nn.Module):
         task_entropy = task_dist.entropy()
 
         # --- Encode the specific VM (with task-specific properties) ---
-        vm_features = decoded_obs.vm_features[chosen_task]  # (Nv, Fv)
+        vm_features = obs.vm_features[chosen_task]  # (Nv, Fv)
         vm_encoding, vm_pool = self.vm_encoder(vm_features)  # (Nv, E), (1, E)
 
         # --- VM Selection ---
-        vm_mask = decoded_obs.vm_mask  # (Nv,)
+        vm_mask = obs.vm_mask  # (Nv,)
         vm_logits: torch.Tensor = self.vm_decoder(vm_encoding, vm_mask, task_pool, vm_pool)  # (Nv,)
         vm_probs = torch.softmax(vm_logits, dim=0)
         vm_dist = torch.distributions.Categorical(vm_probs)
