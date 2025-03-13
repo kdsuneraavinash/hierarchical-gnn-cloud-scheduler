@@ -1,5 +1,4 @@
 gymnasium==1.0.0
-ray[rllib]==2.43.0
 torch==2.6.0
 torch_geometric==2.6.1
 scipy==1.15.2
