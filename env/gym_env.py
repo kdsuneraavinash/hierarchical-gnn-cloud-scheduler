@@ -17,9 +17,6 @@ from env.simulation import Simulation
 
 class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     _rng: np.random.RandomState | None = None
-    _makespan_reward_buffer: list[float] = []
-    _energy_consumptio_reward_buffer: list[float] = []
-    _sla_penalty_reward_buffer: list[float] = []
 
     def __init__(self, dataset_args: DatasetArgs):
         super().__init__()
@@ -41,9 +38,6 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
 
         dataset = generate_dataset(self.dataset_args, self._rng)
         self.simulation = Simulation(dataset)
-        self._makespan_reward_buffer.clear()
-        self._energy_consumptio_reward_buffer.clear()
-        self._sla_penalty_reward_buffer.clear()
 
         obs = create_env_obs(
             dataset=self.simulation.dataset,
@@ -88,26 +82,16 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         curr_sla_penalty = self._total_sla_penalty()
 
         # New delta values as reward
-        makespan_reward = curr_makespan - prev_makespan
-        energy_consumption_reward = curr_energy_consumption - prev_energy_consumption
-        sla_penalty_reward = curr_sla_penalty - prev_sla_penalty
-
-        # Save reward values
-        self._makespan_reward_buffer.append(makespan_reward)
-        self._energy_consumptio_reward_buffer.append(energy_consumption_reward)
-        self._sla_penalty_reward_buffer.append(sla_penalty_reward)
-
-        # Find normalization factor
-        norm_makespan = max(float(np.mean(self._makespan_reward_buffer)), 1e-6)
-        norm_energy = max(float(np.mean(self._energy_consumptio_reward_buffer)), 1e-6)
-        norm_sla = max(float(np.mean(self._sla_penalty_reward_buffer)), 1e-6)
+        makespan_reward = (curr_makespan - prev_makespan) / curr_makespan
+        energy_consumption_reward = (curr_energy_consumption - prev_energy_consumption) / curr_energy_consumption
+        sla_penalty_reward = (curr_sla_penalty - prev_sla_penalty) / curr_sla_penalty
 
         # Final reward with preference utility
         preference = self.simulation.dataset.preference
         reward = -(
-            makespan_reward * preference.makespan / norm_makespan
-            + energy_consumption_reward * preference.energy_consumption / norm_energy
-            + sla_penalty_reward * preference.sla_penalty / norm_sla
+            makespan_reward * preference.makespan
+            + energy_consumption_reward * preference.energy_consumption
+            + sla_penalty_reward * preference.sla_penalty
         )
 
         if not done:
