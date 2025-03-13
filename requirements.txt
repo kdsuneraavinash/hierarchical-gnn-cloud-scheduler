@@ -14,5 +14,5 @@ pygraphviz==1.14
 pyright==1.1.396
 icecream==2.1.4
 pre-commit==4.1.0
-pandas-stubs==2.2.3
+pandas-stubs==2.2.3.250308
 ipykernel==6.29.5
