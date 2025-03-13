@@ -1,5 +1,5 @@
-N_TASK = 50  # Number of tasks
-N_VM = 4  # Number of VMs
+N_TASK = 200  # Number of tasks
+N_VM = 10  # Number of VMs
 F_TASK = 10  # Number of task features
 F_VM = 10  # Number of VM features
 OBS_SIZE = (N_TASK * F_TASK) + (N_TASK * N_VM * F_VM) + N_TASK + N_VM + (N_TASK * N_TASK)

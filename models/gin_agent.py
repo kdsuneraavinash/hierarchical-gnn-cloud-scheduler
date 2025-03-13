@@ -46,10 +46,10 @@ class GinVmEncoder(nn.Module):
         self.embedding_dim = embedding_dim
         self.network = nn.Sequential(  # [Nv] -> [H] -> [H] -> [E]
             nn.Linear(F_VM, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, embedding_dim),
         ).to(device)
@@ -74,10 +74,10 @@ class GinDecoder(nn.Module):
         self.device = device
         self.network = nn.Sequential(  # [3E] -> [H] -> [H] -> [1]
             nn.Linear(3 * embedding_dim, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, 1),
         ).to(device)
@@ -171,6 +171,8 @@ class GinAgentCritic(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
             nn.Linear(hidden_dim, 1),
         ).to(device)
 
@@ -193,7 +195,7 @@ class GinAgentCritic(nn.Module):
 
 
 class GinAgent(BaseAgent):
-    def __init__(self, device: torch.device, embedding_dim: int = 32, hidden_dim: int = 64):
+    def __init__(self, device: torch.device, embedding_dim: int = 8, hidden_dim: int = 64):
         super().__init__(device)
         self.device = device
 
