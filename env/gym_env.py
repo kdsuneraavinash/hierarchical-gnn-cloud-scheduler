@@ -32,8 +32,9 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     ) -> tuple[np.ndarray[tuple[int, ...], Any], dict[str, Any]]:
         """Resets the environment and initializes the simulation."""
         super().reset(seed=seed, options=options)
-        if self._rng is None:
-            self._rng = np.random.RandomState(self.np_random_seed)
+        if seed is not None:
+            self._rng = np.random.RandomState(seed)
+        assert self._rng is not None
 
         dataset = generate_dataset(self.dataset_args, self._rng)
         self.simulation = Simulation(dataset)
