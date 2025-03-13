@@ -8,10 +8,8 @@ from dataset.generator import DatasetArgs, generate_dataset
 from env.observation import (
     create_env_obs,
     encode_env_obs,
-    task_completion_time_est,
-    task_energy_consumption_est,
-    task_sla_penalty_est,
 )
+from env.reward import RewardFunction
 from env.simulation import Simulation
 
 
@@ -24,6 +22,7 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         self.simulation: Simulation | None = None
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(MAX_OBS_SIZE,), dtype=np.float64)
         self.action_space = gym.spaces.Discrete(INT_INFINITY, start=0)
+        self.reward_function = RewardFunction()
 
     # Reset
     # ------------------------------------------------------------------------------------------------------------------
@@ -45,6 +44,7 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             vm_states=self.simulation.state.vm_states,
             task_dependencies=self.simulation.state.task_dependencies,
         )
+        self.reward_function.next_episode(self.simulation)
         return encode_env_obs(obs), {}
 
     # Step
@@ -53,11 +53,6 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     def step(self, action: np.int64) -> tuple[np.ndarray[tuple[int, ...], Any], float, bool, bool, dict[str, Any]]:
         """Performs a step in the environment given an action."""
         assert self.simulation is not None, "Environment must be reset before calling step"
-
-        # Previous stats
-        prev_makespan = self._makespan()
-        prev_energy_consumption = self._total_energy_consumption()
-        prev_sla_penalty = self._total_sla_penalty()
 
         # Do the action
         vm_count = len(self.simulation.dataset.vms)
@@ -76,45 +71,9 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             print(f"Error: {error}")
             return encode_env_obs(obs), penalty, True, False, {"error": error}
 
-        # New stats
-        curr_makespan = self._makespan()
-        curr_energy_consumption = self._total_energy_consumption()
-        curr_sla_penalty = self._total_sla_penalty()
-
-        # New delta values as reward
-        makespan_reward = (curr_makespan - prev_makespan) / curr_makespan
-        energy_consumption_reward = (curr_energy_consumption - prev_energy_consumption) / curr_energy_consumption
-        sla_penalty_reward = (curr_sla_penalty - prev_sla_penalty) / curr_sla_penalty
-
-        # Final reward with preference utility
-        preference = self.simulation.dataset.preference
-        reward = -(
-            makespan_reward * preference.makespan
-            + energy_consumption_reward * preference.energy_consumption
-            + sla_penalty_reward * preference.sla_penalty
-        )
-
+        reward = self.reward_function.current_reward(self.simulation, done)
         if not done:
             return encode_env_obs(obs), reward, False, False, {}
 
         info = {"assignments": self.simulation.to_assignments()}
         return encode_env_obs(obs), reward, False, True, info
-
-    def _makespan(self) -> float:
-        assert self.simulation is not None, "Environment must be reset before getting stats"
-        return max(
-            task_completion_time_est(
-                self.simulation.dataset,
-                self.simulation.state.task_states,
-                self.simulation.state.vm_states,
-                self.simulation.state.task_dependencies,
-            )
-        )
-
-    def _total_energy_consumption(self) -> float:
-        assert self.simulation is not None, "Environment must be reset before getting stats"
-        return sum(task_energy_consumption_est(self.simulation.dataset, self.simulation.state.task_states))
-
-    def _total_sla_penalty(self) -> float:
-        assert self.simulation is not None, "Environment must be reset before getting stats"
-        return sum(task_sla_penalty_est(self.simulation.dataset, self.simulation.state.task_states))

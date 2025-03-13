@@ -2,6 +2,7 @@ import copy
 
 from dataset.models import Dataset, VmAssignment
 from env.state import SimulationState, TaskState, VmState
+from env.utils import task_completion_time_est, task_energy_consumption_est, task_sla_penalty_est
 
 
 class Simulation:
@@ -104,3 +105,16 @@ class Simulation:
 
         assignments.sort(key=lambda x: x[0])
         return [assignment[1] for assignment in assignments]
+
+    def makespan(self) -> float:
+        return max(
+            task_completion_time_est(
+                self.dataset, self.state.task_states, self.state.vm_states, self.state.task_dependencies
+            )
+        )
+
+    def total_energy_consumption(self) -> float:
+        return sum(task_energy_consumption_est(self.dataset, self.state.task_states))
+
+    def total_sla_penalty(self) -> float:
+        return sum(task_sla_penalty_est(self.dataset, self.state.task_states))
