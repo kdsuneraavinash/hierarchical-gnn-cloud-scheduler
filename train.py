@@ -88,10 +88,10 @@ class Args:
 
     dataset: DatasetArgs = field(
         default_factory=lambda: DatasetArgs(
-            task_count=200,
+            task_count=50,
             max_host_count=4,
             max_vm_count=10,
-            max_tasks_per_workflow=20,
+            max_tasks_per_workflow=10,
         )
     )
     """the dataset generation parameters"""
