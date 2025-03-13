@@ -17,7 +17,7 @@ from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from algorithms.drl_agent import DrlAgentScheduler
-from constants import INT_INFINITY, TEST_SEED
+from constants import TEST_SEED
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
@@ -153,6 +153,7 @@ def train(args: Args) -> None:
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
+    print(f"Using {device} for training...")
 
     # env setup
     envs = gym.vector.SyncVectorEnv([lambda: make_env(i, args) for i in range(args.num_envs)])
@@ -196,7 +197,7 @@ def train(args: Args) -> None:
     next_obs_tensor = torch.Tensor(next_obs).to(device)
     next_done_tensor = torch.zeros(args.num_envs).to(device)
 
-    table = ProgressTable(print_header_every_n_rows=INT_INFINITY, pbar_embedded=False, pbar_show_eta=True)
+    table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(args.total_timesteps))
     table.add_column("iter")
     table.add_column("global_step")

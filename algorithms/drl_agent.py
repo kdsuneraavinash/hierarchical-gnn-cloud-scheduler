@@ -1,6 +1,7 @@
 import torch
 
 from algorithms.base_dynamic import BaseDynamicScheduler
+from constants import N_VM
 from dataset.models import Dataset
 from env.observation import create_env_obs, encode_env_obs
 from env.state import SimulationState
@@ -34,9 +35,9 @@ class DrlAgentScheduler(BaseDynamicScheduler):
             task_dependencies=state.task_dependencies,
         )
         encoded_obs = encode_env_obs(obs)
-        encoded_obs_tensor = torch.Tensor(encoded_obs, device=self.agent.device)
-        action, _, _, _ = self.agent.get_action_and_value_unbatched(encoded_obs_tensor)
-        task_id = int(action.item()) // len(dataset.vms)
-        vm_id = int(action.item()) % len(dataset.vms)
+        encoded_obs_tensor = torch.Tensor(encoded_obs).to(self.agent.device)
+        action, _, _, _ = self.agent.get_action_and_value(encoded_obs_tensor.unsqueeze(0))
+        task_id = int(action.item()) // N_VM
+        vm_id = int(action.item()) % N_VM
 
         return task_id, vm_id

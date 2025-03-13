@@ -17,7 +17,7 @@ from algorithms.min_min import MinMinScheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.sla_aware import SlaAwareSchduler
-from constants import EVALUATION_SEED, INT_INFINITY
+from constants import EVALUATION_SEED
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
 from visualizers.summary_chart import plot_summary_chart
@@ -42,7 +42,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         SlaAwareSchduler(alpha=0.5),
     ]
 
-    table = ProgressTable(print_header_every_n_rows=INT_INFINITY, pbar_embedded=False, pbar_show_eta=True)
+    table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(len(schedulers) * len(datasets)))
     summary_data: list[tuple[str, float, float, float, float]] = []
 
@@ -91,7 +91,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
     table.close()
 
     print("\nSummary:")
-    summary_table = ProgressTable(print_header_every_n_rows=INT_INFINITY)
+    summary_table = ProgressTable(print_header_every_n_rows=0)
     for row in summary_data:
         summary_table.update("name", row[0], width=15)
         summary_table.update("makespan", row[1], width=20)

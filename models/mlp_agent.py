@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn import global_mean_pool
 
-from constants import NUM_TASK_FEATURES
+from constants import F_TASK, N_TASK
 from models.gin_agent import GinAgent as BaseAgent
 from models.gin_agent import GinAgentActor as BaseAgentActor
 from models.gin_agent import GinAgentCritic as BaseAgentCritic
@@ -15,7 +14,7 @@ class MlpTaskEncoder(BaseTaskEncoder):
 
         # [Nt] -> [H] -> [H] -> [E]
         self.network = nn.Sequential(
-            nn.Linear(NUM_TASK_FEATURES, hidden_dim),
+            nn.Linear(F_TASK, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
@@ -25,8 +24,11 @@ class MlpTaskEncoder(BaseTaskEncoder):
         ).to(device)
 
     def forward(self, task_features: torch.Tensor, dependencies: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        task_encoding: torch.Tensor = self.network(task_features)  # (Nt, E)
-        task_pool = global_mean_pool(task_encoding, batch=None)  # (1, E)
+        B = task_features.shape[0]
+        task_features_flat = task_features.reshape(B * N_TASK, -1)  # (B*Nt, Ft)
+        task_encoding_flat: torch.Tensor = self.network(task_features_flat)  # (B*Nt, E)
+        task_encoding = task_encoding_flat.reshape(B, N_TASK, -1)  # (B, Nt, E)
+        task_pool = task_encoding.mean(dim=1)  # (B, E)
 
         return task_encoding, task_pool
 

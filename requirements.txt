@@ -4,7 +4,7 @@ torch_geometric==2.6.1
 scipy==1.15.2
 tyro==0.9.16
 tensorboard==2.19.0
-progress-table==2.3.0
+progress-table==2.3.2
 wandb==0.19.7
 matplotlib==3.10.1
 networkx==3.4.2

@@ -1,14 +1,13 @@
-INT_INFINITY = 2**32
-MAX_OBS_SIZE = 100_000
+N_TASK = 50  # Number of tasks
+N_VM = 10  # Number of VMs
+F_TASK = 10  # Number of task features
+F_VM = 10  # Number of VM features
+OBS_SIZE = (N_TASK * F_TASK) + (N_TASK * N_VM * F_VM) + N_TASK + N_VM + (N_TASK * N_TASK)
+ACT_SIZE = N_TASK * N_VM + N_VM
 
-NUM_TASK_FEATURES = 9
-NUM_VM_FEATURES = 9
+TEST_SEED = 100_000  # Seed used for testing
+EVALUATION_SEED = 200_000  # Seed used for evaluation
 
-TEST_SEED = 100_000
-EVALUATION_SEED = 200_000
-
-MAKESPAN_PREFERENCE = 1
-ENERGY_CONSUMPTION_PREFERENCE = 0
-SLA_PENALTY_PREFERENCE = 0
-
-EMA_ALPHA = 0.9
+MAKESPAN_PREFERENCE = 1  # Preference for makespan optimization
+ENERGY_CONSUMPTION_PREFERENCE = 1  # Preference for Energy consumption optimization
+SLA_PENALTY_PREFERENCE = 1  # Preference for SLA penalty optimization

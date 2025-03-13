@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from constants import MAX_OBS_SIZE, NUM_TASK_FEATURES, NUM_VM_FEATURES
+from constants import F_TASK, F_VM, N_TASK, N_VM, OBS_SIZE
 from dataset.models import Dataset
 from env.state import TaskState, VmState
 from env.utils import task_completion_time_est, task_energy_consumption_est, task_sla_penalty_est
@@ -15,20 +15,20 @@ from env.utils import task_completion_time_est, task_energy_consumption_est, tas
 
 @dataclass
 class EnvObs:
-    task_features: np.ndarray[tuple[int, ...], Any]
-    vm_features: np.ndarray[tuple[int, ...], Any]
-    task_mask: np.ndarray[tuple[int, ...], Any]
-    vm_mask: np.ndarray[tuple[int, ...], Any]
-    task_dependencies: np.ndarray[tuple[int, ...], Any]
+    task_features: np.ndarray[tuple[int, ...], Any]  # (Nt, Ft)
+    vm_features: np.ndarray[tuple[int, ...], Any]  # (Nt, Nv, Fv)
+    task_mask: np.ndarray[tuple[int, ...], Any]  # (Nt,)
+    vm_mask: np.ndarray[tuple[int, ...], Any]  # (Nv,)
+    task_dependencies: np.ndarray[tuple[int, ...], Any]  # (Nt, Nt)
 
 
 @dataclass
 class EnvObsTensor:
-    task_features: torch.Tensor  # (Nt, Ft)
-    vm_features: torch.Tensor  # (Nt, Nv, Fv)
-    task_mask: torch.Tensor  # (Nv,)
-    vm_mask: torch.Tensor  # (Nv,)
-    task_dependencies: torch.Tensor  # (2, Nd)
+    task_features: torch.Tensor  # (B, Nt, Ft)
+    vm_features: torch.Tensor  # (B, Nt, Nv, Fv)
+    task_mask: torch.Tensor  # (B, Nt)
+    vm_mask: torch.Tensor  # (B, Nv)
+    task_dependencies: torch.Tensor  # (B, Nt, Nt)
 
 
 # Create
@@ -42,57 +42,150 @@ def create_env_obs(
     task_energy_consumption = task_energy_consumption_est(dataset, task_states)
     task_sla_penalty = task_sla_penalty_est(dataset, task_states)
 
+    # --- Task Features ---
+
+    def feat_task_is_schedulable(t_id: int) -> int:
+        if t_id < len(task_states):
+            return int(task_states[t_id].is_ready)
+        return 0
+
+    def feat_task_is_scheduled(t_id: int) -> int:
+        if t_id < len(task_states):
+            return int(task_states[t_id].assigned_vm_id is not None)
+        return 0
+
+    def feat_task_completion_time(t_id: int) -> float:
+        if t_id < len(task_states):
+            return task_completion_time[t_id]
+        return 0
+
+    def feat_task_energy_consumption(t_id: int) -> float:
+        if t_id < len(task_states):
+            return task_energy_consumption[t_id]
+        return 0
+
+    def feat_task_sla_penalty(t_id: int) -> float:
+        if t_id < len(task_states):
+            return task_sla_penalty[t_id]
+        return 0
+
+    def feat_task_length(t_id: int) -> float:
+        if t_id < len(task_states):
+            return dataset.tasks[t_id].length
+        return 0
+
+    def feat_task_priority(t_id: int) -> float:
+        if t_id < len(task_states):
+            return dataset.tasks[t_id].priority
+        return 0
+
+    # --- VM Features ---
+
+    def feat_vm_is_schedulable(v_id: int) -> int:
+        if v_id < len(vm_states):
+            return 1  # To denote failures?
+        return 0
+
+    def feat_vm_completion_time(v_id: int) -> float:
+        if v_id < len(vm_states):
+            return vm_states[v_id].completion_time
+        return 0
+
+    # --- Task-VM Features ---
+
+    def feat_task_vm_execution_time(t_id: int, v_id: int) -> float:
+        if t_id < len(task_states) and v_id < len(vm_states):
+            return dataset.vms[v_id].execution_time(dataset.tasks[t_id])
+        return 0
+
+    def feat_task_vm_active_power_consumption(t_id: int, v_id: int) -> float:
+        if t_id < len(task_states) and v_id < len(vm_states):
+            return dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption(dataset.tasks[t_id])
+        return 0
+
+    def feat_task_vm_sla_penalty(t_id: int, v_id: int) -> float:
+        if t_id < len(task_states) and v_id < len(vm_states):
+            return dataset.vms[v_id].penalty(dataset.tasks[t_id])
+        return 0
+
+    def feat_task_vm_cpu_speed_mips(t_id: int, v_id: int) -> float:
+        if t_id < len(task_states) and v_id < len(vm_states):
+            return dataset.vms[v_id].cpu_speed_mips
+        return 0
+
+    def feat_task_vm_active_power_consumption_rate(t_id: int, v_id: int) -> float:
+        if t_id < len(task_states) and v_id < len(vm_states):
+            return dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption_rate
+        return 0
+
+    # --- Task-Task Features ---
+
+    def feat_task_task_dependent(p_id: int, c_id: int) -> int:
+        if p_id < len(task_states) and c_id < len(task_states):
+            return int((p_id, c_id) in task_dependencies)
+        return 0
+
+    # --- Create feature vectors ---
+
     task_features = np.array(
         [
             (
-                int(task_states[t_id].assigned_vm_id is not None),
-                task_completion_time[t_id],
-                task_energy_consumption[t_id],
-                task_sla_penalty[t_id],
-                dataset.tasks[t_id].length,
-                dataset.tasks[t_id].priority,
+                feat_task_is_schedulable(t_id),
+                feat_task_is_scheduled(t_id),
+                feat_task_completion_time(t_id),
+                feat_task_energy_consumption(t_id),
+                feat_task_sla_penalty(t_id),
+                feat_task_length(t_id),
+                feat_task_priority(t_id),
                 dataset.preference.makespan,
                 dataset.preference.energy_consumption,
                 dataset.preference.sla_penalty,
             )
-            for t_id in range(len(task_states))
+            for t_id in range(N_TASK)
         ],
-        dtype=np.float64,
+        dtype=np.float32,
     )
     vm_features = np.array(
         [
             [
                 (
-                    vm_states[v_id].completion_time,
-                    dataset.vms[v_id].execution_time(dataset.tasks[t_id]),
-                    dataset.vms[v_id].penalty(dataset.tasks[t_id]),
-                    dataset.vms[v_id].cpu_speed_mips,
-                    dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption(dataset.tasks[t_id]),
-                    dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption_rate,
+                    feat_vm_is_schedulable(v_id),
+                    feat_vm_completion_time(v_id),
+                    feat_task_vm_execution_time(t_id, v_id),
+                    feat_task_vm_active_power_consumption(t_id, v_id),
+                    feat_task_vm_sla_penalty(t_id, v_id),
+                    feat_task_vm_cpu_speed_mips(t_id, v_id),
+                    feat_task_vm_active_power_consumption_rate(t_id, v_id),
                     dataset.preference.makespan,
                     dataset.preference.energy_consumption,
                     dataset.preference.sla_penalty,
                 )
-                for v_id in range(len(vm_states))
+                for v_id in range(N_VM)
             ]
-            for t_id in range(len(task_states))
+            for t_id in range(N_TASK)
         ],
-        dtype=np.float64,
+        dtype=np.float32,
     )
 
-    assert task_features.shape[-1] == NUM_TASK_FEATURES, f"Unexpected feature count for tasks: {task_features.shape[1]}"
-    assert vm_features.shape[-1] == NUM_VM_FEATURES, f"Unexpected feature count for VMs: {vm_features.shape[1]}"
+    task_mask = np.array([feat_task_is_schedulable(t_id) for t_id in range(N_TASK)])
+    vm_mask = np.array([feat_vm_is_schedulable(v_id) for v_id in range(N_VM)])
+    task_dependencies_matrix = np.array(
+        [[feat_task_task_dependent(p_id, c_id) for c_id in range(N_TASK)] for p_id in range(N_TASK)],
+        dtype=np.int32,
+    )
 
-    task_mask = np.array([task_state.is_ready for task_state in task_states])
-    vm_mask = np.ones(len(vm_states))  # To denote failures?
-    task_dependencies_arr = np.array(list(task_dependencies)).T.reshape(2, -1)
+    assert task_features.shape == (N_TASK, F_TASK), task_features.shape
+    assert vm_features.shape == (N_TASK, N_VM, F_VM), vm_features.shape
+    assert task_mask.shape == (N_TASK,), task_mask.shape
+    assert vm_mask.shape == (N_VM,), vm_mask.shape
+    assert task_dependencies_matrix.shape == (N_TASK, N_TASK), task_dependencies_matrix.shape
 
     return EnvObs(
         task_features=task_features,
         vm_features=vm_features,
         task_mask=task_mask,
         vm_mask=vm_mask,
-        task_dependencies=task_dependencies_arr,
+        task_dependencies=task_dependencies_matrix,
     )
 
 
@@ -101,24 +194,17 @@ def create_env_obs(
 
 
 def encode_env_obs(obs: EnvObs) -> np.ndarray[tuple[int, ...], Any]:
-    num_tasks = obs.task_features.shape[0]
-    num_vms = obs.vm_features.shape[1]
-    num_task_deps = obs.task_dependencies.shape[1]
-
     arr = np.concatenate(
         [
-            np.array([num_tasks, num_vms, num_task_deps], dtype=np.int32),  # Header
-            np.asarray(obs.task_features, dtype=np.float64).flatten(),  # num_tasks*NUM_TASK_FEATURES
-            np.asarray(obs.vm_features, dtype=np.float64).flatten(),  # num_tasks*num_vms*NUM_VM_FEATURES
-            np.asarray(obs.task_mask, dtype=np.int32),  # num_tasks
-            np.asarray(obs.vm_mask, dtype=np.int32),  # num_vms
-            np.asarray(obs.task_dependencies, dtype=np.int32).flatten(),  # num_task_deps*2
+            np.asarray(obs.task_features, dtype=np.float32).flatten(),  # Nt*Ft
+            np.asarray(obs.vm_features, dtype=np.float32).flatten(),  # Nt*Nv*Fv
+            np.asarray(obs.task_mask, dtype=np.int32),  # Nt
+            np.asarray(obs.vm_mask, dtype=np.int32),  # Nv
+            np.asarray(obs.task_dependencies, dtype=np.int32).flatten(),  # Nt*Nt
         ]
     )
 
-    assert len(arr) <= MAX_OBS_SIZE, "Observation size does not fit the buffer, please adjust the size of mapper"
-    arr = np.pad(arr, (0, MAX_OBS_SIZE - len(arr)), "constant")
-
+    assert arr.shape == (OBS_SIZE,), arr.shape
     return arr
 
 
@@ -126,26 +212,31 @@ def encode_env_obs(obs: EnvObs) -> np.ndarray[tuple[int, ...], Any]:
 # ------------------------------------------------------------------------------------------------------------------
 
 
-def decode_env_obs(tensor: torch.Tensor) -> EnvObsTensor:
-    assert len(tensor) == MAX_OBS_SIZE, "Tensor size is not of expected size"
+def decode_env_obs_batched(tensor: torch.Tensor) -> EnvObsTensor:
+    B = tensor.shape[0]
+    assert tensor.shape == (B, OBS_SIZE), tensor.shape
 
-    num_tasks = int(tensor[0].long().item())
-    num_vms = int(tensor[1].long().item())
-    num_task_deps = int(tensor[2].long().item())
-    tensor = tensor[3:]
+    task_features_list: list[torch.Tensor] = []
+    vm_features_list: list[torch.Tensor] = []
+    task_mask_list: list[torch.Tensor] = []
+    vm_mask_list: list[torch.Tensor] = []
+    task_dependencies_list: list[torch.Tensor] = []
+    for tensor_i in tensor:
+        task_features_list.append(tensor_i[: N_TASK * F_TASK].reshape(N_TASK, F_TASK))
+        offset = N_TASK * F_TASK
+        vm_features_list.append(tensor_i[offset : offset + N_TASK * N_VM * F_VM].reshape(N_TASK, N_VM, F_VM))
+        offset += N_TASK * N_VM * F_VM
+        task_mask_list.append(tensor_i[offset : offset + N_TASK].long())
+        offset += N_TASK
+        vm_mask_list.append(tensor_i[offset : offset + N_VM].long())
+        offset += N_VM
+        task_dependencies_list.append(tensor_i[offset : offset + N_TASK * N_TASK].reshape(N_TASK, N_TASK).long())
 
-    task_features = tensor[: num_tasks * NUM_TASK_FEATURES].reshape(num_tasks, -1)
-    tensor = tensor[num_tasks * NUM_TASK_FEATURES :]
-    vm_features = tensor[: num_tasks * num_vms * NUM_VM_FEATURES].reshape(num_tasks, num_vms, -1)
-    tensor = tensor[num_tasks * num_vms * NUM_VM_FEATURES :]
-    task_mask = tensor[:num_tasks].long()
-    tensor = tensor[num_tasks:]
-    vm_mask = tensor[:num_vms].long()
-    tensor = tensor[num_vms:]
-    task_dependencies = tensor[: num_task_deps * 2].reshape(2, num_task_deps).long()
-    tensor = tensor[num_task_deps * 2 :]
-
-    assert not tensor.any(), "There are non-zero elements in the padding"
+    task_features = torch.stack(task_features_list)
+    vm_features = torch.stack(vm_features_list)
+    task_mask = torch.stack(task_mask_list)
+    vm_mask = torch.stack(vm_mask_list)
+    task_dependencies = torch.stack(task_dependencies_list)
 
     return EnvObsTensor(
         task_features=task_features,
