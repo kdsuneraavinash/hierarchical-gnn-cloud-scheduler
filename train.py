@@ -253,10 +253,11 @@ def train(args: Args) -> None:
         with torch.no_grad():
             progress_bar.set_step(global_step)
             table.update("phase", value="training")
-            table.update("makespan", value=np.mean(makespan_list))
-            table.update("energy_consumption", value=np.mean(energy_consumption_list))
-            table.update("sla_penalty", value=np.mean(sla_penalty_list))
-            table.update("reward", value=np.mean(reward_list))
+            if len(makespan_list) > 0:
+                table.update("makespan", value=np.mean(makespan_list))
+                table.update("energy_consumption", value=np.mean(energy_consumption_list))
+                table.update("sla_penalty", value=np.mean(sla_penalty_list))
+                table.update("reward", value=np.mean(reward_list))
             makespan_list.clear()
             energy_consumption_list.clear()
             sla_penalty_list.clear()
