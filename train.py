@@ -16,10 +16,13 @@ from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from constants import N_TASK, N_VM
-from dataset.generator import DatasetArgs
+from algorithms.drl_agent import DrlAgentScheduler
+from constants import N_TASK, N_VM, TEST_SEED
+from dataset.generator import DatasetArgs, generate_dataset
+from dataset.models import Solution
 from env.gym_env import GymEnvironment
 from models.agent import make_agent
+from models.base_agent import BaseAgent
 
 
 @dataclass
@@ -199,15 +202,11 @@ def train(args: Args) -> None:
     table.add_column("iter")
     table.add_column("global_step")
     table.add_column("phase", width=10)
-    table.add_column("makespan", width=10)
-    table.add_column("energy_consumption", width=10)
-    table.add_column("sla_penalty", width=10)
     table.add_column("reward", width=10)
+    table.add_column("t_makespan", width=10)
+    table.add_column("t_energy_consumption", width=10)
+    table.add_column("t_sla_penalty", width=10)
 
-    makespan_list: list[float] = []
-    energy_consumption_list: list[float] = []
-    sla_penalty_list: list[float] = []
-    reward_list: list[float] = []
     for iteration in range(1, args.num_iterations + 1):
         table.update("iter", value=iteration)
         table.update("global_step", value=global_step)
@@ -238,30 +237,15 @@ def train(args: Args) -> None:
             next_obs_tensor, next_done_tensor = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
 
             if "episode" in infos:
-                makespan_list.extend(infos["makespan"])
-                energy_consumption_list.extend(infos["energy_consumption"])
-                sla_penalty_list.extend(infos["sla_penalty"])
-                reward_list.extend(infos["reward"])
                 for i in range(args.num_envs):
                     writer.add_scalar("charts/episodic_return", infos["episode"]["r"][i], global_step)
                     writer.add_scalar("charts/episodic_length", infos["episode"]["l"][i], global_step)
-                    writer.add_scalar("tests/makespan", infos["makespan"][i], global_step)
-                    writer.add_scalar("tests/energy_consumption", infos["energy_consumption"][i], global_step)
-                    writer.add_scalar("tests/sla_penalty", infos["sla_penalty"][i], global_step)
-                    writer.add_scalar("tests/reward", infos["reward"][i], global_step)
+                    writer.add_scalar("episode/makespan", infos["makespan"][i], global_step)
+                    writer.add_scalar("episode/energy_consumption", infos["energy_consumption"][i], global_step)
+                    writer.add_scalar("episode/sla_penalty", infos["sla_penalty"][i], global_step)
+                    table.update("reward", value=infos["episode"]["r"][i], aggregate="mean")
 
-        with torch.no_grad():
-            progress_bar.set_step(global_step)
-            table.update("phase", value="training")
-            if len(makespan_list) > 0:
-                table.update("makespan", value=np.mean(makespan_list))
-                table.update("energy_consumption", value=np.mean(energy_consumption_list))
-                table.update("sla_penalty", value=np.mean(sla_penalty_list))
-                table.update("reward", value=np.mean(reward_list))
-            makespan_list.clear()
-            energy_consumption_list.clear()
-            sla_penalty_list.clear()
-            reward_list.clear()
+        progress_bar.set_step(global_step)
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -359,6 +343,16 @@ def train(args: Args) -> None:
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
 
+        with torch.no_grad():
+            table.update("phase", value="testing")
+            test_results = test_agent(agent, args)
+            writer.add_scalar("tests/makespan", test_results[0], global_step)
+            writer.add_scalar("tests/energy_consumption", test_results[1], global_step)
+            writer.add_scalar("tests/sla_penalty", test_results[2], global_step)
+            table.update("t_makespan", value=test_results[0])
+            table.update("t_energy_consumption", value=test_results[1])
+            table.update("t_sla_penalty", value=test_results[2])
+
         table.update("phase", value="done")
         if (global_step - last_model_save) >= 10_000:
             table.update("phase", value="saved")
@@ -373,6 +367,34 @@ def train(args: Args) -> None:
     writer.close()
 
     table.close()
+
+
+# Testing Agent
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
+    test_rng = np.random.RandomState(TEST_SEED)
+
+    total_makespan = 0.0
+    total_energy_consumption = 0.0
+    total_sla_penalty = 0.0
+
+    for _ in range(args.test_iterations):
+        dataset = generate_dataset(args.dataset, test_rng)
+
+        test_scheduler = DrlAgentScheduler(name="Agent", agent=agent, agent_type=args.agent_type)
+        assignments = test_scheduler.schedule(dataset)
+        solution = Solution(dataset, assignments)
+
+        total_makespan += solution.makespan()
+        total_energy_consumption += solution.energy_consumption()
+        total_sla_penalty += solution.sla_penalty()
+
+    avg_makespan = total_makespan / args.test_iterations
+    avg_energy_consumption = total_energy_consumption / args.test_iterations
+    avg_sla_penalty = total_sla_penalty / args.test_iterations
+    return avg_makespan, avg_energy_consumption, avg_sla_penalty
 
 
 if __name__ == "__main__":

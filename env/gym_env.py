@@ -15,7 +15,6 @@ from env.simulation import Simulation
 
 class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     _rng: np.random.RandomState | None = None
-    _total_reward: float = 0
 
     def __init__(self, dataset_args: DatasetArgs):
         super().__init__()
@@ -33,8 +32,8 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     ) -> tuple[np.ndarray[tuple[int, ...], Any], dict[str, Any]]:
         """Resets the environment and initializes the simulation."""
         super().reset(seed=seed, options=options)
-        self._rng = np.random.RandomState(0)
-        self._total_reward = 0
+        if self._rng is None:
+            self._rng = np.random.RandomState(self.np_random_seed)
 
         dataset = generate_dataset(self.dataset_args, self._rng)
         self.simulation = Simulation(dataset)
@@ -71,7 +70,6 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             return encode_env_obs(obs), penalty, True, False, {"error": error}
 
         reward = self.reward_function.current_reward(self.simulation, done)
-        self._total_reward += reward
         if not done:
             return encode_env_obs(obs), reward, False, False, {}
 
@@ -80,6 +78,5 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             "makespan": self.simulation.makespan(),
             "energy_consumption": self.simulation.total_energy_consumption(),
             "sla_penalty": self.simulation.total_sla_penalty(),
-            "reward": self._total_reward,
         }
         return encode_env_obs(obs), reward, False, True, info
