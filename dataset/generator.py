@@ -8,6 +8,7 @@ import numpy as np
 import tyro
 from scipy import stats
 
+from constants import ENERGY_CONSUMPTION_PREFERENCE, MAKESPAN_PREFERENCE, SLA_PENALTY_PREFERENCE
 from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
 
 
@@ -73,9 +74,9 @@ def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
 
 
 def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Preference:
-    makespan = 1
-    energy_consumption = 1
-    sla_penalty = 1
+    makespan = MAKESPAN_PREFERENCE
+    energy_consumption = ENERGY_CONSUMPTION_PREFERENCE
+    sla_penalty = SLA_PENALTY_PREFERENCE
     total = makespan + energy_consumption + sla_penalty
 
     return Preference(
