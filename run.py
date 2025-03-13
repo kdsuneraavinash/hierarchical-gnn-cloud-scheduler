@@ -4,6 +4,7 @@ import icecream
 import numpy as np
 import torch
 
+from constants import N_TASK, N_VM
 from dataset.generator import DatasetArgs
 from env.gym_env import GymEnvironment
 from models.gin_agent import GinAgent
@@ -17,9 +18,9 @@ def main() -> None:
     agent = GinAgent(torch.device("cpu"))
     env = GymEnvironment(
         dataset_args=DatasetArgs(
-            task_count=100,
+            task_count=N_TASK,
+            max_vm_count=N_VM,
             max_host_count=2,
-            max_vm_count=2,
             max_tasks_per_workflow=20,
         )
     )

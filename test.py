@@ -17,7 +17,7 @@ from algorithms.min_min import MinMinScheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.sla_aware import SlaAwareSchduler
-from constants import EVALUATION_SEED
+from constants import EVALUATION_SEED, N_TASK, N_VM
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
 from visualizers.summary_chart import plot_summary_chart
@@ -121,10 +121,10 @@ if __name__ == "__main__":
         generate_dataset(
             rng=rng,
             args=DatasetArgs(
-                task_count=200,
-                max_host_count=4,
-                max_vm_count=10,
-                max_tasks_per_workflow=20,
+                task_count=N_TASK,
+                max_vm_count=N_VM,
+                max_host_count=10,
+                max_tasks_per_workflow=10,
             ),
         )
         for _ in range(4)

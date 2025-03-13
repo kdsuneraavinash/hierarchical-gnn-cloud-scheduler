@@ -14,6 +14,7 @@ class GinTaskEncoder(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
+        self.embedding_dim = embedding_dim
         self.network = GIN(  # [Nt] -> [H] -> [H] -> [H] -> [E]
             in_channels=F_TASK,
             hidden_channels=hidden_dim,
@@ -24,7 +25,7 @@ class GinTaskEncoder(nn.Module):
     def forward(self, task_features: torch.Tensor, dependencies: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         B = task_features.shape[0]
 
-        task_features_flat = task_features.reshape(B * N_TASK, -1)  # (B*Nt, Ft)
+        task_features_flat = task_features.reshape(B * N_TASK, F_TASK)  # (B*Nt, Ft)
         edge_indices: list[torch.Tensor] = []  # (B, 2, variable)
         for i in range(B):
             edge_index = torch.nonzero(dependencies[i], as_tuple=False).T  # (2, variable)
@@ -32,7 +33,7 @@ class GinTaskEncoder(nn.Module):
 
         edge_indices_flat = torch.cat(edge_indices, dim=1)  # (2, Nx)
         task_encoding_flat: torch.Tensor = self.network(task_features_flat, edge_index=edge_indices_flat)  # (B*Nt, E)
-        task_encodings = task_encoding_flat.reshape(B, N_TASK, -1)  # (B, Nt, E)
+        task_encodings = task_encoding_flat.reshape(B, N_TASK, self.embedding_dim)  # (B, Nt, E)
         task_pool = task_encodings.mean(dim=1)  # (B, E)
 
         return task_encodings, task_pool
@@ -42,6 +43,7 @@ class GinVmEncoder(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
+        self.embedding_dim = embedding_dim
         self.network = nn.Sequential(  # [Nv] -> [H] -> [H] -> [E]
             nn.Linear(F_VM, hidden_dim),
             nn.BatchNorm1d(hidden_dim),
@@ -54,9 +56,9 @@ class GinVmEncoder(nn.Module):
 
     def forward(self, vm_features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         B = vm_features.shape[0]
-        vm_features_flat = vm_features.reshape(B * N_VM, -1)  # (B*Nv, Fv)
+        vm_features_flat = vm_features.reshape(B * N_VM, F_VM)  # (B*Nv, Fv)
         vm_encoding_flat: torch.Tensor = self.network(vm_features_flat)  # (B*Nv, E)
-        vm_encoding = vm_encoding_flat.reshape(B, N_VM, -1)  # (B, Nv, E)
+        vm_encoding = vm_encoding_flat.reshape(B, N_VM, self.embedding_dim)  # (B, Nv, E)
         vm_pool = vm_encoding.mean(dim=1)  # (B, E)
 
         return vm_encoding, vm_pool
@@ -92,7 +94,7 @@ class GinDecoder(nn.Module):
         scores_flat: torch.Tensor = self.network(comb_encoding)  # (B*Nx, 1)
         scores = scores_flat.reshape(B, num_x)  # (B, Nx)
 
-        scores[mask == 0] = -1e8
+        scores.masked_fill_(mask == 0, -1e8)
         return scores
 
 
@@ -116,11 +118,12 @@ class GinAgentActor(nn.Module):
 
         # --- Encode Tasks ---
         task_features = decoded_obs.task_features  # (B, Nt, Ft)
+        vm_features = decoded_obs.vm_features  # (B, Nt, Nv, Fv)
         dependencies = decoded_obs.task_dependencies  # (B, Nt, Nt)
         task_encoding, task_pool = self.task_encoder(task_features, dependencies)  # (B, Nt, E), (B, E)
 
         # --- Encode VMs (avg properties across tasks) ---
-        avg_vm_features = decoded_obs.vm_features.mean(dim=1)  # (B, Nv, Fv)
+        avg_vm_features = vm_features.mean(dim=1)  # (B, Nv, Fv)
         _, avg_vm_pool = self.vm_encoder(avg_vm_features)  # (B, E)
 
         # --- Task Selection ---
@@ -133,8 +136,7 @@ class GinAgentActor(nn.Module):
         task_entropy = task_dist.entropy()  # (B,)
 
         # --- Encode the specific VM (with specific properties to the selected task) ---
-        indices = chosen_task[:, None, None, None].expand(-1, 1, N_VM, F_VM)  # (B, 1, Nv, Fv)
-        chosen_vm_features = torch.gather(decoded_obs.vm_features, dim=1, index=indices).squeeze(1)  # (B, Nv, Fv)
+        chosen_vm_features = vm_features[torch.arange(vm_features.shape[0]), chosen_task]  # (B, Nv, Fv)
         vm_encoding, vm_pool = self.vm_encoder(chosen_vm_features)  # (B, Nv, E), (B, E)
 
         # --- VM Selection ---
@@ -183,7 +185,7 @@ class GinAgentCritic(nn.Module):
 
         comb_encoding = torch.cat([task_pool, avg_vm_pool], dim=1)  # (B, 2E)
         state_value: torch.Tensor = self.network(comb_encoding)  # (B, 1)
-        return state_value.flatten()
+        return state_value.squeeze(dim=-1)
 
 
 # Gin Agent
