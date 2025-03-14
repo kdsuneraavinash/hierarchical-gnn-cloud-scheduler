@@ -17,7 +17,16 @@ from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from algorithms.drl_agent import DrlAgentScheduler
-from constants import N_HOST, N_TASK, N_VM, N_WORKFLOW_TASK, TEST_SEED
+from constants import (
+    ENERGY_CONSUMPTION_PREFERENCE,
+    MAKESPAN_PREFERENCE,
+    N_HOST,
+    N_TASK,
+    N_VM,
+    N_WORKFLOW_TASK,
+    SLA_PENALTY_PREFERENCE,
+    TEST_SEED,
+)
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
@@ -95,6 +104,18 @@ class Args:
         )
     )
     """the dataset generation parameters"""
+    test_dataset: DatasetArgs = field(
+        default_factory=lambda: DatasetArgs(
+            task_count=N_TASK,
+            max_vm_count=N_VM,
+            max_host_count=N_HOST,
+            max_tasks_per_workflow=N_WORKFLOW_TASK,
+            makespan_preference=MAKESPAN_PREFERENCE,
+            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+            sla_penalty_preference=SLA_PENALTY_PREFERENCE,
+        )
+    )
+    """the test dataset generation parameters"""
 
     # to be filled in runtime
     batch_size: int = 0
@@ -381,7 +402,7 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
     total_sla_penalty = 0.0
 
     for _ in range(args.test_iterations):
-        dataset = generate_dataset(args.dataset, test_rng)
+        dataset = generate_dataset(args.test_dataset, test_rng)
 
         test_scheduler = DrlAgentScheduler(name="Agent", agent=agent, agent_type=args.agent_type)
         assignments = test_scheduler.schedule(dataset)
