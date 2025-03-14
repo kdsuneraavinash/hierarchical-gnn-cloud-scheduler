@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn.models import GIN
+from torch_geometric.nn.models import GAT
 
 from constants import F_TASK, F_VM, N_TASK, N_VM
 from env.observation import decode_env_obs_batched
@@ -15,11 +15,13 @@ class GinTaskEncoder(nn.Module):
         super().__init__()
         self.device = device
         self.embedding_dim = embedding_dim
-        self.network = GIN(  # [Nt] -> [H] -> [H] -> [H] -> [E]
+        self.network = GAT(  # [Nt] -> [H] -> [H] -> [H] -> [E]
             in_channels=F_TASK,
             hidden_channels=hidden_dim,
             num_layers=3,
             out_channels=embedding_dim,
+            heads=4,
+            concat=False,
         ).to(device)
 
     def forward(self, task_features: torch.Tensor, dependencies: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
