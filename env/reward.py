@@ -19,9 +19,11 @@ class RewardFunction:
         curr_energy_consumption = simulation.total_energy_consumption()
         curr_sla_penalty = simulation.total_sla_penalty()
 
-        makespan_reward_diff = curr_makespan - self.prev_makespan
-        energy_consumption_reward_diff = curr_energy_consumption - self.prev_energy_consumption
-        sla_penalty_reward_diff = curr_sla_penalty - self.prev_sla_penalty
+        makespan_reward_diff = (curr_makespan - self.prev_makespan) / curr_makespan
+        energy_consumption_reward_diff = (
+            curr_energy_consumption - self.prev_energy_consumption
+        ) / curr_energy_consumption
+        sla_penalty_reward_diff = (curr_sla_penalty - self.prev_sla_penalty) / curr_sla_penalty
 
         preference = simulation.dataset.preference
         reward = -(
@@ -29,13 +31,6 @@ class RewardFunction:
             + energy_consumption_reward_diff * preference.energy_consumption
             + sla_penalty_reward_diff * preference.sla_penalty
         )
-
-        if done:
-            reward -= float(
-                curr_makespan * preference.makespan
-                + curr_energy_consumption * preference.energy_consumption
-                + curr_sla_penalty * preference.sla_penalty
-            )
 
         self.prev_makespan = curr_makespan
         self.prev_energy_consumption = curr_energy_consumption
