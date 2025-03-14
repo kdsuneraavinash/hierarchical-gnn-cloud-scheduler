@@ -17,7 +17,7 @@ from progress_table.v1.progress_table import TableProgressBar
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from algorithms.drl_agent import DrlAgentScheduler
-from constants import N_TASK, N_VM, TEST_SEED
+from constants import N_HOST, N_TASK, N_VM, N_WORKFLOW_TASK, TEST_SEED
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
@@ -37,7 +37,7 @@ class Args:
     """seed of the experiment"""
     output_dir: str = "logs"
     """the output directory of the experiment"""
-    torch_deterministic: bool = False
+    torch_deterministic: bool = True
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
@@ -90,8 +90,8 @@ class Args:
         default_factory=lambda: DatasetArgs(
             task_count=N_TASK,
             max_vm_count=N_VM,
-            max_host_count=4,
-            max_tasks_per_workflow=20,
+            max_host_count=N_HOST,
+            max_tasks_per_workflow=N_WORKFLOW_TASK,
         )
     )
     """the dataset generation parameters"""
