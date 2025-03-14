@@ -30,8 +30,8 @@ class Args:
     exp_name: str = "test"
     """the name of this experiment"""
 
-    agent_type: str = "gin"
-    """the type of agent (gin, drl)"""
+    agent_type: str = "gnn"
+    """the type of agent (gnn, drl)"""
 
     seed: int = 1
     """seed of the experiment"""
@@ -53,7 +53,7 @@ class Args:
     """number of test iterations"""
 
     # Algorithm specific arguments
-    total_timesteps: int = 200_000
+    total_timesteps: int = 500_000
     """total timesteps of the experiments"""
     learning_rate: float = 2.5e-4
     """the learning rate of the optimizer"""

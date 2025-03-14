@@ -10,7 +10,7 @@ from models.base_agent import BaseAgent
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class GinTaskEncoder(nn.Module):
+class GnnTaskEncoder(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
@@ -41,7 +41,7 @@ class GinTaskEncoder(nn.Module):
         return task_encodings, task_pool
 
 
-class GinVmEncoder(nn.Module):
+class GnnVmEncoder(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
@@ -70,7 +70,7 @@ class GinVmEncoder(nn.Module):
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class GinDecoder(nn.Module):
+class GnnDecoder(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
@@ -104,14 +104,14 @@ class GinDecoder(nn.Module):
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class GinAgentActor(nn.Module):
+class GnnAgentActor(nn.Module):
     def __init__(self, device: torch.device, embedding_dim: int = 32, hidden_dim: int = 64):
         super().__init__()
         self.device = device
-        self.task_encoder = GinTaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.vm_encoder = GinVmEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.task_decoder = GinDecoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.vm_decoder = GinDecoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.task_encoder = GnnTaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.vm_encoder = GnnVmEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.task_decoder = GnnDecoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.vm_decoder = GnnDecoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
 
     def forward(
         self, x: torch.Tensor, action: torch.Tensor | None = None
@@ -162,12 +162,12 @@ class GinAgentActor(nn.Module):
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class GinAgentCritic(nn.Module):
+class GnnAgentCritic(nn.Module):
     def __init__(self, hidden_dim: int, embedding_dim: int, device: torch.device) -> None:
         super().__init__()
         self.device = device
-        self.task_encoder = GinTaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.vm_encoder = GinVmEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.task_encoder = GnnTaskEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.vm_encoder = GnnVmEncoder(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
         self.network = nn.Sequential(  # [2E] -> [H] -> [H] -> [1]
             nn.Linear(2 * embedding_dim, hidden_dim),
             nn.ReLU(),
@@ -192,17 +192,17 @@ class GinAgentCritic(nn.Module):
         return state_value.squeeze(dim=-1)
 
 
-# Gin Agent
+# GNN Agent
 # ------------------------------------------------------------------------------------------------------------------
 
 
-class GinAgent(BaseAgent):
+class GnnAgent(BaseAgent):
     def __init__(self, device: torch.device, embedding_dim: int = 8, hidden_dim: int = 64):
         super().__init__(device)
         self.device = device
 
-        self.actor = GinAgentActor(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
-        self.critic = GinAgentCritic(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.actor = GnnAgentActor(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
+        self.critic = GnnAgentCritic(hidden_dim=hidden_dim, embedding_dim=embedding_dim, device=device)
 
     def get_value(self, x: torch.Tensor) -> torch.Tensor:
         value: torch.Tensor = self.critic(x)

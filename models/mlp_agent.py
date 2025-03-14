@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 
 from constants import F_TASK, N_TASK
-from models.gin_agent import GinAgent as BaseAgent
-from models.gin_agent import GinAgentActor as BaseAgentActor
-from models.gin_agent import GinAgentCritic as BaseAgentCritic
-from models.gin_agent import GinTaskEncoder as BaseTaskEncoder
+from models.gnn_agent import GnnAgent as BaseAgent
+from models.gnn_agent import GnnAgentActor as BaseAgentActor
+from models.gnn_agent import GnnAgentCritic as BaseAgentCritic
+from models.gnn_agent import GnnTaskEncoder as BaseTaskEncoder
 
 
 class MlpTaskEncoder(BaseTaskEncoder):

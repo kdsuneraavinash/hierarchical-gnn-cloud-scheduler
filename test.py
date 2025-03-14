@@ -8,6 +8,7 @@ from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
 from algorithms.base_abstract import BaseAbstractScheduler
+from algorithms.drl_agent import DrlAgentScheduler
 from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
 from algorithms.heft import HeftScheduler
@@ -17,7 +18,16 @@ from algorithms.min_min import MinMinScheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.sla_aware import SlaAwareSchduler
-from constants import EVALUATION_SEED, N_TASK, N_VM
+from constants import (
+    ENERGY_CONSUMPTION_PREFERENCE,
+    EVALUATION_SEED,
+    MAKESPAN_PREFERENCE,
+    N_HOST,
+    N_TASK,
+    N_VM,
+    N_WORKFLOW_TASK,
+    SLA_PENALTY_PREFERENCE,
+)
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
 from visualizers.summary_chart import plot_summary_chart
@@ -40,6 +50,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
         SlaAwareSchduler(alpha=0.5),
+        DrlAgentScheduler("Proposed", model_path="logs/1741968667_test/model.pt", agent_type="gnn"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
@@ -123,8 +134,11 @@ if __name__ == "__main__":
             args=DatasetArgs(
                 task_count=N_TASK,
                 max_vm_count=N_VM,
-                max_host_count=10,
-                max_tasks_per_workflow=10,
+                max_host_count=N_HOST,
+                max_tasks_per_workflow=N_WORKFLOW_TASK,
+                makespan_preference=MAKESPAN_PREFERENCE,
+                energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+                sla_penalty_preference=SLA_PENALTY_PREFERENCE,
             ),
         )
         for _ in range(4)
