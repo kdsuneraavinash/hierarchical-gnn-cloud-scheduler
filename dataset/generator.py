@@ -8,7 +8,6 @@ import numpy as np
 import tyro
 from scipy import stats
 
-from constants import ENERGY_CONSUMPTION_PREFERENCE, MAKESPAN_PREFERENCE, SLA_PENALTY_PREFERENCE
 from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
 
 
@@ -50,6 +49,12 @@ class DatasetArgs:
     """arrival rate of workflows/second (for dynamic arrival)"""
     max_task_priority: int = 5
     """number of priority levels of a task"""
+    makespan_preference: float | None = None
+    """preference for optimizing makespan"""
+    energy_consumption_preference: float | None = None
+    """preference for optimizing energy consumption"""
+    sla_penalty_preference: float | None = None
+    """preference for optimizing sla penalty"""
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
@@ -74,9 +79,19 @@ def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
 
 
 def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Preference:
-    makespan = MAKESPAN_PREFERENCE
-    energy_consumption = ENERGY_CONSUMPTION_PREFERENCE
-    sla_penalty = SLA_PENALTY_PREFERENCE
+    makespan = args.makespan_preference
+    energy_consumption = args.energy_consumption_preference
+    sla_penalty = args.sla_penalty_preference
+    if makespan is None:
+        makespan = rng.random()
+    if energy_consumption is None:
+        energy_consumption = rng.random()
+    if sla_penalty is None:
+        sla_penalty = rng.random()
+
+    makespan += 1e-8
+    energy_consumption += 1e-8
+    sla_penalty += 1e-8
     total = makespan + energy_consumption + sla_penalty
 
     return Preference(
