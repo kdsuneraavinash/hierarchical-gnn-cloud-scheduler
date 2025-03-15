@@ -44,14 +44,14 @@ class HeftScheduler(BaseStaticScheduler):
 
         return assignments
 
-    def compute_task_priorities(self, tasks: list[Task], vms: list[Vm]) -> dict[int, float]:
+    def compute_task_priorities(self, tasks: list[Task], vms: list[Vm]) -> list[float]:
         """Compute task priorities based on upward rank."""
 
         average_vm_speed = sum(vm.cpu_speed_mips for vm in vms) / len(vms)
-        task_rank: dict[int, float] = {}
+        task_rank: list[float] = [-1] * len(tasks)
 
         def compute_upward_rank(task: Task) -> float:
-            if task.id in task_rank:
+            if task_rank[task.id] >= 0:
                 return task_rank[task.id]
 
             child_ranks = [compute_upward_rank(child_task) for child_task in tasks if child_task.id in task.child_ids]
