@@ -31,10 +31,11 @@ class RewardFunction:
         latency_score_reward_diff = (curr_latency_score - self.prev_latency_score) / curr_latency_score
 
         preference = simulation.dataset.preference
+        total_preference = preference.makespan + preference.energy_consumption + preference.latency_score
         reward = -(
-            self.makespan_alpha * makespan_reward_diff * preference.makespan
-            + self.energy_alpha * energy_consumption_reward_diff * preference.energy_consumption
-            + self.latency_alpha * latency_score_reward_diff * preference.latency_score
+            self.makespan_alpha * makespan_reward_diff * preference.makespan / total_preference
+            + self.energy_alpha * energy_consumption_reward_diff * preference.energy_consumption / total_preference
+            + self.latency_alpha * latency_score_reward_diff * preference.latency_score / total_preference
         )
 
         self.prev_makespan = curr_makespan

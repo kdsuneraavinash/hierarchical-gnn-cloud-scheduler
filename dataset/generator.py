@@ -84,14 +84,6 @@ def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Prefer
     makespan = args.makespan_preference
     energy_consumption = args.energy_consumption_preference
     latency_score = args.latency_score_preference
-    # [0, 0, 0] = [.3, .3, .3]
-    # [1, 0, 0] = [ 1,  0,  0]
-    # [0, 1, 0] = [ 0,  1,  0]
-    # [0, 0, 1] = [ 0,  0,  1]
-    # [1, 1, 0] = [.5, .5,  0]
-    # [1, 0, 1] = [.5,  0, .5]
-    # [0, 1, 1] = [ 0, .5, .5]
-    # [1, 1, 1] = [.3, .3, .3]
     if makespan is None:
         makespan = float(rng.randint(0, 2))
     if energy_consumption is None:
@@ -101,12 +93,12 @@ def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Prefer
 
     if makespan + energy_consumption + latency_score == 0:
         makespan = energy_consumption = latency_score = 1
-    total = makespan + energy_consumption + latency_score
+    max_pref = max(makespan, energy_consumption, latency_score)
 
     return Preference(
-        makespan=makespan / total,
-        energy_consumption=energy_consumption / total,
-        latency_score=latency_score / total,
+        makespan=makespan / max_pref,
+        energy_consumption=energy_consumption / max_pref,
+        latency_score=latency_score / max_pref,
     )
 
 
