@@ -2,7 +2,7 @@ import copy
 
 from dataset.models import Dataset, VmAssignment
 from env.state import SimulationState, TaskState, VmState
-from env.utils import task_completion_time_est, task_energy_consumption_est
+from env.utils import task_completion_time_est, task_energy_consumption_est, task_latency_score_est
 
 
 class Simulation:
@@ -117,3 +117,10 @@ class Simulation:
 
     def total_energy_consumption(self) -> float:
         return sum(task_energy_consumption_est(self.dataset, self.state.task_states))
+
+    def total_latency_score(self) -> float:
+        return sum(
+            task_latency_score_est(
+                self.dataset, self.state.task_states, self.state.vm_states, self.state.task_dependencies
+            )
+        )

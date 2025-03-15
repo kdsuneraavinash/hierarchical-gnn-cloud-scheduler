@@ -53,3 +53,25 @@ def task_energy_consumption_est(dataset: Dataset, task_states: list[TaskState]) 
                 if vm.is_compatible(dataset.tasks[t_id])
             )
     return task_energy_consumption
+
+
+def task_latency_score_est(
+    dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState], task_dependencies: set[tuple[int, int]]
+) -> list[float]:
+    task_latency_score: list[float] = []
+    task_completion_time = task_completion_time_est(dataset, task_states, vm_states, task_dependencies)
+    for t_id, task_state in enumerate(task_states):
+        task_latency_score_i = task_states[t_id].start_time * dataset.tasks[t_id].priority
+        if task_state.assigned_vm_id is None:
+            earliest_start_time_p = max(
+                (task_completion_time[p_id] for p_id, c_id in task_dependencies if c_id == t_id), default=0
+            )
+            earliest_start_time_v = max(
+                vm_states[v_id].completion_time
+                for v_id in range(len(vm_states))
+                if dataset.vms[v_id].is_compatible(dataset.tasks[t_id])
+            )
+            task_latency_score_i = max(earliest_start_time_p, earliest_start_time_v) * dataset.tasks[t_id].priority
+        task_latency_score.append(task_latency_score_i)
+
+    return task_latency_score

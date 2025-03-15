@@ -64,6 +64,7 @@ class VmAssignment:
 class Preference:
     makespan: float
     energy_consumption: float
+    latency_score: float
 
 
 @dataclass
@@ -144,3 +145,10 @@ class Solution:
             host = self.dataset.hosts[vm.host_id]
             energy_consumption += host.active_power_consumption(task)
         return energy_consumption
+
+    def latency_score(self) -> float:
+        latency_score: float = 0
+        for assignment in self.vm_assignments:
+            task = self.dataset.tasks[assignment.task_id]
+            latency_score += assignment.start_time * task.priority
+        return latency_score

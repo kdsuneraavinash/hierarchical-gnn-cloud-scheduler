@@ -8,6 +8,7 @@ from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
 from algorithms.base_abstract import BaseAbstractScheduler
+from algorithms.drl_agent import DrlAgentScheduler
 from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
 from algorithms.heft import HeftScheduler
@@ -19,6 +20,7 @@ from algorithms.round_robin import RoundRobinScheduler
 from constants import (
     ENERGY_CONSUMPTION_PREFERENCE,
     EVALUATION_SEED,
+    LATENCY_SCORE_PREFERENCE,
     MAKESPAN_PREFERENCE,
     N_HOST,
     N_TASK,
@@ -46,12 +48,12 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         MaxMinScheduler(),
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
-        # DrlAgentScheduler("Proposed", model_path="logs/1741981900_gnn/model.pt", agent_type="gnn"),
+        DrlAgentScheduler("Proposed", model_path="logs/1742037616_test_makespan/model.pt", agent_type="gnn"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(len(schedulers) * len(datasets)))
-    summary_data: list[tuple[str, float, float, float]] = []
+    summary_data: list[tuple[str, float, float, float, float]] = []
 
     for sch_i, scheduler in enumerate(schedulers):
         table.update("name", scheduler.name, width=15)
@@ -64,6 +66,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
             table.update("index", value=d_i)
             table.update("makespan", value=solution.makespan())
             table.update("energy_consumption", value=solution.energy_consumption())
+            table.update("latency_score", value=solution.latency_score())
             table.update("runtime", value=run_end_time - run_start_time)
             table.next_row()
             progress_bar.update(1)
@@ -72,16 +75,19 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         sch_end_i = sch_start_i + len(datasets)
         sch_makespan = table.at[sch_start_i:sch_end_i, 2]
         sch_e_consumption = table.at[sch_start_i:sch_end_i, 3]
-        sch_runtime = table.at[sch_start_i:sch_end_i, 4]
+        sch_latency = table.at[sch_start_i:sch_end_i, 4]
+        sch_runtime = table.at[sch_start_i:sch_end_i, 5]
 
         avg_makespan = sum(sch_makespan) / len(sch_makespan)
         avg_energy = sum(sch_e_consumption) / len(sch_e_consumption)
+        avg_latency = sum(sch_latency) / len(sch_latency)
         avg_runtime = sum(sch_runtime) / len(sch_runtime)
-        summary_data.append((scheduler.name, avg_makespan, avg_energy, avg_runtime))
+        summary_data.append((scheduler.name, avg_makespan, avg_energy, avg_latency, avg_runtime))
 
         table.update("name", scheduler.name)
         table.update("makespan", value=avg_makespan, cell_color="bold")
         table.update("energy_consumption", value=avg_energy, cell_color="bold")
+        table.update("latency_score", value=avg_latency, cell_color="bold")
         table.update("runtime", value=avg_runtime, cell_color="bold")
         table.next_row(split=True)
 
@@ -99,11 +105,13 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         summary_table.update("name", row[0], width=15)
         summary_table.update("makespan", row[1], width=20)
         summary_table.update("energy_consumption", row[2], width=20)
+        summary_table.update("latency", row[3], width=10)
         summary_table.update("runtime", row[3], width=10)
         summary_table.next_row()
     higlight_best_results(summary_table, 1)
     higlight_best_results(summary_table, 2)
     higlight_best_results(summary_table, 3)
+    higlight_best_results(summary_table, 4)
     summary_table.close()
 
     _, ax = plt.subplots(figsize=(8, 6))
@@ -128,6 +136,7 @@ if __name__ == "__main__":
                 max_tasks_per_workflow=N_WORKFLOW_TASK,
                 makespan_preference=MAKESPAN_PREFERENCE,
                 energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+                latency_score_preference=LATENCY_SCORE_PREFERENCE,
             ),
         )
         for _ in range(4)

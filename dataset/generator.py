@@ -41,11 +41,11 @@ class DatasetArgs:
     """maximum task length"""
     arrival_rate: float = 3
     """arrival rate of workflows/second (for dynamic arrival)"""
-    max_task_priority: int = 5
-    """number of priority levels of a task"""
     makespan_preference: float | None = None
     """preference for optimizing makespan"""
     energy_consumption_preference: float | None = None
+    """preference for optimizing energy consumption"""
+    latency_score_preference: float | None = None
     """preference for optimizing energy consumption"""
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
@@ -81,18 +81,23 @@ def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
 def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Preference:
     makespan = args.makespan_preference
     energy_consumption = args.energy_consumption_preference
+    latency_score = args.latency_score_preference
     if makespan is None:
         makespan = rng.random()
     if energy_consumption is None:
         energy_consumption = rng.random()
+    if latency_score is None:
+        latency_score = rng.random()
 
     makespan += 1e-8
     energy_consumption += 1e-8
-    total = makespan + energy_consumption
+    latency_score += 1e-8
+    total = makespan + energy_consumption + latency_score
 
     return Preference(
         makespan=makespan / total,
         energy_consumption=energy_consumption / total,
+        latency_score=latency_score / total,
     )
 
 
@@ -257,7 +262,7 @@ def generate_tasks(args: DatasetArgs, rng: np.random.RandomState) -> list[Task]:
                     child_ids=[len(tasks) + child_id for child_id in child_ids],
                     req_memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
                     req_disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
-                    priority=rng.randint(0, args.max_task_priority + 1),
+                    priority=rng.randint(0, 2),
                 )
                 for task_id, child_ids in dag.items()
             ]

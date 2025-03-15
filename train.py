@@ -19,6 +19,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from algorithms.drl_agent import DrlAgentScheduler
 from constants import (
     ENERGY_CONSUMPTION_PREFERENCE,
+    LATENCY_SCORE_PREFERENCE,
     MAKESPAN_PREFERENCE,
     N_HOST,
     N_TASK,
@@ -102,6 +103,7 @@ class Args:
             max_tasks_per_workflow=N_WORKFLOW_TASK,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+            latency_score_preference=LATENCY_SCORE_PREFERENCE,
         )
     )
     """the dataset generation parameters"""
@@ -113,6 +115,7 @@ class Args:
             max_tasks_per_workflow=N_WORKFLOW_TASK,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+            latency_score_preference=LATENCY_SCORE_PREFERENCE,
         )
     )
     """the test dataset generation parameters"""
@@ -226,6 +229,7 @@ def train(args: Args) -> None:
     table.add_column("reward", width=10)
     table.add_column("t_makespan", width=10)
     table.add_column("t_energy_consumption", width=10)
+    table.add_column("t_latency_score", width=10)
 
     for iteration in range(1, args.num_iterations + 1):
         table.update("iter", value=iteration)
@@ -262,6 +266,7 @@ def train(args: Args) -> None:
                     writer.add_scalar("charts/episodic_length", infos["episode"]["l"][i], global_step)
                     writer.add_scalar("episode/makespan", infos["makespan"][i], global_step)
                     writer.add_scalar("episode/energy_consumption", infos["energy_consumption"][i], global_step)
+                    writer.add_scalar("episode/latency_score", infos["latency_score"][i], global_step)
                     table.update("reward", value=infos["episode"]["r"][i], aggregate="mean")
 
         progress_bar.set_step(global_step)
@@ -367,8 +372,10 @@ def train(args: Args) -> None:
             test_results = test_agent(agent, args)
             writer.add_scalar("tests/makespan", test_results[0], global_step)
             writer.add_scalar("tests/energy_consumption", test_results[1], global_step)
+            writer.add_scalar("tests/latency_score", test_results[2], global_step)
             table.update("t_makespan", value=test_results[0])
             table.update("t_energy_consumption", value=test_results[1])
+            table.update("t_latency_score", value=test_results[2])
 
         table.update("phase", value="done")
         if (global_step - last_model_save) >= 10_000:
@@ -390,11 +397,12 @@ def train(args: Args) -> None:
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float]:
+def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
     test_rng = np.random.RandomState(TEST_SEED)
 
     total_makespan = 0.0
     total_energy_consumption = 0.0
+    total_latency_score = 0.0
 
     for _ in range(args.test_iterations):
         dataset = generate_dataset(args.test_dataset, test_rng)
@@ -405,10 +413,12 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float]:
 
         total_makespan += solution.makespan()
         total_energy_consumption += solution.energy_consumption()
+        total_latency_score += solution.latency_score()
 
     avg_makespan = total_makespan / args.test_iterations
     avg_energy_consumption = total_energy_consumption / args.test_iterations
-    return avg_makespan, avg_energy_consumption
+    avg_latency_score = total_latency_score / args.test_iterations
+    return avg_makespan, avg_energy_consumption, avg_latency_score
 
 
 if __name__ == "__main__":
