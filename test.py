@@ -106,7 +106,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         summary_table.update("makespan", row[1], width=20)
         summary_table.update("energy_consumption", row[2], width=20)
         summary_table.update("latency", row[3], width=10)
-        summary_table.update("runtime", row[3], width=10)
+        summary_table.update("runtime", row[4], width=10)
         summary_table.next_row()
     higlight_best_results(summary_table, 1)
     higlight_best_results(summary_table, 2)
