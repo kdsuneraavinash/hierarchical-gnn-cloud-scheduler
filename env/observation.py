@@ -7,7 +7,7 @@ import torch
 from constants import F_TASK, F_VM, N_TASK, N_VM, OBS_SIZE
 from dataset.models import Dataset
 from env.state import TaskState, VmState
-from env.utils import task_completion_time_est, task_energy_consumption_est
+from env.utils import compute_task_makespan_ranks, task_completion_time_est, task_energy_consumption_est
 
 # Dataclasses
 # ------------------------------------------------------------------------------------------------------------------
@@ -38,6 +38,7 @@ class EnvObsTensor:
 def create_env_obs(
     dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState], task_dependencies: set[tuple[int, int]]
 ) -> EnvObs:
+    task_makespan_ranks = compute_task_makespan_ranks(dataset)
     task_completion_time = task_completion_time_est(dataset, task_states, vm_states, task_dependencies)
     task_energy_consumption = task_energy_consumption_est(dataset, task_states)
 
@@ -58,14 +59,14 @@ def create_env_obs(
             return task_completion_time[t_id]
         return 0
 
+    def feat_task_makespan_rank(t_id: int) -> float:
+        if t_id < len(task_states):
+            return task_makespan_ranks[t_id]
+        return 0
+
     def feat_task_energy_consumption(t_id: int) -> float:
         if t_id < len(task_states):
             return task_energy_consumption[t_id]
-        return 0
-
-    def feat_task_length(t_id: int) -> float:
-        if t_id < len(task_states):
-            return dataset.tasks[t_id].length
         return 0
 
     def feat_task_priority(t_id: int) -> float:
@@ -75,17 +76,17 @@ def create_env_obs(
 
     # --- VM Features ---
 
-    def feat_vm_is_schedulable(t_id: int, v_id: int) -> int:
-        if v_id < len(vm_states):
-            return int(dataset.vms[v_id].is_compatible(dataset.tasks[t_id]))
-        return 0
-
     def feat_vm_completion_time(v_id: int) -> float:
         if v_id < len(vm_states):
             return vm_states[v_id].completion_time
         return 0
 
     # --- Task-VM Features ---
+
+    def feat_task_vm_is_schedulable(t_id: int, v_id: int) -> int:
+        if v_id < len(vm_states):
+            return int(dataset.vms[v_id].is_compatible(dataset.tasks[t_id]))
+        return 0
 
     def feat_task_vm_execution_time(t_id: int, v_id: int) -> float:
         if t_id < len(task_states) and v_id < len(vm_states):
@@ -95,16 +96,6 @@ def create_env_obs(
     def feat_task_vm_active_power_consumption(t_id: int, v_id: int) -> float:
         if t_id < len(task_states) and v_id < len(vm_states):
             return dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption(dataset.tasks[t_id])
-        return 0
-
-    def feat_task_vm_cpu_speed_mips(t_id: int, v_id: int) -> float:
-        if t_id < len(task_states) and v_id < len(vm_states):
-            return dataset.vms[v_id].cpu_speed_mips
-        return 0
-
-    def feat_task_vm_active_power_consumption_rate(t_id: int, v_id: int) -> float:
-        if t_id < len(task_states) and v_id < len(vm_states):
-            return dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption_rate
         return 0
 
     # --- Task-Task Features ---
@@ -122,8 +113,8 @@ def create_env_obs(
                 feat_task_is_schedulable(t_id),
                 feat_task_is_scheduled(t_id),
                 feat_task_completion_time(t_id),
+                feat_task_makespan_rank(t_id),
                 feat_task_energy_consumption(t_id),
-                feat_task_length(t_id),
                 feat_task_priority(t_id),
                 dataset.preference.makespan,
                 dataset.preference.energy_consumption,
@@ -137,11 +128,9 @@ def create_env_obs(
             [
                 (
                     feat_vm_completion_time(v_id),
-                    feat_vm_is_schedulable(t_id, v_id),
+                    feat_task_vm_is_schedulable(t_id, v_id),
                     feat_task_vm_execution_time(t_id, v_id),
                     feat_task_vm_active_power_consumption(t_id, v_id),
-                    feat_task_vm_cpu_speed_mips(t_id, v_id),
-                    feat_task_vm_active_power_consumption_rate(t_id, v_id),
                     dataset.preference.makespan,
                     dataset.preference.energy_consumption,
                 )
@@ -154,7 +143,7 @@ def create_env_obs(
 
     task_mask = np.array([feat_task_is_schedulable(t_id) for t_id in range(N_TASK)])
     vm_mask = np.array(
-        [[feat_vm_is_schedulable(t_id, v_id) for v_id in range(N_VM)] for t_id in range(N_TASK)],
+        [[feat_task_vm_is_schedulable(t_id, v_id) for v_id in range(N_VM)] for t_id in range(N_TASK)],
         dtype=np.int32,
     )
     task_dependencies_matrix = np.array(
