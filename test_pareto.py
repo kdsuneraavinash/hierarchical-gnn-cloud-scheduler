@@ -12,7 +12,7 @@ from algorithms.drl_agent import DrlAgentScheduler
 from constants import N_HOST, N_TASK, N_VM, N_WORKFLOW_TASK, TEST_SEED
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
-from visualizers.pareto_front import plot_3d_pareto_front
+from visualizers.pareto_front import plot_pareto_front
 
 
 def run_evaluation(datasets: list[Dataset]) -> None:
@@ -22,7 +22,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(len(schedulers) * len(datasets)))
-    summary_data: defaultdict[str, list[tuple[float, float, float]]] = defaultdict(list)
+    summary_data: defaultdict[str, list[tuple[float, float]]] = defaultdict(list)
 
     for scheduler in schedulers:
         table.update("name", scheduler.name, width=15)
@@ -32,23 +32,20 @@ def run_evaluation(datasets: list[Dataset]) -> None:
             solution = Solution(dataset, assignments)
             makespan = solution.makespan()
             energy_consumption = solution.energy_consumption()
-            sla_penalty = solution.sla_penalty()
             table.update("pref_makespan", value=dataset.preference.makespan)
             table.update("pref_energy", value=dataset.preference.energy_consumption)
-            table.update("pref_sla", value=dataset.preference.sla_penalty)
             table.update("makespan", value=makespan)
             table.update("energy_consumption", value=energy_consumption)
-            table.update("sla_penalty", value=sla_penalty)
             table.next_row()
             progress_bar.update(1)
-            summary_data[scheduler.name].append((makespan, energy_consumption, sla_penalty))
+            summary_data[scheduler.name].append((makespan, energy_consumption))
 
         table.next_row(split=True)
 
     table.close()
 
-    fig = plt.figure(figsize=(10, 8))
-    plot_3d_pareto_front(fig, summary_data)
+    ax = plt.subplot(figsize=(10, 8))
+    plot_pareto_front(ax, summary_data)
     plt.show()
 
 
@@ -68,10 +65,8 @@ def main():
                 max_tasks_per_workflow=N_WORKFLOW_TASK,
                 makespan_preference=m,
                 energy_consumption_preference=e,
-                sla_penalty_preference=s,
             ),
         )
-        for s in range(4)
         for e in range(4)
         for m in range(4)
     ]

@@ -17,11 +17,8 @@ class Task:
     workflow_id: int
     length: int
     child_ids: list[int]
-    req_cpu_speed_mips: int
     req_memory_gb: int
     req_disk_gb: int
-    req_bandwidth_mbps: int
-    req_gpu: bool
     priority: float
 
 
@@ -32,28 +29,9 @@ class Vm:
     cpu_speed_mips: int
     memory_gb: int
     disk_gb: int
-    bandwidth_mbps: int
-    has_gpu: bool
 
-    def is_fully_compatible(self, task: Task) -> bool:
-        return self.compatibility(task) > 0
-
-    def compatibility(self, task: Task) -> float:
-        score: float = 1
-        if self.memory_gb < task.req_memory_gb:
-            score -= 0.4
-        if self.cpu_speed_mips < task.req_cpu_speed_mips:
-            score -= 0.3
-        if self.disk_gb < task.req_disk_gb:
-            score -= 0.2
-        if self.bandwidth_mbps < task.req_bandwidth_mbps:
-            score -= 0.1
-        if (not self.has_gpu) and task.req_gpu:
-            score -= 0.3
-        return max(score, 0.0)
-
-    def penalty(self, task: Task) -> float:
-        return (1 - self.compatibility(task)) * task.priority
+    def is_compatible(self, task: Task) -> bool:
+        return self.memory_gb >= task.req_memory_gb and self.disk_gb >= task.req_disk_gb
 
     def execution_time(self, task: Task) -> float:
         return task.length / self.cpu_speed_mips
@@ -66,9 +44,6 @@ class Host:
     cpu_speed_mips: int
     power_idle_watt: int
     power_peak_watt: int
-    memory_gb: int = -1
-    disk_gb: int = -1
-    bandwidth_mbps: int = -1
 
     @property
     def active_power_consumption_rate(self) -> float:
@@ -89,7 +64,6 @@ class VmAssignment:
 class Preference:
     makespan: float
     energy_consumption: float
-    sla_penalty: float
 
 
 @dataclass
@@ -129,6 +103,9 @@ class Dataset:
         for task in self.tasks:
             for child_id in task.child_ids:
                 assert child_id > task.id, f"Sanity Check Failed: {task=} has child id {child_id} less than task id"
+        # Check if all tasks are assignable to any VM
+        for task in self.tasks:
+            assert any(vm.is_compatible(task) for vm in self.vms), f"There are no VMs compatible with task {task=}"
 
         # It is possible to output the dataset hash for debug purposes
         if print_hash:
@@ -167,11 +144,3 @@ class Solution:
             host = self.dataset.hosts[vm.host_id]
             energy_consumption += host.active_power_consumption(task)
         return energy_consumption
-
-    def sla_penalty(self) -> float:
-        sla_penalty: float = 0
-        for assignment in self.vm_assignments:
-            task = self.dataset.tasks[assignment.task_id]
-            vm = self.dataset.vms[assignment.vm_id]
-            sla_penalty += vm.penalty(task)
-        return sla_penalty

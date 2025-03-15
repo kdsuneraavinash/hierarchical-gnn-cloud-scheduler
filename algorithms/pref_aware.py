@@ -8,8 +8,7 @@ class PreferenceAwareSchduler(BaseWeightedCostScheduler):
         super().__init__("Preference Aware")
 
     def weighted_cost(self, task: Task, vm: Vm, dataset: Dataset, state: SimulationState) -> float:
-        return (
-            dataset.preference.sla_penalty * vm.penalty(task)
-            + dataset.preference.makespan * vm.execution_time(task)
-            + dataset.preference.energy_consumption * dataset.hosts[vm.host_id].active_power_consumption(task)
-        )
+        preference = dataset.preference
+        w_exec_time = preference.makespan * vm.execution_time(task)
+        w_power_consumption = preference.energy_consumption * dataset.hosts[vm.host_id].active_power_consumption(task)
+        return w_exec_time + w_power_consumption

@@ -4,18 +4,10 @@ import matplotlib.pyplot as plt
 
 
 def plot_summary_radar_chart(df: pd.DataFrame) -> None:
-    """
-    Plots a radar chart comparing multiple schedulers based on makespan, energy consumption, and SLA penalty.
-
-    :param ax: Matplotlib Axes object.
-    :param df: DataFrame containing columns ["name", "makespan", "energy_consumption", "sla_penalty"].
-    """
     _, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
 
     # Compute the average values per scheduler
-    avg_df = df.groupby("name", as_index=False).agg(
-        {"makespan": "mean", "energy_consumption": "mean", "sla_penalty": "mean"}
-    )
+    avg_df = df.groupby("name", as_index=False).agg({"makespan": "mean", "energy_consumption": "mean"})
 
     # Normalize the data for better comparison
     def normalize(data):
@@ -23,12 +15,12 @@ def plot_summary_radar_chart(df: pd.DataFrame) -> None:
         max_vals = data.max(axis=0)
         return (data - min_vals) / (max_vals - min_vals + 1e-8)
 
-    metrics = ["makespan", "energy_consumption", "sla_penalty"]
+    metrics = ["makespan", "energy_consumption"]
     normalized_values = normalize(avg_df[metrics].values)
 
     # Compute angles for the radar chart
     num_vars = len(metrics)
-    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
+    angles: list[float] = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()  # type: ignore
     angles += angles[:1]  # Close the radar chart loop
 
     # Plot each scheduler's data

@@ -29,12 +29,6 @@ class DatasetArgs:
     """minimum amount of disk for a VM (in GB)"""
     max_disk_gb: int = 10
     """maximum amount of disk for a VM (in GB)"""
-    min_bandwidth_mb: int = 10
-    """minimum amount of bandwidth for a VM (in MB)"""
-    max_bandwidth_mb: int = 100
-    """maximum amount of bandwidth for a VM (in MB)"""
-    gpu_percentage: float = 0.5
-    """percentage of VMs with GPU access (probability)"""
     min_cpu_speed: int = 500
     """minimum CPU speed in MIPS"""
     max_cpu_speed: int = 5000
@@ -53,8 +47,6 @@ class DatasetArgs:
     """preference for optimizing makespan"""
     energy_consumption_preference: float | None = None
     """preference for optimizing energy consumption"""
-    sla_penalty_preference: float | None = None
-    """preference for optimizing sla penalty"""
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
@@ -69,6 +61,14 @@ def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
     workflows = generate_workflows(args, rng)
     tasks = generate_tasks(args, rng)
 
+    # Check if there are tasks that cannot be assigned to any VM
+    # If so, they get their reqs reset (so they are assignable to any)
+    for task in tasks:
+        if any(vm.is_compatible(task) for vm in vms):
+            continue
+        task.req_memory_gb = args.min_memory_gb
+        task.req_disk_gb = args.min_disk_gb
+
     dataset = Dataset(preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
     dataset.check_sanity()
     return dataset
@@ -81,23 +81,18 @@ def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
 def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Preference:
     makespan = args.makespan_preference
     energy_consumption = args.energy_consumption_preference
-    sla_penalty = args.sla_penalty_preference
     if makespan is None:
         makespan = rng.random()
     if energy_consumption is None:
         energy_consumption = rng.random()
-    if sla_penalty is None:
-        sla_penalty = rng.random()
 
     makespan += 1e-8
     energy_consumption += 1e-8
-    sla_penalty += 1e-8
-    total = makespan + energy_consumption + sla_penalty
+    total = makespan + energy_consumption
 
     return Preference(
         makespan=makespan / total,
         energy_consumption=energy_consumption / total,
-        sla_penalty=sla_penalty / total,
     )
 
 
@@ -125,9 +120,6 @@ def generate_hosts(args: DatasetArgs, rng: np.random.RandomState) -> list[Host]:
                 id=i,
                 cores=int(spec["cores"]),
                 cpu_speed_mips=int(spec["cpu_speed_gips"] * 1e3),
-                memory_gb=int(spec["memory_gb"]),
-                disk_gb=int(spec["disk_tb"] * 1e3),
-                bandwidth_mbps=int(spec["bandwidth_gbps"] * 1024),
                 power_idle_watt=int(spec["power_idle_watt"]),
                 power_peak_watt=int(spec["power_peak_watt"]),
             )
@@ -155,8 +147,6 @@ def generate_vms(args: DatasetArgs, rng: np.random.RandomState) -> list[Vm]:
             cpu_speed_mips=rng.randint(args.min_cpu_speed, args.max_cpu_speed + 1),
             memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
             disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
-            bandwidth_mbps=rng.randint(args.min_bandwidth_mb, args.max_bandwidth_mb + 1),
-            has_gpu=rng.random() <= args.gpu_percentage,
         )
         for i in range(vm_count)
     ]
@@ -265,11 +255,8 @@ def generate_tasks(args: DatasetArgs, rng: np.random.RandomState) -> list[Task]:
                     workflow_id=workflow_id,
                     length=int(generate_task_length(args, rng)),
                     child_ids=[len(tasks) + child_id for child_id in child_ids],
-                    req_cpu_speed_mips=rng.randint(args.min_cpu_speed, args.max_cpu_speed + 1),
                     req_memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
                     req_disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
-                    req_bandwidth_mbps=rng.randint(args.min_bandwidth_mb, args.max_bandwidth_mb + 1),
-                    req_gpu=rng.random() <= args.gpu_percentage,
                     priority=rng.randint(0, args.max_task_priority + 1),
                 )
                 for task_id, child_ids in dag.items()

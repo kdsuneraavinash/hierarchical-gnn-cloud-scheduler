@@ -23,4 +23,5 @@ class LeastLoadedFirstScheduler(BaseGreedyScheduler):
 
     def select_vm(self, task_id: int, dataset: Dataset, state: SimulationState) -> int:
         """Assign the task to the least loaded VM (the one with the earliest completion time)."""
-        return min(dataset.vms, key=lambda vm: state.vm_states[vm.id].completion_time).id
+        compatible_vms = [vm for vm in dataset.vms if vm.is_compatible(dataset.tasks[task_id])]
+        return min(compatible_vms, key=lambda vm: state.vm_states[vm.id].completion_time).id

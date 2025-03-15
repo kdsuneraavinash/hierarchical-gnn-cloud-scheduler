@@ -117,6 +117,7 @@ class GnnAgentActor(nn.Module):
         self, x: torch.Tensor, action: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         decoded_obs = decode_env_obs_batched(x.to(self.device))
+        B = decoded_obs.vm_features.shape[0]
 
         # --- Encode Tasks ---
         task_features = decoded_obs.task_features  # (B, Nt, Ft)
@@ -138,12 +139,12 @@ class GnnAgentActor(nn.Module):
         task_entropy = task_dist.entropy()  # (B,)
 
         # --- Encode the specific VM (with specific properties to the selected task) ---
-        chosen_vm_features = vm_features[torch.arange(vm_features.shape[0]), chosen_task]  # (B, Nv, Fv)
+        chosen_vm_features = vm_features[torch.arange(B), chosen_task]  # (B, Nv, Fv)
         vm_encoding, vm_pool = self.vm_encoder(chosen_vm_features)  # (B, Nv, E), (B, E)
 
         # --- VM Selection ---
-        vm_mask = decoded_obs.vm_mask  # (B, Nv)
-        vm_logits: torch.Tensor = self.vm_decoder(vm_encoding, vm_mask, task_pool, vm_pool)  # (B, Nv)
+        chosen_vm_mask = decoded_obs.vm_mask[torch.arange(B), chosen_task]  # (B, Nv)
+        vm_logits: torch.Tensor = self.vm_decoder(vm_encoding, chosen_vm_mask, task_pool, vm_pool)  # (B, Nv)
         vm_probs = torch.softmax(vm_logits, dim=1)  # (B, Nv)
         vm_dist = torch.distributions.Categorical(vm_probs)
         chosen_vm = vm_dist.sample() if action is None else action % N_VM  # (B,)

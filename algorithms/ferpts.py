@@ -17,6 +17,8 @@ class FerptsScheduler(BaseStaticScheduler):
             best_vm, min_cost = None, float("inf")
 
             for vm in dataset.vms:
+                if not vm.is_compatible(task):
+                    continue
                 ready_time = vm_ready_times[vm.id]
                 parent_completion_times = [
                     task_completion_times[parent_task.id]

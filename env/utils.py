@@ -27,13 +27,3 @@ def task_energy_consumption_est(dataset: Dataset, task_states: list[TaskState]) 
                 dataset.hosts[vm.host_id].active_power_consumption(dataset.tasks[t_id]) for vm in dataset.vms
             )
     return task_energy_consumption
-
-
-def task_sla_penalty_est(dataset: Dataset, task_states: list[TaskState]) -> list[float]:
-    sla_penalty: list[float] = [0 for _ in task_states]
-    for t_id, task_state in enumerate(task_states):
-        if task_state.assigned_vm_id is None:
-            sla_penalty[t_id] = min(vm.penalty(dataset.tasks[t_id]) for vm in dataset.vms)
-        else:
-            sla_penalty[t_id] = dataset.vms[task_state.assigned_vm_id].penalty(dataset.tasks[t_id])
-    return sla_penalty

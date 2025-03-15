@@ -7,7 +7,7 @@ import torch
 from constants import F_TASK, F_VM, N_TASK, N_VM, OBS_SIZE
 from dataset.models import Dataset
 from env.state import TaskState, VmState
-from env.utils import task_completion_time_est, task_energy_consumption_est, task_sla_penalty_est
+from env.utils import task_completion_time_est, task_energy_consumption_est
 
 # Dataclasses
 # ------------------------------------------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ class EnvObs:
     task_features: np.ndarray[tuple[int, ...], Any]  # (Nt, Ft)
     vm_features: np.ndarray[tuple[int, ...], Any]  # (Nt, Nv, Fv)
     task_mask: np.ndarray[tuple[int, ...], Any]  # (Nt,)
-    vm_mask: np.ndarray[tuple[int, ...], Any]  # (Nv,)
+    vm_mask: np.ndarray[tuple[int, ...], Any]  # (Nt, Nv)
     task_dependencies: np.ndarray[tuple[int, ...], Any]  # (Nt, Nt)
 
 
@@ -27,7 +27,7 @@ class EnvObsTensor:
     task_features: torch.Tensor  # (B, Nt, Ft)
     vm_features: torch.Tensor  # (B, Nt, Nv, Fv)
     task_mask: torch.Tensor  # (B, Nt)
-    vm_mask: torch.Tensor  # (B, Nv)
+    vm_mask: torch.Tensor  # (B, Nt, Nv)
     task_dependencies: torch.Tensor  # (B, Nt, Nt)
 
 
@@ -40,7 +40,6 @@ def create_env_obs(
 ) -> EnvObs:
     task_completion_time = task_completion_time_est(dataset, task_states, vm_states, task_dependencies)
     task_energy_consumption = task_energy_consumption_est(dataset, task_states)
-    task_sla_penalty = task_sla_penalty_est(dataset, task_states)
 
     # --- Task Features ---
 
@@ -64,11 +63,6 @@ def create_env_obs(
             return task_energy_consumption[t_id]
         return 0
 
-    def feat_task_sla_penalty(t_id: int) -> float:
-        if t_id < len(task_states):
-            return task_sla_penalty[t_id]
-        return 0
-
     def feat_task_length(t_id: int) -> float:
         if t_id < len(task_states):
             return dataset.tasks[t_id].length
@@ -81,9 +75,9 @@ def create_env_obs(
 
     # --- VM Features ---
 
-    def feat_vm_is_schedulable(v_id: int) -> int:
+    def feat_vm_is_schedulable(t_id: int, v_id: int) -> int:
         if v_id < len(vm_states):
-            return 1  # To denote failures?
+            return int(dataset.vms[v_id].is_compatible(dataset.tasks[t_id]))
         return 0
 
     def feat_vm_completion_time(v_id: int) -> float:
@@ -101,11 +95,6 @@ def create_env_obs(
     def feat_task_vm_active_power_consumption(t_id: int, v_id: int) -> float:
         if t_id < len(task_states) and v_id < len(vm_states):
             return dataset.hosts[dataset.vms[v_id].host_id].active_power_consumption(dataset.tasks[t_id])
-        return 0
-
-    def feat_task_vm_sla_penalty(t_id: int, v_id: int) -> float:
-        if t_id < len(task_states) and v_id < len(vm_states):
-            return dataset.vms[v_id].penalty(dataset.tasks[t_id])
         return 0
 
     def feat_task_vm_cpu_speed_mips(t_id: int, v_id: int) -> float:
@@ -134,12 +123,10 @@ def create_env_obs(
                 feat_task_is_scheduled(t_id),
                 feat_task_completion_time(t_id),
                 feat_task_energy_consumption(t_id),
-                feat_task_sla_penalty(t_id),
                 feat_task_length(t_id),
                 feat_task_priority(t_id),
                 dataset.preference.makespan,
                 dataset.preference.energy_consumption,
-                dataset.preference.sla_penalty,
             )
             for t_id in range(N_TASK)
         ],
@@ -149,16 +136,14 @@ def create_env_obs(
         [
             [
                 (
-                    feat_vm_is_schedulable(v_id),
                     feat_vm_completion_time(v_id),
+                    feat_vm_is_schedulable(t_id, v_id),
                     feat_task_vm_execution_time(t_id, v_id),
                     feat_task_vm_active_power_consumption(t_id, v_id),
-                    feat_task_vm_sla_penalty(t_id, v_id),
                     feat_task_vm_cpu_speed_mips(t_id, v_id),
                     feat_task_vm_active_power_consumption_rate(t_id, v_id),
                     dataset.preference.makespan,
                     dataset.preference.energy_consumption,
-                    dataset.preference.sla_penalty,
                 )
                 for v_id in range(N_VM)
             ]
@@ -168,7 +153,10 @@ def create_env_obs(
     )
 
     task_mask = np.array([feat_task_is_schedulable(t_id) for t_id in range(N_TASK)])
-    vm_mask = np.array([feat_vm_is_schedulable(v_id) for v_id in range(N_VM)])
+    vm_mask = np.array(
+        [[feat_vm_is_schedulable(t_id, v_id) for v_id in range(N_VM)] for t_id in range(N_TASK)],
+        dtype=np.int32,
+    )
     task_dependencies_matrix = np.array(
         [[feat_task_task_dependent(p_id, c_id) for c_id in range(N_TASK)] for p_id in range(N_TASK)],
         dtype=np.int32,
@@ -177,7 +165,7 @@ def create_env_obs(
     assert task_features.shape == (N_TASK, F_TASK), task_features.shape
     assert vm_features.shape == (N_TASK, N_VM, F_VM), vm_features.shape
     assert task_mask.shape == (N_TASK,), task_mask.shape
-    assert vm_mask.shape == (N_VM,), vm_mask.shape
+    assert vm_mask.shape == (N_TASK, N_VM), vm_mask.shape
     assert task_dependencies_matrix.shape == (N_TASK, N_TASK), task_dependencies_matrix.shape
 
     return EnvObs(
@@ -199,7 +187,7 @@ def encode_env_obs(obs: EnvObs) -> np.ndarray[tuple[int, ...], Any]:
             np.asarray(obs.task_features, dtype=np.float32).flatten(),  # Nt*Ft
             np.asarray(obs.vm_features, dtype=np.float32).flatten(),  # Nt*Nv*Fv
             np.asarray(obs.task_mask, dtype=np.int32),  # Nt
-            np.asarray(obs.vm_mask, dtype=np.int32),  # Nv
+            np.asarray(obs.vm_mask, dtype=np.int32).flatten(),  # Nt*Nv
             np.asarray(obs.task_dependencies, dtype=np.int32).flatten(),  # Nt*Nt
         ]
     )
@@ -228,8 +216,8 @@ def decode_env_obs_batched(tensor: torch.Tensor) -> EnvObsTensor:
         offset += N_TASK * N_VM * F_VM
         task_mask_list.append(tensor_i[offset : offset + N_TASK].long())
         offset += N_TASK
-        vm_mask_list.append(tensor_i[offset : offset + N_VM].long())
-        offset += N_VM
+        vm_mask_list.append(tensor_i[offset : offset + N_TASK * N_VM].reshape(N_TASK, N_VM).long())
+        offset += N_TASK * N_VM
         task_dependencies_list.append(tensor_i[offset : offset + N_TASK * N_TASK].reshape(N_TASK, N_TASK).long())
 
     task_features = torch.stack(task_features_list)

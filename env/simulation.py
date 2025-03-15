@@ -2,7 +2,7 @@ import copy
 
 from dataset.models import Dataset, VmAssignment
 from env.state import SimulationState, TaskState, VmState
-from env.utils import task_completion_time_est, task_energy_consumption_est, task_sla_penalty_est
+from env.utils import task_completion_time_est, task_energy_consumption_est
 
 
 class Simulation:
@@ -42,6 +42,8 @@ class Simulation:
             return f"{task_id=} {vm_id=}: Already scheduled task", True
         if not self.state.task_states[task_id].is_ready:
             return f"{task_id=} {vm_id=}: Not ready task", True
+        if not self.dataset.vms[vm_id].is_compatible(self.dataset.tasks[task_id]):
+            return f"{task_id=} {vm_id=}: Not compatible", True
 
         child_task_ids = [c_id for (p_id, c_id) in self.state.task_dependencies if p_id == task_id]
         parent_task_ids = [p_id for (p_id, c_id) in self.state.task_dependencies if c_id == task_id]
@@ -115,6 +117,3 @@ class Simulation:
 
     def total_energy_consumption(self) -> float:
         return sum(task_energy_consumption_est(self.dataset, self.state.task_states))
-
-    def total_sla_penalty(self) -> float:
-        return sum(task_sla_penalty_est(self.dataset, self.state.task_states))

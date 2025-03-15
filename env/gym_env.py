@@ -78,6 +78,5 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             "assignments": self.simulation.to_assignments(),
             "makespan": self.simulation.makespan(),
             "energy_consumption": self.simulation.total_energy_consumption(),
-            "sla_penalty": self.simulation.total_sla_penalty(),
         }
         return encode_env_obs(obs), reward, False, True, info
