@@ -71,9 +71,10 @@ def main():
                 latency_score_preference=s,
             ),
         )
-        for e in range(4)
-        for m in range(4)
-        for s in range(4)
+        for e in range(2)
+        for m in range(2)
+        for s in range(2)
+        if e + m + s > 0
     ]
     run_evaluation(datasets)
 
