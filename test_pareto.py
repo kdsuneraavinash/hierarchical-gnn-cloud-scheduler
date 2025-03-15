@@ -17,7 +17,7 @@ from visualizers.pareto_front import plot_3d_pareto_front
 
 def run_evaluation(datasets: list[Dataset]) -> None:
     schedulers: list[BaseAbstractScheduler] = [
-        DrlAgentScheduler("Proposed", model_path="logs/1741968667_test/model.pt", agent_type="gnn"),
+        DrlAgentScheduler("Proposed", model_path="logs/1741981900_gnn/model.pt", agent_type="gnn"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
@@ -71,9 +71,9 @@ def main():
                 sla_penalty_preference=s,
             ),
         )
-        for s in range(10)
-        for e in range(10)
-        for m in range(10)
+        for s in range(4)
+        for e in range(4)
+        for m in range(4)
     ]
     run_evaluation(datasets)
 

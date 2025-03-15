@@ -101,6 +101,9 @@ class Args:
             max_vm_count=N_VM,
             max_host_count=N_HOST,
             max_tasks_per_workflow=N_WORKFLOW_TASK,
+            makespan_preference=MAKESPAN_PREFERENCE,
+            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+            sla_penalty_preference=SLA_PENALTY_PREFERENCE,
         )
     )
     """the dataset generation parameters"""

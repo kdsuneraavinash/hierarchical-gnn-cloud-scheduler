@@ -50,7 +50,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
         SlaAwareSchduler(alpha=0.5),
-        DrlAgentScheduler("Proposed", model_path="logs/1741968667_test/model.pt", agent_type="gnn"),
+        DrlAgentScheduler("Proposed", model_path="logs/1741981900_gnn/model.pt", agent_type="gnn"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
