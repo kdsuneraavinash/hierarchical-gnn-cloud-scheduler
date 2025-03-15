@@ -128,9 +128,6 @@ def create_env_obs(
                 feat_task_energy_consumption(t_id),
                 feat_task_latency_score(t_id),
                 feat_task_priority(t_id),
-                dataset.preference.makespan,
-                dataset.preference.energy_consumption,
-                dataset.preference.latency_score,
             )
             for t_id in range(N_TASK)
         ],
@@ -144,9 +141,6 @@ def create_env_obs(
                     feat_task_vm_is_schedulable(t_id, v_id),
                     feat_task_vm_execution_time(t_id, v_id),
                     feat_task_vm_active_power_consumption(t_id, v_id),
-                    dataset.preference.makespan,
-                    dataset.preference.energy_consumption,
-                    dataset.preference.latency_score,
                 )
                 for v_id in range(N_VM)
             ]

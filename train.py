@@ -58,7 +58,7 @@ class Args:
     """the entity (team) of wandb's project"""
     load_model_dir: str | None = None
     """Directory to load the model from"""
-    test_iterations: int = 4
+    test_iterations: int = 1
     """number of test iterations"""
 
     # Algorithm specific arguments
@@ -101,6 +101,9 @@ class Args:
             max_vm_count=N_VM,
             max_host_count=N_HOST,
             max_tasks_per_workflow=N_WORKFLOW_TASK,
+            makespan_preference=MAKESPAN_PREFERENCE,
+            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+            latency_score_preference=LATENCY_SCORE_PREFERENCE,
         )
     )
     """the dataset generation parameters"""

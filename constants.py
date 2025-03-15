@@ -3,8 +3,8 @@ N_VM = 5  # Number of VMs
 N_WORKFLOW_TASK = 10
 N_HOST = 4
 
-F_TASK = 10  # Number of task features
-F_VM = 7  # Number of VM features
+F_TASK = 7  # Number of task features
+F_VM = 4  # Number of VM features
 OBS_SIZE = (N_TASK * F_TASK) + (N_TASK * N_VM * F_VM) + N_TASK + (N_TASK * N_VM) + (N_TASK * N_TASK)
 ACT_SIZE = N_TASK * N_VM + N_VM
 
