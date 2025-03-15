@@ -15,6 +15,7 @@ def task_completion_time_est(
                 max(vm_states[v_id].completion_time, earliest_start_time)
                 + dataset.vms[v_id].execution_time(dataset.tasks[t_id])
                 for v_id in range(len(vm_states))
+                if dataset.vms[v_id].is_compatible(dataset.tasks[t_id])
             )
     return task_completion_time
 
@@ -24,6 +25,8 @@ def task_energy_consumption_est(dataset: Dataset, task_states: list[TaskState]) 
     for t_id, task_state in enumerate(task_states):
         if task_state.assigned_vm_id is None:
             task_energy_consumption[t_id] = min(
-                dataset.hosts[vm.host_id].active_power_consumption(dataset.tasks[t_id]) for vm in dataset.vms
+                dataset.hosts[vm.host_id].active_power_consumption(dataset.tasks[t_id])
+                for vm in dataset.vms
+                if vm.is_compatible(dataset.tasks[t_id])
             )
     return task_energy_consumption
