@@ -7,7 +7,12 @@ import torch
 from constants import F_TASK, F_VM, N_TASK, N_VM, OBS_SIZE
 from dataset.models import Dataset
 from env.state import TaskState, VmState
-from env.utils import compute_task_makespan_ranks, task_completion_time_est, task_energy_consumption_est
+from env.utils import (
+    compute_task_makespan_ranks,
+    task_completion_time_est,
+    task_energy_consumption_est,
+    task_latency_score_est,
+)
 
 # Dataclasses
 # ------------------------------------------------------------------------------------------------------------------
@@ -41,6 +46,7 @@ def create_env_obs(
     task_makespan_ranks = compute_task_makespan_ranks(dataset)
     task_completion_time = task_completion_time_est(dataset, task_states, vm_states, task_dependencies)
     task_energy_consumption = task_energy_consumption_est(dataset, task_states)
+    task_latency_score = task_latency_score_est(dataset, task_states, vm_states, task_dependencies)
 
     # --- Task Features ---
 
@@ -67,6 +73,11 @@ def create_env_obs(
     def feat_task_energy_consumption(t_id: int) -> float:
         if t_id < len(task_states):
             return task_energy_consumption[t_id]
+        return 0
+
+    def feat_task_latency_score(t_id: int) -> float:
+        if t_id < len(task_states):
+            return task_latency_score[t_id]
         return 0
 
     def feat_task_priority(t_id: int) -> float:
@@ -115,9 +126,11 @@ def create_env_obs(
                 feat_task_completion_time(t_id),
                 feat_task_makespan_rank(t_id),
                 feat_task_energy_consumption(t_id),
+                feat_task_latency_score(t_id),
                 feat_task_priority(t_id),
                 dataset.preference.makespan,
                 dataset.preference.energy_consumption,
+                dataset.preference.latency_score,
             )
             for t_id in range(N_TASK)
         ],
@@ -133,6 +146,7 @@ def create_env_obs(
                     feat_task_vm_active_power_consumption(t_id, v_id),
                     dataset.preference.makespan,
                     dataset.preference.energy_consumption,
+                    dataset.preference.latency_score,
                 )
                 for v_id in range(N_VM)
             ]

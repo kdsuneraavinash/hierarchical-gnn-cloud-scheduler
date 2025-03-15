@@ -39,6 +39,8 @@ class DatasetArgs:
     """minimum task length"""
     max_task_length: int = 100_000
     """maximum task length"""
+    task_high_priority_probability: float = 0.5
+    """probability that a task is high priority"""
     arrival_rate: float = 3
     """arrival rate of workflows/second (for dynamic arrival)"""
     makespan_preference: float | None = None
@@ -262,7 +264,7 @@ def generate_tasks(args: DatasetArgs, rng: np.random.RandomState) -> list[Task]:
                     child_ids=[len(tasks) + child_id for child_id in child_ids],
                     req_memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
                     req_disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
-                    priority=rng.randint(0, 2),
+                    priority=int(rng.random() <= args.task_high_priority_probability),
                 )
                 for task_id, child_ids in dag.items()
             ]
