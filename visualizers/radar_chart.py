@@ -25,11 +25,13 @@ def plot_summary_radar_chart(df: pd.DataFrame) -> None:
     angles: list[float] = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()  # type: ignore
     angles += angles[:1]  # Close the radar chart loop
 
+    colors = plt.cm.get_cmap("tab10", len(avg_df["name"])).colors
+
     # Plot each scheduler's data
     for idx, (scheduler, values) in enumerate(zip(avg_df["name"], normalized_values)):
         values = np.append(values, values[0])  # Close the loop
-        ax.plot(angles, values, label=scheduler, linewidth=2, marker="o", alpha=0.2)
-        # ax.fill(angles, values, alpha=0.2)
+        ax.plot(angles, values, label=scheduler, linewidth=2, marker="o", color=colors[idx])
+        ax.fill(angles, values, alpha=0.2, color=colors[idx])
 
     # Set labels and title
     ax.set_xticks(angles[:-1])
