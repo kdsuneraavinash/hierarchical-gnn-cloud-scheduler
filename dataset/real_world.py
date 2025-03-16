@@ -14,8 +14,8 @@ from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
 
 @dataclass
 class RealWorldDatasetArgs(DatasetArgs):
-    tasks_per_workflow: list[int] = field(default=[])
-    """number of tasks per workflow as comma separated"""
+    tasks_per_workflow: list[int] = field(default_factory=lambda: [])
+    """number of tasks per workflow as a list"""
 
 
 def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
