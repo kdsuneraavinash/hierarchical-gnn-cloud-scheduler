@@ -22,9 +22,6 @@ def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.Rando
     """
     Generate a dataset with the specified arguments.
     """
-    """
-    Generate a dataset with the specified arguments.
-    """
     preference = generate_preference(args, rng)
     hosts = generate_hosts(args, rng)
     vms = generate_vms(args, rng)
