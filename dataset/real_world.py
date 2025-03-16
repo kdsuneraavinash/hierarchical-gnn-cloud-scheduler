@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -7,13 +7,15 @@ import numpy as np
 from scipy import stats
 import tyro
 
+import xml.etree.ElementTree as ET
 from dataset.generator import DatasetArgs
 from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
 
 
 @dataclass
 class RealWorldDatasetArgs(DatasetArgs):
-    pass
+    tasks_per_workflow: list[int] = field(default=[])
+    """number of tasks per workflow as comma separated"""
 
 
 def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
@@ -129,6 +131,49 @@ def generate_vms(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list
     return vms
 
 
+# Generating Task DAG
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+def generate_dag_pegasus(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
+    dag_dir = Path(__file__).parent / "data" / "dags"
+    dag_files: dict[int, dict[str, Path]] = {}
+    for file in dag_dir.iterdir():
+        file_name = file.name.split(".")[0]
+        dag_mode, dag_count = file_name.split("_")
+        if dag_count not in dag_files:
+            dag_files[int(dag_count)] = {}
+        dag_files[int(dag_count)][dag_mode] = file
+
+    workflow_task_count = int(args.context["workflow_task_count"])
+    chosen_mode = rng.choice(list(dag_files[workflow_task_count].keys()))
+    xml_file = str(dag_files[workflow_task_count][chosen_mode])
+
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
+    namespace = {"ns": "http://pegasus.isi.edu/schema/DAX"}
+
+    job_id_mapper: dict[str, int] = {}
+    dependencies: dict[int, set[int]] = {}
+    for mapped_id, job in enumerate(root.findall("ns:job", namespace)):
+        job_id = job.get("id")
+        assert job_id is not None
+        job_id_mapper[job_id] = mapped_id
+        dependencies[mapped_id] = set()
+
+    for child in root.findall("ns:child", namespace):
+        child_ref = child.get("ref")
+        assert child_ref is not None
+        mapped_child_id = job_id_mapper[str(child_ref)]
+        for parent in child.findall("ns:parent", namespace):
+            parent_ref = parent.get("ref")
+            assert parent_ref is not None
+            mapped_parent_id = job_id_mapper[str(parent_ref)]
+            dependencies[mapped_parent_id].add(mapped_child_id)
+
+    return dependencies
+
+
 # Generating Tasks
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -138,10 +183,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
     Generate a list of tasks.
     """
 
-    from dataset.synthetic import generate_dag
-
     workflow_count = int(args.context["workflow_count"])
-    workflow_task_counts = args.context["workflow_task_counts"].split(",")
     max_vm_memory_gb = float(args.context["max_vm_memory_gb"])
     max_vm_disk_gb = float(args.context["max_vm_disk_gb"])
 
@@ -160,8 +202,8 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     tasks: list[Task] = []
     for workflow_id in range(workflow_count):
-        args.context["workflow_task_count"] = workflow_task_counts[workflow_id]
-        dag = generate_dag(args, rng)
+        args.context["workflow_task_count"] = str(args.tasks_per_workflow[workflow_id])
+        dag = generate_dag_pegasus(args, rng)
         tasks.extend(
             [
                 Task(
@@ -198,23 +240,18 @@ def generate_poisson_delay(args: DatasetArgs, rng: np.random.RandomState) -> Any
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def generate_workflows(args: DatasetArgs, rng: np.random.RandomState) -> list[Workflow]:
+def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list[Workflow]:
     """
     Generate a list of workflows.
     """
 
-    workflow_task_counts: list[int] = []
-    while sum(workflow_task_counts) < args.task_count:
-        task_count = rng.randint(1, args.max_tasks_per_workflow + 1)
-        task_count_cap = args.task_count - sum(workflow_task_counts)
-        workflow_task_counts.append(min(task_count, task_count_cap))
-
-    args.context["workflow_count"] = str(len(workflow_task_counts))
-    args.context["workflow_task_counts"] = str(",".join(map(str, workflow_task_counts)))
+    assert args.task_count == sum(map(int, args.tasks_per_workflow))
+    workflow_count = len(args.tasks_per_workflow)
+    args.context["workflow_count"] = str(workflow_count)
 
     arrival_time = 0
     workflows: list[Workflow] = []
-    for workflow_id in range(len(workflow_task_counts)):
+    for workflow_id in range(workflow_count):
         arrival_time += int(generate_poisson_delay(args, rng))
         workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
 

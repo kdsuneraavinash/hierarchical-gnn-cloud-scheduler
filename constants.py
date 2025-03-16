@@ -1,6 +1,7 @@
 N_TASK = 50  # Number of tasks
 N_VM = 5  # Number of VMs
 N_WORKFLOW_TASK = 10
+WORKFLOW_TASKS = [25, 25]
 N_HOST = 4
 
 F_TASK = 7  # Number of task features

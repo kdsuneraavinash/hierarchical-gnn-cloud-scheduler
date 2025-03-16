@@ -13,8 +13,6 @@ class DatasetArgs:
     """number of hosts"""
     max_vm_count: int
     """number of VMs"""
-    max_tasks_per_workflow: int
-    """maximum number of tasks per workflow"""
     arrival_rate: float = 3
     """arrival rate of workflows/second (for dynamic arrival)"""
     makespan_preference: float = 1

@@ -26,11 +26,11 @@ from constants import (
     N_HOST,
     N_TASK,
     N_VM,
-    N_WORKFLOW_TASK,
+    WORKFLOW_TASKS,
 )
 from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
-from dataset.synthetic import SyntheticDatasetArgs
+from dataset.real_world import RealWorldDatasetArgs
 from visualizers.summary_chart import plot_summary_chart
 
 
@@ -132,11 +132,11 @@ if __name__ == "__main__":
     datasets = [
         generate_dataset(
             rng=rng,
-            args=SyntheticDatasetArgs(
+            args=RealWorldDatasetArgs(
                 task_count=N_TASK,
                 max_vm_count=N_VM,
                 max_host_count=N_HOST,
-                max_tasks_per_workflow=N_WORKFLOW_TASK,
+                tasks_per_workflow=WORKFLOW_TASKS,
                 makespan_preference=MAKESPAN_PREFERENCE,
                 energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
                 latency_score_preference=LATENCY_SCORE_PREFERENCE,

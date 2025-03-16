@@ -8,12 +8,14 @@ import tyro
 from scipy import stats
 
 from dataset.generator import DatasetArgs
-from dataset.models import Dataset, Task, Vm
-from dataset.real_world import generate_hosts, generate_preference, generate_workflows
+from dataset.models import Dataset, Task, Vm, Workflow
+from dataset.real_world import generate_hosts, generate_poisson_delay, generate_preference
 
 
 @dataclass
 class SyntheticDatasetArgs(DatasetArgs):
+    max_tasks_per_workflow: int = 0
+    """maximum number of tasks per workflow"""
     min_memory_gb: int = 1
     """minimum amount of RAM for a VM (in GB)"""
     max_memory_gb: int = 10
@@ -186,6 +188,29 @@ def generate_tasks(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> li
 
     assert len(tasks) == args.task_count, f"Unexpected number of tasks generated: {len(tasks)}"
     return tasks
+
+
+def generate_workflows(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> list[Workflow]:
+    """
+    Generate a list of workflows.
+    """
+
+    workflow_task_counts: list[int] = []
+    while sum(workflow_task_counts) < args.task_count:
+        task_count = rng.randint(1, args.max_tasks_per_workflow + 1)
+        task_count_cap = args.task_count - sum(workflow_task_counts)
+        workflow_task_counts.append(min(task_count, task_count_cap))
+
+    args.context["workflow_count"] = str(len(workflow_task_counts))
+    args.context["workflow_task_counts"] = str(",".join(map(str, workflow_task_counts)))
+
+    arrival_time = 0
+    workflows: list[Workflow] = []
+    for workflow_id in range(len(workflow_task_counts)):
+        arrival_time += int(generate_poisson_delay(args, rng))
+        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
+
+    return workflows
 
 
 if __name__ == "__main__":
