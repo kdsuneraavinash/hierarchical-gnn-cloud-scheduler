@@ -14,6 +14,7 @@ from algorithms.heft import HeftScheduler
 from algorithms.least_loaded_first import LeastLoadedFirstScheduler
 from algorithms.max_min import MaxMinScheduler
 from algorithms.min_min import MinMinScheduler
+from algorithms.moheft import MoheftScheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
@@ -33,6 +34,7 @@ def run_evaluation(dataset: Dataset) -> None:
         MaxMinScheduler(),
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
+        *[MoheftScheduler(solution_count=7, selected_solution=i) for i in range(7)],
         DrlAgentScheduler("Proposed", model_path="logs/1742069194_gnn_[0][0][1]/model.pt", agent_type="gnn"),
         DrlAgentScheduler("Proposed", model_path="logs/1742072960_gnn_[0][1][0]/model.pt", agent_type="gnn"),
         DrlAgentScheduler("Proposed", model_path="logs/1742076667_gnn_[0][1][1]/model.pt", agent_type="gnn"),

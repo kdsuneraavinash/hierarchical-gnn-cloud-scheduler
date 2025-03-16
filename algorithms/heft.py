@@ -1,5 +1,6 @@
 from algorithms.base_static import BaseStaticScheduler
-from dataset.models import Dataset, Task, Vm
+from dataset.models import Dataset
+from env.utils import compute_task_makespan_ranks
 
 
 class HeftScheduler(BaseStaticScheduler):
@@ -10,7 +11,7 @@ class HeftScheduler(BaseStaticScheduler):
 
     def compute_assignments(self, dataset: Dataset) -> list[tuple[int, int]]:
         # Compute task priorities based on upward rank
-        task_rank = self.compute_task_priorities(dataset.tasks, dataset.vms)
+        task_rank = compute_task_makespan_ranks(dataset)
         sorted_tasks = sorted(dataset.tasks, key=lambda t: task_rank[t.id], reverse=True)
 
         vm_ready_times: dict[int, float] = {vm.id: 0.0 for vm in dataset.vms}
@@ -43,23 +44,3 @@ class HeftScheduler(BaseStaticScheduler):
             assignments.append((task.id, best_vm.id))
 
         return assignments
-
-    def compute_task_priorities(self, tasks: list[Task], vms: list[Vm]) -> list[float]:
-        """Compute task priorities based on upward rank."""
-
-        average_vm_speed = sum(vm.cpu_speed_mips for vm in vms) / len(vms)
-        task_rank: list[float] = [-1] * len(tasks)
-
-        def compute_upward_rank(task: Task) -> float:
-            if task_rank[task.id] >= 0:
-                return task_rank[task.id]
-
-            child_ranks = [compute_upward_rank(child_task) for child_task in tasks if child_task.id in task.child_ids]
-            child_rank_max = max(child_ranks, default=0)
-            task_rank[task.id] = (task.length / average_vm_speed) + child_rank_max
-            return task_rank[task.id]
-
-        for _task in tasks:
-            compute_upward_rank(_task)
-
-        return task_rank
