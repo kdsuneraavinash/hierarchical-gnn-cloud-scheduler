@@ -19,8 +19,9 @@ from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
 from constants import N_HOST, N_TASK, N_VM, N_WORKFLOW_TASK, TEST_SEED
-from dataset.generator import DatasetArgs, generate_dataset
+from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
+from dataset.synthetic import SyntheticDatasetArgs
 from visualizers.pareto_front import plot_2d_pareto_fronts
 
 
@@ -84,7 +85,7 @@ def main():
     run_evaluation(
         generate_dataset(
             rng=np.random.RandomState(TEST_SEED),
-            args=DatasetArgs(
+            args=SyntheticDatasetArgs(
                 task_count=N_TASK,
                 max_vm_count=N_VM,
                 max_host_count=N_HOST,

@@ -27,8 +27,9 @@ from constants import (
     N_WORKFLOW_TASK,
     TEST_SEED,
 )
-from dataset.generator import DatasetArgs, generate_dataset
+from dataset.generator import generate_dataset
 from dataset.models import Solution
+from dataset.synthetic import SyntheticDatasetArgs
 from env.gym_env import GymEnvironment
 from models.agent import make_agent
 from models.base_agent import BaseAgent
@@ -95,8 +96,8 @@ class Args:
     target_kl: float | None = None
     """the target KL divergence threshold"""
 
-    dataset: DatasetArgs = field(
-        default_factory=lambda: DatasetArgs(
+    dataset: SyntheticDatasetArgs = field(
+        default_factory=lambda: SyntheticDatasetArgs(
             task_count=N_TASK,
             max_vm_count=N_VM,
             max_host_count=N_HOST,
@@ -107,8 +108,8 @@ class Args:
         )
     )
     """the dataset generation parameters"""
-    test_dataset: DatasetArgs = field(
-        default_factory=lambda: DatasetArgs(
+    test_dataset: SyntheticDatasetArgs = field(
+        default_factory=lambda: SyntheticDatasetArgs(
             task_count=N_TASK,
             max_vm_count=N_VM,
             max_host_count=N_HOST,

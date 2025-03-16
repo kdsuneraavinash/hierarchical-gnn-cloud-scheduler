@@ -28,8 +28,9 @@ from constants import (
     N_VM,
     N_WORKFLOW_TASK,
 )
-from dataset.generator import DatasetArgs, generate_dataset
+from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
+from dataset.synthetic import SyntheticDatasetArgs
 from visualizers.summary_chart import plot_summary_chart
 
 
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     datasets = [
         generate_dataset(
             rng=rng,
-            args=DatasetArgs(
+            args=SyntheticDatasetArgs(
                 task_count=N_TASK,
                 max_vm_count=N_VM,
                 max_host_count=N_HOST,

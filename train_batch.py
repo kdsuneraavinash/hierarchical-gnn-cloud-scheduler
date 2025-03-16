@@ -1,6 +1,6 @@
 from itertools import product
 from constants import N_HOST, N_TASK, N_VM, N_WORKFLOW_TASK
-from dataset.generator import DatasetArgs
+from dataset.synthetic import SyntheticDatasetArgs
 from train import Args, train
 
 
@@ -14,7 +14,7 @@ for m, e, s in product(range(3), range(3), range(3)):
             wandb_project_name="hierarchical-cloud-task-scheduling",
             wandb_entity="kdsuneraavinash-shared-team",
             test_iterations=4,
-            dataset=DatasetArgs(
+            dataset=SyntheticDatasetArgs(
                 task_count=N_TASK,
                 max_vm_count=N_VM,
                 max_host_count=N_HOST,
@@ -23,7 +23,7 @@ for m, e, s in product(range(3), range(3), range(3)):
                 energy_consumption_preference=e,
                 latency_score_preference=s,
             ),
-            test_dataset=DatasetArgs(
+            test_dataset=SyntheticDatasetArgs(
                 task_count=N_TASK,
                 max_vm_count=N_VM,
                 max_host_count=N_HOST,

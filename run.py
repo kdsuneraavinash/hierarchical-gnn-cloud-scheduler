@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from constants import N_TASK, N_VM
-from dataset.generator import DatasetArgs
+from dataset.synthetic import SyntheticDatasetArgs
 from env.gym_env import GymEnvironment
 from models.gnn_agent import GnnAgent
 
@@ -17,7 +17,7 @@ def main() -> None:
 
     agent = GnnAgent(torch.device("cpu"))
     env = GymEnvironment(
-        dataset_args=DatasetArgs(
+        dataset_args=SyntheticDatasetArgs(
             task_count=N_TASK,
             max_vm_count=N_VM,
             max_host_count=2,
