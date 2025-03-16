@@ -71,13 +71,6 @@ def generate_preference(args: SyntheticDatasetArgs, rng: np.random.RandomState) 
     makespan = args.makespan_preference
     energy_consumption = args.energy_consumption_preference
     latency_score = args.latency_score_preference
-    if makespan is None:
-        makespan = float(rng.randint(0, 2))
-    if energy_consumption is None:
-        energy_consumption = float(rng.randint(0, 2))
-    if latency_score is None:
-        latency_score = float(rng.randint(0, 2))
-
     if makespan + energy_consumption + latency_score == 0:
         makespan = energy_consumption = latency_score = 1
     max_pref = max(makespan, energy_consumption, latency_score)

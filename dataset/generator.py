@@ -15,11 +15,11 @@ class DatasetArgs:
     """number of VMs"""
     max_tasks_per_workflow: int
     """maximum number of tasks per workflow"""
-    makespan_preference: float | None = None
+    makespan_preference: float = 1
     """preference for optimizing makespan"""
-    energy_consumption_preference: float | None = None
+    energy_consumption_preference: float = 1
     """preference for optimizing energy consumption"""
-    latency_score_preference: float | None = None
+    latency_score_preference: float = 1
     """preference for optimizing energy consumption"""
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
