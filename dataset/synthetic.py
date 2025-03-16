@@ -1,7 +1,6 @@
 import json
 import math
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -9,7 +8,8 @@ import tyro
 from scipy import stats
 
 from dataset.generator import DatasetArgs
-from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
+from dataset.models import Dataset, Task, Vm
+from dataset.real_world import generate_hosts, generate_preference, generate_workflows
 
 
 @dataclass
@@ -34,8 +34,6 @@ class SyntheticDatasetArgs(DatasetArgs):
     """maximum task length"""
     task_high_priority_probability: float = 0.5
     """probability that a task is high priority"""
-    arrival_rate: float = 3
-    """arrival rate of workflows/second (for dynamic arrival)"""
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
@@ -61,56 +59,6 @@ def generate_synthetic_dataset(args: SyntheticDatasetArgs, rng: np.random.Random
     dataset = Dataset(preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
     dataset.check_sanity()
     return dataset
-
-
-# Generating Preference
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-def generate_preference(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> Preference:
-    makespan = args.makespan_preference
-    energy_consumption = args.energy_consumption_preference
-    latency_score = args.latency_score_preference
-    if makespan + energy_consumption + latency_score == 0:
-        makespan = energy_consumption = latency_score = 1
-    max_pref = max(makespan, energy_consumption, latency_score)
-
-    return Preference(
-        makespan=makespan / max_pref,
-        energy_consumption=energy_consumption / max_pref,
-        latency_score=latency_score / max_pref,
-    )
-
-
-# Generating Hosts
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-def generate_hosts(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> list[Host]:
-    """
-    Generate a list of hosts with the specified number of hosts.
-    Uses the host specifications from data/host_specs.json.
-    """
-
-    with open(Path(__file__).parent / "data" / "host_specs.json", "r") as f:
-        available_hosts: list[dict[str, Any]] = json.load(f)
-
-    host_count = rng.randint(2, args.max_host_count + 1)
-    args.context["host_count"] = str(host_count)
-
-    hosts: list[Host] = []
-    for i in range(host_count):
-        spec = available_hosts[rng.randint(0, len(available_hosts))]
-        hosts.append(
-            Host(
-                id=i,
-                cores=int(spec["cores"]),
-                cpu_speed_mips=int(spec["cpu_speed_gips"] * 1e3),
-                power_idle_watt=int(spec["power_idle_watt"]),
-                power_peak_watt=int(spec["power_peak_watt"]),
-            )
-        )
-    return hosts
 
 
 # Generating and Allocating VMs
@@ -176,7 +124,7 @@ def generate_task_length(args: SyntheticDatasetArgs, rng: np.random.RandomState)
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def generate_dag(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
+def generate_dag(args: DatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
     """
     Generate a random Directed Acyclic Graph (DAG) using the G(n, p) model.
     The resulting graph is represented as an adjacency list. <br/>
@@ -203,19 +151,6 @@ def generate_dag(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> dict
         nodes[0].add(i)
 
     return nodes
-
-
-# Generating Delay
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-def generate_poisson_delay(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> Any | float:
-    """
-    Generate a random delay between workflows in a Poisson process.
-    The delay is exponentially distributed with parameter lambda.
-    """
-
-    return stats.expon.rvs(scale=1 / args.arrival_rate, random_state=rng)
 
 
 # Generating Tasks
@@ -251,33 +186,6 @@ def generate_tasks(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> li
 
     assert len(tasks) == args.task_count, f"Unexpected number of tasks generated: {len(tasks)}"
     return tasks
-
-
-# Generating Workflows
-# ----------------------------------------------------------------------------------------------------------------------
-
-
-def generate_workflows(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> list[Workflow]:
-    """
-    Generate a list of workflows.
-    """
-
-    workflow_task_counts: list[int] = []
-    while sum(workflow_task_counts) < args.task_count:
-        task_count = rng.randint(1, args.max_tasks_per_workflow + 1)
-        task_count_cap = args.task_count - sum(workflow_task_counts)
-        workflow_task_counts.append(min(task_count, task_count_cap))
-
-    args.context["workflow_count"] = str(len(workflow_task_counts))
-    args.context["workflow_task_counts"] = str(",".join(map(str, workflow_task_counts)))
-
-    arrival_time = 0
-    workflows: list[Workflow] = []
-    for workflow_id in range(len(workflow_task_counts)):
-        arrival_time += int(generate_poisson_delay(args, rng))
-        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
-
-    return workflows
 
 
 if __name__ == "__main__":

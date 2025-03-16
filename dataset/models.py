@@ -17,8 +17,8 @@ class Task:
     workflow_id: int
     length: int
     child_ids: list[int]
-    req_memory_gb: int
-    req_disk_gb: int
+    req_memory_gb: float
+    req_disk_gb: float
     priority: float
 
 
@@ -27,8 +27,8 @@ class Vm:
     id: int
     host_id: int
     cpu_speed_mips: int
-    memory_gb: int
-    disk_gb: int
+    memory_gb: float
+    disk_gb: float
 
     def is_compatible(self, task: Task) -> bool:
         return self.memory_gb >= task.req_memory_gb and self.disk_gb >= task.req_disk_gb

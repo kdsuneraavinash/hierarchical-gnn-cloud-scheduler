@@ -15,6 +15,8 @@ class DatasetArgs:
     """number of VMs"""
     max_tasks_per_workflow: int
     """maximum number of tasks per workflow"""
+    arrival_rate: float = 3
+    """arrival rate of workflows/second (for dynamic arrival)"""
     makespan_preference: float = 1
     """preference for optimizing makespan"""
     energy_consumption_preference: float = 1
