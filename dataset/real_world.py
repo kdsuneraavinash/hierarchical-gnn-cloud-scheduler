@@ -34,8 +34,8 @@ def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.Rando
     for task in tasks:
         if any(vm.is_compatible(task) for vm in vms):
             continue
-        task.req_memory_gb = 1
-        task.req_disk_gb = 1
+        task.req_memory_gb = 0
+        task.req_disk_gb = 0
 
     dataset = Dataset(preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
     dataset.check_sanity()
@@ -124,9 +124,7 @@ def generate_vms(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list
         for i in range(vm_count)
     ]
 
-    args.context["min_vm_memory_gb"] = str(min(vm.memory_gb for vm in vms))
     args.context["max_vm_memory_gb"] = str(max(vm.memory_gb for vm in vms))
-    args.context["min_vm_disk_gb"] = str(min(vm.disk_gb for vm in vms))
     args.context["max_vm_disk_gb"] = str(max(vm.disk_gb for vm in vms))
     return vms
 
@@ -144,9 +142,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     workflow_count = int(args.context["workflow_count"])
     workflow_task_counts = args.context["workflow_task_counts"].split(",")
-    min_vm_memory_gb = float(args.context["min_vm_memory_gb"])
     max_vm_memory_gb = float(args.context["max_vm_memory_gb"])
-    min_vm_disk_gb = float(args.context["min_vm_disk_gb"])
     max_vm_disk_gb = float(args.context["max_vm_disk_gb"])
 
     with open(Path(__file__).parent / "data" / "task_specs.json", "r") as f:
@@ -155,6 +151,12 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
     priority_production_prob = float(task_specs["priority_production_prob"])
     task_length_mean = float(task_specs["task_length_mean"])
     task_length_std = float(task_specs["task_length_std"])
+
+    def task_length() -> float:
+        value: float = 0
+        while value <= 0:
+            value = stats.norm.rvs(loc=task_length_mean, scale=task_length_std, random_state=rng)
+        return value
 
     tasks: list[Task] = []
     for workflow_id in range(workflow_count):
@@ -165,10 +167,10 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
                 Task(
                     id=len(tasks) + task_id,
                     workflow_id=workflow_id,
-                    length=int(stats.norm.rvs(loc=task_length_mean, scale=task_length_std, random_state=rng)),
+                    length=int(task_length()),
                     child_ids=[len(tasks) + child_id for child_id in child_ids],
-                    req_memory_gb=rng.uniform(low=min_vm_memory_gb, high=max_vm_memory_gb),
-                    req_disk_gb=rng.uniform(low=min_vm_disk_gb, high=max_vm_disk_gb),
+                    req_memory_gb=rng.uniform(low=0, high=max_vm_memory_gb),
+                    req_disk_gb=rng.uniform(low=0, high=max_vm_disk_gb),
                     priority=int(rng.random() <= priority_production_prob),
                 )
                 for task_id, child_ids in dag.items()
