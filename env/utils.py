@@ -44,7 +44,7 @@ def task_completion_time_est(
 
 
 def task_energy_consumption_est(dataset: Dataset, task_states: list[TaskState]) -> list[float]:
-    task_energy_consumption = [task_state.energy_consumption for task_state in task_states]
+    task_energy_consumption: list[float] = [0 for _ in range(len(task_states))]
     for t_id, task_state in enumerate(task_states):
         if task_state.assigned_vm_id is None:
             task_energy_consumption[t_id] = min(
@@ -52,6 +52,9 @@ def task_energy_consumption_est(dataset: Dataset, task_states: list[TaskState]) 
                 for vm in dataset.vms
                 if vm.is_compatible(dataset.tasks[t_id])
             )
+        else:
+            vm = dataset.vms[task_state.assigned_vm_id]
+            task_energy_consumption[t_id] = dataset.hosts[vm.host_id].active_power_consumption(dataset.tasks[t_id])
     return task_energy_consumption
 
 

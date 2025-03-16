@@ -20,7 +20,6 @@ class TaskState:
     assigned_vm_id: int | None = None
     start_time: float = 0
     completion_time: float = 0
-    energy_consumption: float = 0
 
 
 @dataclass

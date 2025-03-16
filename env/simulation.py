@@ -1,5 +1,4 @@
-import copy
-
+import numpy as np
 from dataset.models import Dataset, VmAssignment
 from env.state import SimulationState, TaskState, VmState
 from env.utils import task_completion_time_est, task_energy_consumption_est, task_latency_score_est
@@ -32,9 +31,6 @@ class Simulation:
     # ------------------------------------------------------------------------------------------------------------------
 
     def assign_vm(self, task_id: int, vm_id: int) -> tuple[str | None, bool]:
-        task = self.dataset.tasks[task_id]
-        vm = self.dataset.vms[vm_id]
-
         # Checks for action
         if not (0 <= task_id < len(self.state.task_states)):
             return f"{task_id=} {vm_id=}: Invalid task (out of range)", True
@@ -45,49 +41,52 @@ class Simulation:
         if not self.dataset.vms[vm_id].is_compatible(self.dataset.tasks[task_id]):
             return f"{task_id=} {vm_id=}: Not compatible", True
 
-        child_task_ids = [c_id for (p_id, c_id) in self.state.task_dependencies if p_id == task_id]
-        parent_task_ids = [p_id for (p_id, c_id) in self.state.task_dependencies if c_id == task_id]
-        processing_time = vm.execution_time(task)
+        # Convert to numpy arrays
+        processing_time = self.dataset.vms[vm_id].execution_time(self.dataset.tasks[task_id])
+        task_dependencies = {dep for dep in self.state.task_dependencies}
+        task_is_ready = np.array([t.is_ready for t in self.state.task_states])
+        task_start_time = np.array([t.start_time for t in self.state.task_states])
+        task_completion_time = np.array([t.completion_time for t in self.state.task_states])
+        vm_completion_time = np.array([v.completion_time for v in self.state.vm_states])
+        task_assigned_vm_id = np.array(
+            [-1 if t.assigned_vm_id is None else t.assigned_vm_id for t in self.state.task_states]
+        )
+        vm_assigned_task_id = np.array(
+            [-1 if v.assigned_task_id is None else v.assigned_task_id for v in self.state.vm_states]
+        )
 
-        new_task_states = copy.deepcopy(self.state.task_states)
-        new_vm_states = copy.deepcopy(self.state.vm_states)
+        done = _assign_vm_numba(
+            task_id,
+            vm_id,
+            processing_time,
+            task_dependencies,
+            task_is_ready,
+            task_start_time,
+            task_completion_time,
+            vm_completion_time,
+            task_assigned_vm_id,
+            vm_assigned_task_id,
+        )
 
-        # Update scheduled states
-        new_task_states[task_id].assigned_vm_id = vm_id
-        new_vm_states[vm_id].assigned_task_id = task_id
+        # Convert back to objects
+        new_task_states = [
+            TaskState(
+                is_ready=task_is_ready[t_id],
+                start_time=task_start_time[t_id],
+                completion_time=task_completion_time[t_id],
+                assigned_vm_id=None if task_assigned_vm_id[t_id] == -1 else task_assigned_vm_id[t_id],
+            )
+            for t_id in range(len(self.state.task_states))
+        ]
+        new_vm_states = [
+            VmState(
+                completion_time=vm_completion_time[v_id],
+                assigned_task_id=None if vm_assigned_task_id[v_id] == -1 else vm_assigned_task_id[v_id],
+            )
+            for v_id in range(len(self.state.vm_states))
+        ]
 
-        # Update ready states using new state
-        new_task_states[task_id].is_ready = False
-        for child_id in child_task_ids:
-            new_task_states[child_id].is_ready = True
-            child_parent_task_ids = [p_id for (p_id, c_id) in self.state.task_dependencies if c_id == child_id]
-            for child_parent_task_id in child_parent_task_ids:
-                if new_task_states[child_parent_task_id].assigned_vm_id is None:
-                    new_task_states[child_id].is_ready = False
-                    break
-
-        # Update completion times
-        start_time = self.state.vm_states[vm_id].completion_time
-        for parent_id in parent_task_ids:
-            start_time = max(start_time, self.state.task_states[parent_id].completion_time)
-        new_task_states[task_id].start_time = start_time
-        new_task_states[task_id].completion_time = start_time + processing_time
-        new_vm_states[vm_id].completion_time = start_time + processing_time
-
-        # Update energy consumption
-        new_task_states[task_id].energy_consumption = self.dataset.hosts[vm.host_id].active_power_consumption(task)
-
-        # New dependencies (a new edge between the old task in the VM and this task)
-        new_task_dependencies = copy.deepcopy(self.state.task_dependencies)
-        vm_prev_task_id = self.state.vm_states[vm_id].assigned_task_id
-        if vm_prev_task_id is not None:
-            new_task_dependencies.add((vm_prev_task_id, task_id))
-
-        # Change the state
-        self.state = SimulationState(new_task_states, new_vm_states, new_task_dependencies)
-
-        # Find whether there are any more tasks remaining
-        done = all(task_state.assigned_vm_id is not None for task_state in self.state.task_states)
+        self.state = SimulationState(new_task_states, new_vm_states, task_dependencies)
         return None, done
 
     # Step
@@ -124,3 +123,47 @@ class Simulation:
                 self.dataset, self.state.task_states, self.state.vm_states, self.state.task_dependencies
             )
         )
+
+
+def _assign_vm_numba(
+    task_id: int,
+    vm_id: int,
+    processing_time: float,
+    task_dependencies: set[tuple[int, int]],
+    task_is_ready: np.ndarray,
+    task_start_time: np.ndarray,
+    task_completion_time: np.ndarray,
+    vm_completion_time: np.ndarray,
+    task_assigned_vm_id: np.ndarray,
+    vm_assigned_task_id: np.ndarray,
+) -> bool:
+    child_task_ids = [c_id for (p_id, c_id) in task_dependencies if p_id == task_id]
+    parent_task_ids = [p_id for (p_id, c_id) in task_dependencies if c_id == task_id]
+
+    # Original values we need
+    vm_prev_task_id = vm_assigned_task_id[vm_id]
+
+    # Update scheduled states
+    task_assigned_vm_id[task_id] = vm_id
+    vm_assigned_task_id[vm_id] = task_id
+
+    # Update ready states using new state
+    task_is_ready[task_id] = False
+    for child_id in child_task_ids:
+        child_parent_task_ids = [p_id for (p_id, c_id) in task_dependencies if c_id == child_id]
+        task_is_ready[child_id] = (task_assigned_vm_id[child_parent_task_ids] != -1).all()
+
+    # Update completion times
+    start_time = task_completion_time[parent_task_ids].max(initial=vm_completion_time[vm_id])
+    task_start_time[task_id] = start_time
+    task_completion_time[task_id] = start_time + processing_time
+    vm_completion_time[vm_id] = start_time + processing_time
+
+    # New dependencies (a new edge between the old task in the VM and this task)
+    if vm_prev_task_id != -1:
+        task_dependencies.add((vm_prev_task_id, task_id))
+
+    # Find whether there are any more tasks remaining
+    done: bool = (task_assigned_vm_id != -1).all()
+
+    return done
