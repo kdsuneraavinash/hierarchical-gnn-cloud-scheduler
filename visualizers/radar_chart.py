@@ -25,7 +25,7 @@ def plot_summary_radar_chart(df: pd.DataFrame) -> None:
     angles: list[float] = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()  # type: ignore
     angles += angles[:1]  # Close the radar chart loop
 
-    colors = plt.cm.get_cmap("tab10", len(avg_df["name"])).colors
+    colors = plt.cm.get_cmap("tab10", len(avg_df["name"])).colors  # type: ignore
 
     # Plot each scheduler's data
     for idx, (scheduler, values) in enumerate(zip(avg_df["name"], normalized_values)):
