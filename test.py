@@ -50,13 +50,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
         MoheftScheduler(solution_count=7, selected_solution=0),
-        DrlAgentScheduler("Proposed-[0][0][1]", model_path="logs/1742069194_gnn_[0][0][1]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed-[0][1][0]", model_path="logs/1742072960_gnn_[0][1][0]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed-[0][1][1]", model_path="logs/1742076667_gnn_[0][1][1]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed-[1][0][0]", model_path="logs/1742080365_gnn_[1][0][0]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed-[1][0][1]", model_path="logs/1742084059_gnn_[1][0][1]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed-[1][1][0]", model_path="logs/1742087722_gnn_[1][1][0]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed-[1][1][1]", model_path="logs/1742091521_gnn_[1][1][1]/model.pt", agent_type="gnn"),
+        DrlAgentScheduler("Proposed", model_path="logs/1742091521_gnn_[1][1][1]/model.pt", agent_type="gnn"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
