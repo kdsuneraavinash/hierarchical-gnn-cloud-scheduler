@@ -55,7 +55,7 @@ class Simulation:
             [-1 if v.assigned_task_id is None else v.assigned_task_id for v in self.state.vm_states]
         )
 
-        done = _assign_vm_numba(
+        done = _assign_vm(
             task_id,
             vm_id,
             processing_time,
@@ -125,7 +125,7 @@ class Simulation:
         )
 
 
-def _assign_vm_numba(
+def _assign_vm(
     task_id: int,
     vm_id: int,
     processing_time: float,
