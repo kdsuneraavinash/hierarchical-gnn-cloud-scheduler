@@ -24,12 +24,12 @@ from constants import (
     N_HOST,
     N_TASK,
     N_VM,
-    N_WORKFLOW_TASK,
     TEST_SEED,
+    WORKFLOW_TASKS,
 )
 from dataset.generator import generate_dataset
 from dataset.models import Solution
-from dataset.synthetic import SyntheticDatasetArgs
+from dataset.real_world import RealWorldDatasetArgs
 from env.gym_env import GymEnvironment
 from models.agent import make_agent
 from models.base_agent import BaseAgent
@@ -96,24 +96,24 @@ class Args:
     target_kl: float | None = None
     """the target KL divergence threshold"""
 
-    dataset: SyntheticDatasetArgs = field(
-        default_factory=lambda: SyntheticDatasetArgs(
+    dataset: RealWorldDatasetArgs = field(
+        default_factory=lambda: RealWorldDatasetArgs(
             task_count=N_TASK,
             max_vm_count=N_VM,
             max_host_count=N_HOST,
-            max_tasks_per_workflow=N_WORKFLOW_TASK,
+            tasks_per_workflow=WORKFLOW_TASKS,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
             latency_score_preference=LATENCY_SCORE_PREFERENCE,
         )
     )
     """the dataset generation parameters"""
-    test_dataset: SyntheticDatasetArgs = field(
-        default_factory=lambda: SyntheticDatasetArgs(
+    test_dataset: RealWorldDatasetArgs = field(
+        default_factory=lambda: RealWorldDatasetArgs(
             task_count=N_TASK,
             max_vm_count=N_VM,
             max_host_count=N_HOST,
-            max_tasks_per_workflow=N_WORKFLOW_TASK,
+            tasks_per_workflow=WORKFLOW_TASKS,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
             latency_score_preference=LATENCY_SCORE_PREFERENCE,
