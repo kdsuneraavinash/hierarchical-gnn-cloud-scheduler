@@ -24,8 +24,8 @@ from constants import (
     N_HOST,
     N_TASK,
     N_VM,
+    N_WORKFLOW_TASK,
     TEST_SEED,
-    WORKFLOW_TASKS,
 )
 from dataset.generator import generate_dataset
 from dataset.models import Solution
@@ -101,7 +101,7 @@ class Args:
             task_count=N_TASK,
             max_vm_count=N_VM,
             max_host_count=N_HOST,
-            tasks_per_workflow=WORKFLOW_TASKS,
+            min_tasks_per_workflow=N_WORKFLOW_TASK,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
             latency_score_preference=LATENCY_SCORE_PREFERENCE,
@@ -113,7 +113,7 @@ class Args:
             task_count=N_TASK,
             max_vm_count=N_VM,
             max_host_count=N_HOST,
-            tasks_per_workflow=WORKFLOW_TASKS,
+            min_tasks_per_workflow=N_WORKFLOW_TASK,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
             latency_score_preference=LATENCY_SCORE_PREFERENCE,

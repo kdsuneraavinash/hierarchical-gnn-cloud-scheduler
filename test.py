@@ -26,7 +26,7 @@ from constants import (
     N_HOST,
     N_TASK,
     N_VM,
-    WORKFLOW_TASKS,
+    N_WORKFLOW_TASK,
 )
 from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
@@ -136,7 +136,7 @@ if __name__ == "__main__":
                 task_count=N_TASK,
                 max_vm_count=N_VM,
                 max_host_count=N_HOST,
-                tasks_per_workflow=WORKFLOW_TASKS,
+                min_tasks_per_workflow=N_WORKFLOW_TASK,
                 makespan_preference=MAKESPAN_PREFERENCE,
                 energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
                 latency_score_preference=LATENCY_SCORE_PREFERENCE,

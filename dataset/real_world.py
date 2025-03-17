@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -14,8 +14,8 @@ from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
 
 @dataclass
 class RealWorldDatasetArgs(DatasetArgs):
-    tasks_per_workflow: list[int] = field(default_factory=lambda: [])
-    """number of tasks per workflow as a list"""
+    min_tasks_per_workflow: int = 0
+    """number of min tasks per workflow"""
 
 
 def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
@@ -138,7 +138,9 @@ def generate_dag_pegasus(args: RealWorldDatasetArgs, rng: np.random.RandomState)
     for file in dag_dir.iterdir():
         file_name = file.name.split(".")[0]
         dag_mode, dag_count = file_name.split("_")
-        if dag_count not in dag_files:
+        if dag_mode in ["Sipht", "CyberShake"]:
+            continue  # Ignoring these since they have out-of-order children
+        if int(dag_count) not in dag_files:
             dag_files[int(dag_count)] = {}
         dag_files[int(dag_count)][dag_mode] = file
 
@@ -168,6 +170,7 @@ def generate_dag_pegasus(args: RealWorldDatasetArgs, rng: np.random.RandomState)
             mapped_parent_id = job_id_mapper[str(parent_ref)]
             dependencies[mapped_parent_id].add(mapped_child_id)
 
+    assert len(dependencies) == workflow_task_count
     return dependencies
 
 
@@ -183,6 +186,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
     workflow_count = int(args.context["workflow_count"])
     max_vm_memory_gb = float(args.context["max_vm_memory_gb"])
     max_vm_disk_gb = float(args.context["max_vm_disk_gb"])
+    tasks_per_workflow = list(map(int, args.context["tasks_per_workflow"].split(",")))
 
     with open(Path(__file__).parent / "data" / "task_specs.json", "r") as f:
         task_specs: dict[str, Any] = json.load(f)
@@ -199,7 +203,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     tasks: list[Task] = []
     for workflow_id in range(workflow_count):
-        args.context["workflow_task_count"] = str(args.tasks_per_workflow[workflow_id])
+        args.context["workflow_task_count"] = str(tasks_per_workflow[workflow_id])
         dag = generate_dag_pegasus(args, rng)
         tasks.extend(
             [
@@ -242,9 +246,22 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     Generate a list of workflows.
     """
 
-    assert args.task_count == sum(map(int, args.tasks_per_workflow))
-    workflow_count = len(args.tasks_per_workflow)
+    tasks_per_workflow = [args.min_tasks_per_workflow] * (args.task_count // args.min_tasks_per_workflow)
+    if rng.random() < 0.5:
+        tasks_per_workflow.pop()
+    missing_tasks = args.task_count - sum(tasks_per_workflow)
+    curr_adding_index = 0
+    while missing_tasks > 0:
+        tasks_per_workflow[curr_adding_index % len(tasks_per_workflow)] += rng.randint(0, missing_tasks + 1)
+        curr_adding_index += 1
+        missing_tasks = args.task_count - sum(tasks_per_workflow)
+
+    rng.shuffle(tasks_per_workflow)
+
+    assert args.task_count == sum(map(int, tasks_per_workflow))
+    workflow_count = len(tasks_per_workflow)
     args.context["workflow_count"] = str(workflow_count)
+    args.context["tasks_per_workflow"] = ",".join(map(str, tasks_per_workflow))
 
     arrival_time = 0
     workflows: list[Workflow] = []

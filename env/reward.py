@@ -8,7 +8,7 @@ class RewardFunction:
     prev_energy_consumption: float
     prev_latency_score: float
 
-    def __init__(self, makespan_alpha: float = 0.3, energy_alpha: float = 4, latency_alpha: float = 1):
+    def __init__(self, makespan_alpha: float = 1, energy_alpha: float = 1, latency_alpha: float = 1):
         self.makespan_alpha = makespan_alpha
         self.energy_alpha = energy_alpha
         self.latency_alpha = latency_alpha
