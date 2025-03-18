@@ -18,13 +18,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 from algorithms.drl_agent import DrlAgentScheduler
 from constants import (
-    ENERGY_CONSUMPTION_PREFERENCE,
-    LATENCY_SCORE_PREFERENCE,
-    MAKESPAN_PREFERENCE,
-    N_HOST,
-    N_TASK,
-    N_VM,
-    N_WORKFLOW_TASK,
+    REAL_WORLD_DATASET_ARGS,
     TEST_SEED,
 )
 from dataset.generator import generate_dataset
@@ -96,29 +90,9 @@ class Args:
     target_kl: float | None = None
     """the target KL divergence threshold"""
 
-    dataset: RealWorldDatasetArgs = field(
-        default_factory=lambda: RealWorldDatasetArgs(
-            task_count=N_TASK,
-            max_vm_count=N_VM,
-            max_host_count=N_HOST,
-            min_tasks_per_workflow=N_WORKFLOW_TASK,
-            makespan_preference=MAKESPAN_PREFERENCE,
-            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-            latency_score_preference=LATENCY_SCORE_PREFERENCE,
-        )
-    )
+    dataset: RealWorldDatasetArgs = field(default_factory=lambda: REAL_WORLD_DATASET_ARGS)
     """the dataset generation parameters"""
-    test_dataset: RealWorldDatasetArgs = field(
-        default_factory=lambda: RealWorldDatasetArgs(
-            task_count=N_TASK,
-            max_vm_count=N_VM,
-            max_host_count=N_HOST,
-            min_tasks_per_workflow=N_WORKFLOW_TASK,
-            makespan_preference=MAKESPAN_PREFERENCE,
-            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-            latency_score_preference=LATENCY_SCORE_PREFERENCE,
-        )
-    )
+    test_dataset: RealWorldDatasetArgs = field(default_factory=lambda: REAL_WORLD_DATASET_ARGS)
     """the test dataset generation parameters"""
 
     # to be filled in runtime

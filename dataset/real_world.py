@@ -14,8 +14,15 @@ from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
 
 @dataclass
 class RealWorldDatasetArgs(DatasetArgs):
-    min_tasks_per_workflow: int = 0
-    """number of min tasks per workflow"""
+    dag_structure: str = "Montage"
+    """dag structure to use"""
+
+
+PEGASUS_DAG_COUNTS = {
+    "Inspiral": list(range(30, 101, 2)),
+    "Epigenomics": [24, 28, 32, 36, 40, 44, 47, 52, 55, 60, 63, 68, 69, 76, 79, 81, 87, 91, 100],
+    "Montage": list(range(25, 101)),
+}
 
 
 def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
@@ -133,20 +140,8 @@ def generate_vms(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list
 
 
 def generate_dag_pegasus(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
-    dag_dir = Path(__file__).parent / "data" / "dags"
-    dag_files: dict[int, dict[str, Path]] = {}
-    for file in dag_dir.iterdir():
-        file_name = file.name.split(".")[0]
-        dag_mode, dag_count = file_name.split("_")
-        if dag_mode in ["Sipht", "CyberShake"]:
-            continue  # Ignoring these since they have out-of-order children
-        if int(dag_count) not in dag_files:
-            dag_files[int(dag_count)] = {}
-        dag_files[int(dag_count)][dag_mode] = file
-
     workflow_task_count = int(args.context["workflow_task_count"])
-    chosen_mode = rng.choice(list(dag_files[workflow_task_count].keys()))
-    xml_file = str(dag_files[workflow_task_count][chosen_mode])
+    xml_file = Path(__file__).parent / "data" / "dags" / f"{args.dag_structure}_{workflow_task_count}.xml"
 
     tree = ET.parse(xml_file)
     root = tree.getroot()
@@ -220,7 +215,6 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
             ]
         )
 
-    assert len(tasks) == args.task_count, f"Unexpected number of tasks generated: {len(tasks)}"
     return tasks
 
 
@@ -246,19 +240,14 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     Generate a list of workflows.
     """
 
-    tasks_per_workflow = [args.min_tasks_per_workflow] * (args.task_count // args.min_tasks_per_workflow)
-    if rng.random() < 0.5:
-        tasks_per_workflow.pop()
-    missing_tasks = args.task_count - sum(tasks_per_workflow)
-    curr_adding_index = 0
-    while missing_tasks > 0:
-        tasks_per_workflow[curr_adding_index % len(tasks_per_workflow)] += rng.randint(0, missing_tasks + 1)
-        curr_adding_index += 1
-        missing_tasks = args.task_count - sum(tasks_per_workflow)
+    if args.dag_structure not in PEGASUS_DAG_COUNTS:
+        raise Exception(f"DAG structure not known: {args.dag_structure}")
+    dag_counts = list(filter(lambda x: x <= args.task_count, PEGASUS_DAG_COUNTS[args.dag_structure]))
+    tasks_per_workflow: list[int] = []
+    while sum(tasks_per_workflow) < args.task_count:
+        tasks_per_workflow.append(rng.choice(dag_counts))
 
-    rng.shuffle(tasks_per_workflow)
-
-    assert args.task_count == sum(map(int, tasks_per_workflow))
+    print(tasks_per_workflow)
     workflow_count = len(tasks_per_workflow)
     args.context["workflow_count"] = str(workflow_count)
     args.context["tasks_per_workflow"] = ",".join(map(str, tasks_per_workflow))

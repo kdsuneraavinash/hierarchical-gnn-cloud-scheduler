@@ -18,18 +18,11 @@ from algorithms.moheft import MoheftScheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from constants import (
-    ENERGY_CONSUMPTION_PREFERENCE,
     EVALUATION_SEED,
-    LATENCY_SCORE_PREFERENCE,
-    MAKESPAN_PREFERENCE,
-    N_HOST,
-    N_TASK,
-    N_VM,
-    N_WORKFLOW_TASK,
+    SYNTHETIC_DATASET_ARGS,
 )
 from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
-from dataset.synthetic import SyntheticDatasetArgs
 from visualizers.summary_chart import plot_summary_charts
 
 
@@ -126,19 +119,5 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     rng = np.random.RandomState(EVALUATION_SEED)
-    datasets = [
-        generate_dataset(
-            rng=rng,
-            args=SyntheticDatasetArgs(
-                task_count=N_TASK,
-                max_vm_count=N_VM,
-                max_host_count=N_HOST,
-                max_tasks_per_workflow=N_WORKFLOW_TASK,
-                makespan_preference=MAKESPAN_PREFERENCE,
-                energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-                latency_score_preference=LATENCY_SCORE_PREFERENCE,
-            ),
-        )
-        for _ in range(4)
-    ]
+    datasets = [generate_dataset(rng=rng, args=SYNTHETIC_DATASET_ARGS) for _ in range(4)]
     run_evaluation(datasets)

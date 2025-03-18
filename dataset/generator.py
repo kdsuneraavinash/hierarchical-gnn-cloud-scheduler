@@ -24,6 +24,13 @@ class DatasetArgs:
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
+    def with_priority(self, makespan: float, energy_consumption: float, latency_score: float):
+        kwargs = self.__dict__
+        kwargs["makespan_preference"] = makespan
+        kwargs["energy_consumption_preference"] = energy_consumption
+        kwargs["latency_score_preference"] = latency_score
+        return type(self)(**kwargs)
+
 
 def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
     from dataset.synthetic import SyntheticDatasetArgs, generate_synthetic_dataset

@@ -95,7 +95,7 @@ def create_env_obs(
     # --- Task-VM Features ---
 
     def feat_task_vm_is_schedulable(t_id: int, v_id: int) -> int:
-        if v_id < len(vm_states):
+        if t_id < len(task_states) and v_id < len(vm_states):
             return int(dataset.vms[v_id].is_compatible(dataset.tasks[t_id]))
         return 0
 

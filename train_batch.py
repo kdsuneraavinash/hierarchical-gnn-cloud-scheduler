@@ -1,6 +1,5 @@
 from itertools import product
-from constants import N_HOST, N_TASK, N_VM, N_WORKFLOW_TASK
-from dataset.real_world import RealWorldDatasetArgs
+from constants import REAL_WORLD_DATASET_ARGS
 from train import Args, train
 
 
@@ -14,23 +13,7 @@ for m, e, s in product(range(3), range(3), range(3)):
             wandb_project_name="hierarchical-cloud-task-scheduling",
             wandb_entity="kdsuneraavinash-shared-team",
             test_iterations=4,
-            dataset=RealWorldDatasetArgs(
-                task_count=N_TASK,
-                max_vm_count=N_VM,
-                max_host_count=N_HOST,
-                min_tasks_per_workflow=N_WORKFLOW_TASK,
-                makespan_preference=m,
-                energy_consumption_preference=e,
-                latency_score_preference=s,
-            ),
-            test_dataset=RealWorldDatasetArgs(
-                task_count=N_TASK,
-                max_vm_count=N_VM,
-                max_host_count=N_HOST,
-                min_tasks_per_workflow=N_WORKFLOW_TASK,
-                makespan_preference=m,
-                energy_consumption_preference=e,
-                latency_score_preference=s,
-            ),
+            dataset=REAL_WORLD_DATASET_ARGS.with_priority(m, e, s),
+            test_dataset=REAL_WORLD_DATASET_ARGS.with_priority(m, e, s),
         )
     )

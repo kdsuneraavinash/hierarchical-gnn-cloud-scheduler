@@ -34,10 +34,12 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
         super().reset(seed=seed, options=options)
         if seed is not None:
             self._rng = np.random.RandomState(seed)
-        assert self._rng is not None
+        elif self._rng is None:
+            self._rng = np.random.RandomState()
 
         dataset = generate_dataset(self.dataset_args, self._rng)
         self.simulation = Simulation(dataset)
+        print(len(self.simulation.dataset.tasks))
 
         obs = create_env_obs(
             dataset=self.simulation.dataset,
