@@ -22,6 +22,7 @@ from constants import N_HOST, N_TASK, N_VM, N_WORKFLOW_TASK, TEST_SEED
 from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
 from dataset.synthetic import SyntheticDatasetArgs
+from visualizers.mo_performance import plot_mo_summary
 from visualizers.pareto_front import plot_2d_pareto_fronts
 
 
@@ -74,6 +75,8 @@ def run_evaluation(dataset: Dataset) -> None:
     fig = plt.figure(figsize=(12, 5))
     plot_2d_pareto_fronts(fig, summary_data)
     plt.show()
+
+    plot_mo_summary(summary_data)
 
 
 def main():

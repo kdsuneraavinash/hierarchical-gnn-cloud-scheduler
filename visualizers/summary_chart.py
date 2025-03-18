@@ -1,34 +1,26 @@
-from matplotlib import axes
 import pandas as pd
-from matplotlib.ticker import StrMethodFormatter
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-def plot_summary_chart(ax: axes.Axes, df: pd.DataFrame) -> None:
-    # Compute the average makespan and energy consumption per name
-    avg_df = df.groupby("name", as_index=False).agg({"makespan": "mean", "energy_consumption": "mean"})
+Y_PAD = 0.1
 
-    # Maintain the original order of appearance in df
-    avg_df["name"] = pd.Categorical(avg_df["name"], categories=df["name"].dropna().unique(), ordered=True)
-    avg_df = avg_df.sort_values("name").reset_index(drop=True)
 
-    # Create a secondary Y-axis
-    ax_ = ax.twinx()
+def plot_summary_charts(df: pd.DataFrame) -> None:
+    avg_df = df.groupby("name", as_index=False).agg(
+        {"makespan": "mean", "energy_consumption": "mean", "latency_score": "mean"}
+    )
 
-    # Bar plot for Makespan on the primary Y-axis
-    ax.bar(avg_df["name"], avg_df["makespan"], color="#dffdb9", label="Makespan", edgecolor="black")
-    ax.set_ylabel("Makespan (s)")
-    ax.yaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+    avg_df["proposed"] = avg_df["name"] == "Proposed"
 
-    # Line plot for Energy Consumption on the secondary Y-axis
-    ax_.plot(avg_df["name"], avg_df["energy_consumption"], color="#ff5757", marker="o", label="Energy Consumption")
-    ax_.set_ylabel("Energy Consumption (J)")
-    ax_.yaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharex=False)
+    for i, metric in enumerate(["makespan", "energy_consumption", "latency_score"]):
+        avg_sorted = avg_df.sort_values(metric)
+        sns.barplot(data=avg_sorted, x="name", y=metric, hue="proposed", ax=axes[i], palette="Set2", legend=False)
+        y_min, y_max = avg_sorted[metric].min(), avg_sorted[metric].max()
+        axes[i].set_ylim(y_min * (1 - Y_PAD), y_max * (1 + Y_PAD))
+        axes[i].set_ylabel(metric)
+        axes[i].set_xticklabels(axes[i].get_xticklabels(), rotation=45, ha="right")
 
-    # Add legends
-    ax.legend(loc="upper left")
-    ax_.legend(loc="upper right")
-
-    # X-axis formatting
-    ax.set_xlabel("Name")
-    ax.set_xticks(range(len(avg_df["name"])))
-    ax.set_xticklabels(avg_df["name"], rotation=45, ha="right")
+    plt.tight_layout()
+    plt.show()
