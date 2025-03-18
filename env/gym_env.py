@@ -39,7 +39,6 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
 
         dataset = generate_dataset(self.dataset_args, self._rng)
         self.simulation = Simulation(dataset)
-        print(len(self.simulation.dataset.tasks))
 
         obs = create_env_obs(
             dataset=self.simulation.dataset,

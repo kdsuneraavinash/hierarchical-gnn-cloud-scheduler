@@ -247,7 +247,6 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     while sum(tasks_per_workflow) < args.task_count:
         tasks_per_workflow.append(rng.choice(dag_counts))
 
-    print(tasks_per_workflow)
     workflow_count = len(tasks_per_workflow)
     args.context["workflow_count"] = str(workflow_count)
     args.context["tasks_per_workflow"] = ",".join(map(str, tasks_per_workflow))
