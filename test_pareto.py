@@ -73,9 +73,6 @@ def run_evaluation(dataset: Dataset) -> None:
         energy_consumption = solution.energy_consumption()
         latency_score = solution.latency_score()
         run_time = end_time - start_time
-        table.update("pref_makespan", value=dataset.preference.makespan, aggregate="mean")
-        table.update("pref_energy", value=dataset.preference.energy_consumption, aggregate="mean")
-        table.update("pref_latency", value=dataset.preference.latency_score, aggregate="mean")
         table.update("makespan", value=makespan, aggregate="mean")
         table.update("energy_consumption", value=energy_consumption, aggregate="mean")
         table.update("latency_score", value=latency_score, aggregate="mean")

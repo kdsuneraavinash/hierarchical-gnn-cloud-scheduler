@@ -1,8 +1,11 @@
 from typing import Any
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 import numpy as np
 import pandas as pd
 from pymoo.indicators.hv import HV
+from pymoo.indicators.igd import IGD
+from pymoo.indicators.gd import GD
 import seaborn as sns
 
 from constants import CHART_AXIS_PAD
@@ -35,18 +38,33 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
     all_points = np.vstack([results for results in pareto_point_map.values()])
     worst_values = np.max(all_points, axis=0)
     reference_point = worst_values * 1.1
+    ref_pareto_indices = find_pareto_front(all_points)
+    ref_pareto_points = all_points[ref_pareto_indices]
+    hv = HV(ref_point=reference_point)
+    gd = GD(ref_pareto_points)
+    igd = IGD(ref_pareto_points)
 
     data: list[dict[str, Any]] = []
-    hv = HV(ref_point=reference_point)
     for scheduler, pareto_points in pareto_point_map.items():
-        data.append({"name": scheduler, "hypervolume": hv(pareto_points), "run_time": run_time_map[scheduler]})
+        data.append(
+            {
+                "name": scheduler,
+                "hypervolume": hv(pareto_points),
+                "gd": gd(pareto_points),
+                "igd": igd(pareto_points),
+                "run_time": run_time_map[scheduler],
+            }
+        )
 
     df = pd.DataFrame(data)
     print(df)
 
     df["proposed"] = df["name"] == "Proposed"
-    fig, axes = plt.subplots(1, 2, figsize=(18, 5), sharex=False)
-    for i, metric in enumerate(["hypervolume", "run_time"]):
+
+    fig, axes_ = plt.subplots(2, 2, figsize=(18, 10), sharex=False)
+    axes: list[Axes] = list(axes_.flatten())
+
+    for i, metric in enumerate(["hypervolume", "gd", "igd", "run_time"]):
         avg_sorted = df.sort_values(metric)
         sns.barplot(data=avg_sorted, x="name", y=metric, hue="proposed", ax=axes[i], palette="Set2", legend=False)
         y_min, y_max = avg_sorted[metric].min(), avg_sorted[metric].max()

@@ -86,12 +86,6 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         table.update("run_time", value=avg_run_time, cell_color="bold")
         table.next_row(split=True)
 
-        # _, axes = plt.subplots(nrows=1, ncols=2)
-        # plot_workflow_graphs(axes[0], solution)
-        # plot_gantt_chart(axes[1], solution)
-        # plt.title(scheduler.name)
-        # plt.show()
-
     table.close()
 
     print("\nSummary:")

@@ -8,6 +8,20 @@ from visualizers.mo_performance import find_pareto_front
 
 
 def plot_pareto_front(ax: axes.Axes, data: dict[str, list[tuple[float, float]]]) -> None:
+    # Plot reference pareto front from best of all points
+    ref_pareto_front_results: list[tuple[float, float]] = []
+    for results in data.values():
+        ref_pareto_front_results.extend(results)
+    ref_pareto_front_results_arr = np.array(ref_pareto_front_results)
+    ref_xs, ref_ys = ref_pareto_front_results_arr[:, 0], ref_pareto_front_results_arr[:, 1]
+    ref_points = np.column_stack((ref_xs, ref_ys))
+    ref_pareto_indices = find_pareto_front(ref_points)
+    ref_pareto_points = ref_pareto_front_results_arr[ref_pareto_indices]
+    ref_pareto_sorted = ref_pareto_points[np.argsort(ref_pareto_points[:, 0])]
+    ax.plot(
+        ref_pareto_sorted[:, 0], ref_pareto_sorted[:, 1], marker="o", linestyle="--", label="Reference", color="black"
+    )
+
     for scheduler, results in data.items():
         results = np.array(results)
         xs, ys = results[:, 0], results[:, 1]
