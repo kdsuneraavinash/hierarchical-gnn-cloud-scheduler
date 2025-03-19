@@ -3,6 +3,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial import ConvexHull
 
+from constants import CHART_AXIS_PAD
 from visualizers.mo_performance import find_pareto_front
 
 
@@ -23,14 +24,15 @@ def plot_pareto_front(ax: axes.Axes, data: dict[str, list[tuple[float, float]]])
     ax.grid(True)
 
 
-def plot_2d_pareto_fronts(fig: figure.Figure, data: dict[str, list[tuple[float, float, float]]]) -> None:
+def plot_2d_pareto_fronts(fig: figure.Figure, data: dict[str, list[dict[str, float]]]) -> None:
     axes = fig.subplots(1, 2)
     metric_pairs = [
-        ("Makespan", "Energy Consumption", 0, 1),
-        ("Latency Score", "Energy Consumption", 2, 1),
+        # xlabel, ylabel, x_axis_metric_key, y_axis_metric_key
+        ("Makespan", "Energy Consumption", "makespan", "energy_consumption"),
+        ("Latency Score", "Energy Consumption", "latency_score", "energy_consumption"),
     ]
-    for ax, (xlabel, ylabel, i, j) in zip(axes, metric_pairs):
-        data_points = {k: [(w[i], w[j]) for w in v] for k, v in data.items()}
+    for ax, (xlabel, ylabel, x_axis_metric_key, y_axis_metric_key) in zip(axes, metric_pairs):
+        data_points = {k: [(w[x_axis_metric_key], w[y_axis_metric_key]) for w in v] for k, v in data.items()}
         plot_pareto_front(ax, data_points)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
@@ -68,9 +70,9 @@ def plot_3d_pareto_front(fig: figure.Figure, data: dict[str, list[tuple[float, f
                     pareto_points[:, 0], pareto_points[:, 1], pareto_points[:, 2], triangles=[simplex], alpha=0.5
                 )
 
-    ax.set_xlim(0, max_x * 1.1)
-    ax.set_ylim(0, max_y * 1.1)
-    ax.set_zlim(0, max_z * 1.1)
+    ax.set_xlim(0, max_x * (1 + CHART_AXIS_PAD))
+    ax.set_ylim(0, max_y * (1 + CHART_AXIS_PAD))
+    ax.set_zlim(0, max_z * (1 + CHART_AXIS_PAD))
     ax.set_xlabel("Makespan")
     ax.set_ylabel("Energy Consumption")
     ax.set_zlabel("Latency Score")

@@ -34,6 +34,8 @@ class Simulation:
         # Checks for action
         if not (0 <= task_id < len(self.state.task_states)):
             return f"{task_id=} {vm_id=}: Invalid task (out of range)", True
+        if not (0 <= vm_id < len(self.state.vm_states)):
+            return f"{task_id=} {vm_id=}: Invalid vm (out of range)", True
         if self.state.task_states[task_id].assigned_vm_id is not None:
             return f"{task_id=} {vm_id=}: Already scheduled task", True
         if not self.state.task_states[task_id].is_ready:

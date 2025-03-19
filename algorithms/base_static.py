@@ -10,9 +10,7 @@ class BaseStaticScheduler(BaseAbstractScheduler, ABC):
         simulation = Simulation(dataset)
         assignments = self.compute_assignments(dataset)
 
-        done = False
-        while not done:
-            task_id, vm_id = assignments.pop(0)
+        for task_id, vm_id in assignments:
             error, done = simulation.assign_vm(task_id, vm_id)
             if error:
                 raise ValueError(error)

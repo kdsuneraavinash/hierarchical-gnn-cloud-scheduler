@@ -198,6 +198,10 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     tasks: list[Task] = []
     for workflow_id in range(workflow_count):
+        if tasks_per_workflow[workflow_id] == 1:
+            tasks.append(Task.dummy(len(tasks), workflow_id))
+            continue
+
         args.context["workflow_task_count"] = str(tasks_per_workflow[workflow_id])
         dag = generate_dag_pegasus(args, rng)
         tasks.extend(
@@ -244,8 +248,12 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
         raise Exception(f"DAG structure not known: {args.dag_structure}")
     dag_counts = list(filter(lambda x: x <= args.task_count, PEGASUS_DAG_COUNTS[args.dag_structure]))
     tasks_per_workflow: list[int] = []
-    while sum(tasks_per_workflow) < args.task_count:
-        tasks_per_workflow.append(rng.choice(dag_counts))
+
+    chosen_dag_count = rng.choice(dag_counts)
+    while sum(tasks_per_workflow) + chosen_dag_count <= args.task_count:
+        tasks_per_workflow.append(chosen_dag_count)
+        chosen_dag_count = rng.choice(dag_counts)
+    tasks_per_workflow.extend([1] * (args.task_count - sum(tasks_per_workflow)))
 
     workflow_count = len(tasks_per_workflow)
     args.context["workflow_count"] = str(workflow_count)

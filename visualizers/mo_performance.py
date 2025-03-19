@@ -5,20 +5,32 @@ import pandas as pd
 from pymoo.indicators.hv import HV
 import seaborn as sns
 
+from constants import CHART_AXIS_PAD
 
-Y_PAD = 0.1
 
-
-def plot_mo_summary(summary_data: dict[str, list[tuple[float, float, float]]]) -> None:
+def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
     pareto_point_map: dict[str, np.ndarray[tuple[int, ...], Any]] = {}
+    run_time_map: dict[str, float] = {}
     for scheduler, results in summary_data.items():
-        results = np.array(results)
-        xs, ys = results[:, 0], results[:, 1]
+        latency_score_results = [result["latency_score"] for result in results]
+        makespan_results = np.array([result["makespan"] for result in results])
+        energy_consumption_results = np.array([result["energy_consumption"] for result in results])
+        latency_score_results = np.array([result["latency_score"] for result in results])
+        run_time_results = np.array([result["run_time"] for result in results])
 
-        points = np.column_stack((xs, ys))
+        points = np.column_stack((makespan_results, energy_consumption_results, latency_score_results))
         pareto_indices = find_pareto_front(points)
-        pareto_points = results[pareto_indices]
-        pareto_point_map[scheduler] = pareto_points
+        run_time_map[scheduler] = run_time_results.sum()
+        pareto_point_map[scheduler] = np.array(
+            [
+                (
+                    makespan_results[pareto_index],
+                    energy_consumption_results[pareto_index],
+                    latency_score_results[pareto_index],
+                )
+                for pareto_index in pareto_indices
+            ]
+        )
 
     all_points = np.vstack([results for results in pareto_point_map.values()])
     worst_values = np.max(all_points, axis=0)
@@ -27,19 +39,20 @@ def plot_mo_summary(summary_data: dict[str, list[tuple[float, float, float]]]) -
     data: list[dict[str, Any]] = []
     hv = HV(ref_point=reference_point)
     for scheduler, pareto_points in pareto_point_map.items():
-        data.append({"name": scheduler, "hypervolume": hv(pareto_points), "count": len(pareto_points)})
+        data.append({"name": scheduler, "hypervolume": hv(pareto_points), "run_time": run_time_map[scheduler]})
 
     df = pd.DataFrame(data)
     print(df)
 
     df["proposed"] = df["name"] == "Proposed"
     fig, axes = plt.subplots(1, 2, figsize=(18, 5), sharex=False)
-    for i, metric in enumerate(["hypervolume", "count"]):
+    for i, metric in enumerate(["hypervolume", "run_time"]):
         avg_sorted = df.sort_values(metric)
         sns.barplot(data=avg_sorted, x="name", y=metric, hue="proposed", ax=axes[i], palette="Set2", legend=False)
         y_min, y_max = avg_sorted[metric].min(), avg_sorted[metric].max()
-        axes[i].set_ylim(y_min * (1 - Y_PAD), y_max * (1 + Y_PAD))
+        axes[i].set_ylim(y_min * (1 - CHART_AXIS_PAD), y_max * (1 + CHART_AXIS_PAD))
         axes[i].set_ylabel(metric)
+        axes[i].xaxis.set_ticks(avg_sorted["name"].unique())
         axes[i].set_xticklabels(axes[i].get_xticklabels(), rotation=45, ha="right")
 
     plt.tight_layout()

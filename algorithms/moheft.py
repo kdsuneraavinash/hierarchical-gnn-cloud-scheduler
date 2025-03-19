@@ -1,25 +1,21 @@
 from dataclasses import dataclass
 from typing import Callable
-from algorithms.base_static import BaseStaticScheduler
+from algorithms.base_mo import BaseMoScheduler, SolutionStore
 from dataset.models import Dataset
 from env.utils import compute_task_makespan_ranks
 
 
-class MoheftScheduler(BaseStaticScheduler):
+class MoheftScheduler(BaseMoScheduler):
     """
     MOHEFT (Multi-Objective HEFT) implementation considering both makespan and energy consumption.
     Returns K tradeoff workflow schedules, each as a list of VmAssignment.
     """
 
-    solution_count: int = 3
-    selected_solution: int = 0
-
-    def __init__(self, solution_count: int, selected_solution: int):
-        super().__init__("MOHEFT")
+    def __init__(self, solution_count: int, store: SolutionStore | None = None, index: int = 0):
+        super().__init__("MOHEFT", store if store is not None else SolutionStore(), index)
         self.solution_count = solution_count
-        self.selected_solution = selected_solution
 
-    def compute_assignments(self, dataset: Dataset) -> list[tuple[int, int]]:
+    def get_pareto_solutions(self, dataset: Dataset) -> list[list[tuple[int, int]]]:
         task_rank = compute_task_makespan_ranks(dataset)
         sorted_tasks = sorted(dataset.tasks, key=lambda t: task_rank[t.id], reverse=True)
 
@@ -72,7 +68,7 @@ class MoheftScheduler(BaseStaticScheduler):
             candidate_schedules = new_candidate_schedules[: self.solution_count]
 
         solutions = [schedule.assignments for schedule in candidate_schedules]
-        return solutions[self.selected_solution % len(solutions)]
+        return solutions
 
     def sort_by_crowding_distance(self, schedules: list["CandidateSchedule"]):
         """

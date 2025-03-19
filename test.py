@@ -19,7 +19,7 @@ from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from constants import (
     EVALUATION_SEED,
-    SYNTHETIC_DATASET_ARGS,
+    REAL_WORLD_DATASET_ARGS,
 )
 from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
@@ -42,8 +42,8 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         MaxMinScheduler(),
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
-        MoheftScheduler(solution_count=7, selected_solution=0),
-        DrlAgentScheduler("Proposed", model_path="logs/1742091521_gnn_[1][1][1]/model.pt", agent_type="gnn"),
+        MoheftScheduler(solution_count=7, index=0),
+        DrlAgentScheduler("Proposed", model_path="logs/1742332237_test/model.pt", agent_type="gnn"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
@@ -62,7 +62,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
             table.update("makespan", value=solution.makespan())
             table.update("energy_consumption", value=solution.energy_consumption())
             table.update("latency_score", value=solution.latency_score())
-            table.update("runtime", value=run_end_time - run_start_time)
+            table.update("run_time", value=run_end_time - run_start_time)
             table.next_row()
             progress_bar.update(1)
 
@@ -71,19 +71,19 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         sch_makespan = table.at[sch_start_i:sch_end_i, 2]
         sch_e_consumption = table.at[sch_start_i:sch_end_i, 3]
         sch_latency = table.at[sch_start_i:sch_end_i, 4]
-        sch_runtime = table.at[sch_start_i:sch_end_i, 5]
+        sch_run_time = table.at[sch_start_i:sch_end_i, 5]
 
         avg_makespan = sum(sch_makespan) / len(sch_makespan)
         avg_energy = sum(sch_e_consumption) / len(sch_e_consumption)
         avg_latency = sum(sch_latency) / len(sch_latency)
-        avg_runtime = sum(sch_runtime) / len(sch_runtime)
-        summary_data.append((scheduler.name, avg_makespan, avg_energy, avg_latency, avg_runtime))
+        avg_run_time = sum(sch_run_time) / len(sch_run_time)
+        summary_data.append((scheduler.name, avg_makespan, avg_energy, avg_latency, avg_run_time))
 
         table.update("name", scheduler.name)
         table.update("makespan", value=avg_makespan, cell_color="bold")
         table.update("energy_consumption", value=avg_energy, cell_color="bold")
         table.update("latency_score", value=avg_latency, cell_color="bold")
-        table.update("runtime", value=avg_runtime, cell_color="bold")
+        table.update("run_time", value=avg_run_time, cell_color="bold")
         table.next_row(split=True)
 
         # _, axes = plt.subplots(nrows=1, ncols=2)
@@ -101,7 +101,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         summary_table.update("makespan", row[1], width=20)
         summary_table.update("energy_consumption", row[2], width=20)
         summary_table.update("latency", row[3], width=10)
-        summary_table.update("runtime", row[4], width=10)
+        summary_table.update("run_time", row[4], width=10)
         summary_table.next_row()
     higlight_best_results(summary_table, 1)
     higlight_best_results(summary_table, 2)
@@ -119,5 +119,5 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     rng = np.random.RandomState(EVALUATION_SEED)
-    datasets = [generate_dataset(rng=rng, args=SYNTHETIC_DATASET_ARGS) for _ in range(4)]
+    datasets = [generate_dataset(rng=rng, args=REAL_WORLD_DATASET_ARGS) for _ in range(4)]
     run_evaluation(datasets)

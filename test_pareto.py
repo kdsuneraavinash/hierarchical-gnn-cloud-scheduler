@@ -1,5 +1,6 @@
 from collections import defaultdict
 import random
+from time import perf_counter
 
 import numpy as np
 import torch
@@ -7,6 +8,7 @@ from matplotlib import pyplot as plt
 from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
+from algorithms.base_mo import SolutionStore
 from algorithms.drl_agent import DrlAgentScheduler
 from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
@@ -15,6 +17,7 @@ from algorithms.least_loaded_first import LeastLoadedFirstScheduler
 from algorithms.max_min import MaxMinScheduler
 from algorithms.min_min import MinMinScheduler
 from algorithms.moheft import MoheftScheduler
+from algorithms.nsga_2 import Nsga2Scheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
@@ -23,6 +26,10 @@ from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
 from visualizers.mo_performance import plot_mo_summary
 from visualizers.pareto_front import plot_2d_pareto_fronts
+
+
+moheft_store = SolutionStore()
+nsga2_store = SolutionStore()
 
 
 def run_evaluation(dataset: Dataset) -> None:
@@ -35,7 +42,8 @@ def run_evaluation(dataset: Dataset) -> None:
         MaxMinScheduler(),
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
-        *[MoheftScheduler(solution_count=7, selected_solution=i) for i in range(7)],
+        *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(100)],
+        *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
         DrlAgentScheduler("Proposed", model_path="logs/1742069194_gnn_[0][0][1]/model.pt", agent_type="gnn"),
         DrlAgentScheduler("Proposed", model_path="logs/1742072960_gnn_[0][1][0]/model.pt", agent_type="gnn"),
         DrlAgentScheduler("Proposed", model_path="logs/1742076667_gnn_[0][1][1]/model.pt", agent_type="gnn"),
@@ -47,27 +55,41 @@ def run_evaluation(dataset: Dataset) -> None:
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(len(schedulers)))
-    summary_data: defaultdict[str, list[tuple[float, float, float]]] = defaultdict(list)
+    summary_data: defaultdict[str, list[dict[str, float]]] = defaultdict(list)
 
+    prev_scheduler_name = ""
     for scheduler in schedulers:
-        table.update("name", scheduler.name, width=15)
+        if scheduler.name != prev_scheduler_name:
+            table.next_row()
+
+        table.update("name", scheduler.name)
+
+        start_time = perf_counter()
         assignments = scheduler.schedule(dataset)
+        end_time = perf_counter()
 
         solution = Solution(dataset, assignments)
         makespan = solution.makespan()
         energy_consumption = solution.energy_consumption()
         latency_score = solution.latency_score()
-        table.update("pref_makespan", value=dataset.preference.makespan)
-        table.update("pref_energy", value=dataset.preference.energy_consumption)
-        table.update("pref_latency", value=dataset.preference.latency_score)
-        table.update("makespan", value=makespan)
-        table.update("energy_consumption", value=energy_consumption)
-        table.update("latency_score", value=latency_score)
-        table.next_row()
+        run_time = end_time - start_time
+        table.update("pref_makespan", value=dataset.preference.makespan, aggregate="mean")
+        table.update("pref_energy", value=dataset.preference.energy_consumption, aggregate="mean")
+        table.update("pref_latency", value=dataset.preference.latency_score, aggregate="mean")
+        table.update("makespan", value=makespan, aggregate="mean")
+        table.update("energy_consumption", value=energy_consumption, aggregate="mean")
+        table.update("latency_score", value=latency_score, aggregate="mean")
+        table.update("time", value=run_time, aggregate="sum")
         progress_bar.update(1)
-        summary_data[scheduler.name].append((makespan, energy_consumption, latency_score))
-
-        table.next_row(split=True)
+        prev_scheduler_name = scheduler.name
+        summary_data[scheduler.name].append(
+            {
+                "makespan": makespan,
+                "energy_consumption": energy_consumption,
+                "latency_score": latency_score,
+                "run_time": run_time,
+            }
+        )
 
     table.close()
 

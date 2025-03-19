@@ -21,6 +21,10 @@ class Task:
     req_disk_gb: float
     priority: float
 
+    @staticmethod
+    def dummy(id: int, workflow_id: int):
+        return Task(id=id, workflow_id=workflow_id, length=0, child_ids=[], req_memory_gb=0, req_disk_gb=0, priority=0)
+
 
 @dataclass
 class Vm:

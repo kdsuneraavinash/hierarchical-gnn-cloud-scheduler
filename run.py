@@ -4,8 +4,7 @@ import icecream
 import numpy as np
 import torch
 
-from constants import N_TASK, N_VM
-from dataset.synthetic import SyntheticDatasetArgs
+from constants import REAL_WORLD_DATASET_ARGS
 from env.gym_env import GymEnvironment
 from models.gnn_agent import GnnAgent
 
@@ -16,14 +15,7 @@ def main() -> None:
     np.random.seed(0)
 
     agent = GnnAgent(torch.device("cpu"))
-    env = GymEnvironment(
-        dataset_args=SyntheticDatasetArgs(
-            task_count=N_TASK,
-            max_vm_count=N_VM,
-            max_host_count=2,
-            max_tasks_per_workflow=20,
-        )
-    )
+    env = GymEnvironment(dataset_args=REAL_WORLD_DATASET_ARGS)
     obs, info = env.reset(seed=0)
     tensor_obs = torch.Tensor(obs)
     curr_iter = 0

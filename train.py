@@ -235,14 +235,15 @@ def train(args: Args) -> None:
             rewards[step] = torch.Tensor(reward).to(device).view(-1)
             next_obs_tensor, next_done_tensor = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
 
-            if "episode" in infos:
-                for i in range(args.num_envs):
-                    writer.add_scalar("charts/episodic_return", infos["episode"]["r"][i], global_step)
-                    writer.add_scalar("charts/episodic_length", infos["episode"]["l"][i], global_step)
-                    writer.add_scalar("episode/makespan", infos["makespan"][i], global_step)
-                    writer.add_scalar("episode/energy_consumption", infos["energy_consumption"][i], global_step)
-                    writer.add_scalar("episode/latency_score", infos["latency_score"][i], global_step)
-                    table.update("reward", value=infos["episode"]["r"][i], aggregate="mean")
+            with torch.no_grad():
+                if "episode" in infos:
+                    for i in range(args.num_envs):
+                        writer.add_scalar("charts/episodic_return", infos["episode"]["r"][i], global_step)
+                        writer.add_scalar("charts/episodic_length", infos["episode"]["l"][i], global_step)
+                        writer.add_scalar("episode/makespan", infos["makespan"][i], global_step)
+                        writer.add_scalar("episode/energy_consumption", infos["energy_consumption"][i], global_step)
+                        writer.add_scalar("episode/latency_score", infos["latency_score"][i], global_step)
+                        table.update("reward", value=infos["episode"]["r"][i], aggregate="mean")
 
         progress_bar.set_step(global_step)
 
