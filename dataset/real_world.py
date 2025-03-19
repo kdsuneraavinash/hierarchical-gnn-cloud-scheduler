@@ -7,22 +7,20 @@ import numpy as np
 from scipy import stats
 import tyro
 
-import xml.etree.ElementTree as ET
+from dataset.dag_gen import MIN_DAG_SIZE, EpigenomicsDagGen, InspiralDagGen
 from dataset.generator import DatasetArgs
 from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
+from dataset.utils import random_list
+
+
+epigenomics_dag_gen = EpigenomicsDagGen()
+inspiral_dag_gen = InspiralDagGen()
 
 
 @dataclass
 class RealWorldDatasetArgs(DatasetArgs):
-    dag_structure: str = "Montage"
+    dag_structure: str = "Epigenomics"
     """dag structure to use"""
-
-
-PEGASUS_DAG_COUNTS = {
-    "Inspiral": list(range(30, 101, 2)),
-    "Epigenomics": [24, 28, 32, 36, 40, 44, 47, 52, 55, 60, 63, 68, 69, 76, 79, 81, 87, 91, 100],
-    "Montage": list(range(25, 101)),
-}
 
 
 def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
@@ -141,32 +139,11 @@ def generate_vms(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list
 
 def generate_dag_pegasus(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
     workflow_task_count = int(args.context["workflow_task_count"])
-    xml_file = Path(__file__).parent / "data" / "dags" / f"{args.dag_structure}_{workflow_task_count}.xml"
-
-    tree = ET.parse(xml_file)
-    root = tree.getroot()
-    namespace = {"ns": "http://pegasus.isi.edu/schema/DAX"}
-
-    job_id_mapper: dict[str, int] = {}
-    dependencies: dict[int, set[int]] = {}
-    for mapped_id, job in enumerate(root.findall("ns:job", namespace)):
-        job_id = job.get("id")
-        assert job_id is not None
-        job_id_mapper[job_id] = mapped_id
-        dependencies[mapped_id] = set()
-
-    for child in root.findall("ns:child", namespace):
-        child_ref = child.get("ref")
-        assert child_ref is not None
-        mapped_child_id = job_id_mapper[str(child_ref)]
-        for parent in child.findall("ns:parent", namespace):
-            parent_ref = parent.get("ref")
-            assert parent_ref is not None
-            mapped_parent_id = job_id_mapper[str(parent_ref)]
-            dependencies[mapped_parent_id].add(mapped_child_id)
-
-    assert len(dependencies) == workflow_task_count
-    return dependencies
+    if args.dag_structure == "Epigenomics":
+        return epigenomics_dag_gen.generate(workflow_task_count, rng)
+    if args.dag_structure == "Inspiral":
+        return inspiral_dag_gen.generate(workflow_task_count, rng)
+    raise ValueError("Unknown dag structure")
 
 
 # Generating Tasks
@@ -198,10 +175,6 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     tasks: list[Task] = []
     for workflow_id in range(workflow_count):
-        if tasks_per_workflow[workflow_id] == 1:
-            tasks.append(Task.dummy(len(tasks), workflow_id))
-            continue
-
         args.context["workflow_task_count"] = str(tasks_per_workflow[workflow_id])
         dag = generate_dag_pegasus(args, rng)
         tasks.extend(
@@ -244,18 +217,10 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     Generate a list of workflows.
     """
 
-    if args.dag_structure not in PEGASUS_DAG_COUNTS:
-        raise Exception(f"DAG structure not known: {args.dag_structure}")
-    dag_counts = list(filter(lambda x: x <= args.task_count, PEGASUS_DAG_COUNTS[args.dag_structure]))
-    tasks_per_workflow: list[int] = []
+    max_workflow_count = args.task_count // MIN_DAG_SIZE
+    workflow_count = rng.randint(1, max_workflow_count + 1)
+    tasks_per_workflow = random_list(workflow_count, args.task_count, rng, min_value=MIN_DAG_SIZE)
 
-    chosen_dag_count = rng.choice(dag_counts)
-    while sum(tasks_per_workflow) + chosen_dag_count <= args.task_count:
-        tasks_per_workflow.append(chosen_dag_count)
-        chosen_dag_count = rng.choice(dag_counts)
-    tasks_per_workflow.extend([1] * (args.task_count - sum(tasks_per_workflow)))
-
-    workflow_count = len(tasks_per_workflow)
     args.context["workflow_count"] = str(workflow_count)
     args.context["tasks_per_workflow"] = ",".join(map(str, tasks_per_workflow))
 
