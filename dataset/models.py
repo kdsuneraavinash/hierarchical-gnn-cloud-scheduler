@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from hashlib import md5
 from typing import Any
 
+from constants import N_TASK, N_VM
+
 
 @dataclass
 class Workflow:
@@ -95,6 +97,9 @@ class Dataset:
         return dataset
 
     def check_sanity(self, print_hash: bool = False) -> None:
+        assert len(self.tasks) <= N_TASK, "There are more tasks than the buffer"
+        assert len(self.vms) <= N_VM, "There are more vms than the buffer"
+
         # Sanity check - we should be able to use index and id interchangeably
         for i, workflow in enumerate(self.workflows):
             assert workflow.id == i, f"Sanity Check Failed: workflow ID mismatch, {workflow=} in index {i}"

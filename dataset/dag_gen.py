@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import numpy as np
 
+from constants import N_TASK
 from dataset.utils import random_list
 
 MIN_DAG_SIZE = 25
@@ -20,7 +21,7 @@ class BaseDagGen:
 
     def generate(self, n: int, rng: np.random.RandomState) -> dict[int, set[int]]:
         if len(self.possibilities) == 0:
-            self.possibilities = self._possibilities(100)
+            self.possibilities = self._possibilities(N_TASK)
         if n not in self.possibilities:
             raise ValueError(f"{n=} is not supported by this dag gen")
         curr_possibilities = self.possibilities[n]

@@ -3,8 +3,7 @@ from dataset.synthetic import SyntheticDatasetArgs
 
 
 N_TASK = 100
-N_VM = 5
-N_HOST = 4
+N_VM = 10
 
 F_TASK = 7  # Number of task features
 F_VM = 4  # Number of VM features
