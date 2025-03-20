@@ -13,17 +13,21 @@ from constants import CHART_AXIS_PAD
 
 def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
     pareto_point_map: dict[str, np.ndarray[tuple[int, ...], Any]] = {}
-    run_time_map: dict[str, float] = {}
+    direct_metrics: dict[str, dict[str, float]] = {}
     for scheduler, results in summary_data.items():
         latency_score_results = [result["latency_score"] for result in results]
         makespan_results = np.array([result["makespan"] for result in results])
         energy_consumption_results = np.array([result["energy_consumption"] for result in results])
         latency_score_results = np.array([result["latency_score"] for result in results])
         run_time_results = np.array([result["run_time"] for result in results])
+        decision_latency_results = np.array([result["decision_latency"] for result in results])
 
         points = np.column_stack((makespan_results, energy_consumption_results, latency_score_results))
         pareto_indices = find_pareto_front(points)
-        run_time_map[scheduler] = run_time_results.sum()
+        direct_metrics[scheduler] = {
+            "run_time": run_time_results.sum(),
+            "decision_latency": decision_latency_results.sum(),
+        }
         pareto_point_map[scheduler] = np.array(
             [
                 (
@@ -52,7 +56,8 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
                 "hypervolume": hv(pareto_points),
                 "gd": gd(pareto_points),
                 "igd": igd(pareto_points),
-                "run_time": run_time_map[scheduler],
+                "run_time": direct_metrics[scheduler]["run_time"],
+                "decision_latency": direct_metrics[scheduler]["decision_latency"],
             }
         )
 
@@ -61,10 +66,10 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
 
     df["proposed"] = df["name"] == "Proposed"
 
-    fig, axes_ = plt.subplots(2, 2, figsize=(18, 10), sharex=False)
+    fig, axes_ = plt.subplots(2, 3, figsize=(18, 10), sharex=False)
     axes: list[Axes] = list(axes_.flatten())
 
-    for i, metric in enumerate(["hypervolume", "gd", "igd", "run_time"]):
+    for i, metric in enumerate(["hypervolume", "gd", "igd", "run_time", "decision_latency"]):
         avg_sorted = df.sort_values(metric)
         sns.barplot(data=avg_sorted, x="name", y=metric, hue="proposed", ax=axes[i], palette="Set2", legend=False)
         y_min, y_max = avg_sorted[metric].min(), avg_sorted[metric].max()

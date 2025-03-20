@@ -1,6 +1,5 @@
 from collections import defaultdict
 import random
-from time import perf_counter
 
 import numpy as np
 import torch
@@ -21,7 +20,7 @@ from algorithms.nsga_2 import Nsga2Scheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
-from constants import SYNTHETIC_DATASET_ARGS, TEST_SEED
+from constants import REAL_WORLD_DATASET_ARGS, TEST_SEED
 from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
 from visualizers.mo_performance import plot_mo_summary
@@ -64,19 +63,19 @@ def run_evaluation(dataset: Dataset) -> None:
 
         table.update("name", scheduler.name)
 
-        start_time = perf_counter()
         assignments = scheduler.schedule(dataset)
-        end_time = perf_counter()
 
         solution = Solution(dataset, assignments)
         makespan = solution.makespan()
         energy_consumption = solution.energy_consumption()
         latency_score = solution.latency_score()
-        run_time = end_time - start_time
+        run_time = scheduler.run_time()
+        decision_latency = scheduler.decision_latency()
         table.update("makespan", value=makespan, aggregate="mean")
         table.update("energy_consumption", value=energy_consumption, aggregate="mean")
         table.update("latency_score", value=latency_score, aggregate="mean")
-        table.update("time", value=run_time, aggregate="sum")
+        table.update("run_time", value=run_time, aggregate="sum")
+        table.update("decision_latency", value=decision_latency, aggregate="sum")
         progress_bar.update(1)
         prev_scheduler_name = scheduler.name
         summary_data[scheduler.name].append(
@@ -85,6 +84,7 @@ def run_evaluation(dataset: Dataset) -> None:
                 "energy_consumption": energy_consumption,
                 "latency_score": latency_score,
                 "run_time": run_time,
+                "decision_latency": decision_latency,
             }
         )
 
@@ -106,7 +106,7 @@ def main():
     run_evaluation(
         generate_dataset(
             rng=np.random.RandomState(TEST_SEED),
-            args=SYNTHETIC_DATASET_ARGS,
+            args=REAL_WORLD_DATASET_ARGS,
         )
     )
 

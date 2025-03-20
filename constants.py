@@ -25,7 +25,7 @@ REAL_WORLD_DATASET_ARGS = RealWorldDatasetArgs(
     makespan_preference=MAKESPAN_PREFERENCE,
     energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
     latency_score_preference=LATENCY_SCORE_PREFERENCE,
-    dag_structure="Montage",
+    dag_structure="Epigenomics",
 )
 
 SYNTHETIC_DATASET_ARGS = SyntheticDatasetArgs(
