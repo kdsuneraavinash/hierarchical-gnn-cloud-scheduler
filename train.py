@@ -18,10 +18,9 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 from algorithms.drl_agent import DrlAgentScheduler
 from constants import (
-    REAL_WORLD_DATASET_ARGS,
     TEST_SEED,
 )
-from dataset.generator import generate_dataset
+from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
 from dataset.real_world import RealWorldDatasetArgs
 from env.gym_env import GymEnvironment
@@ -90,9 +89,9 @@ class Args:
     target_kl: float | None = None
     """the target KL divergence threshold"""
 
-    dataset: RealWorldDatasetArgs = field(default_factory=lambda: REAL_WORLD_DATASET_ARGS)
+    dataset: RealWorldDatasetArgs = field(default_factory=lambda: DatasetArgs.real_world())
     """the dataset generation parameters"""
-    test_dataset: RealWorldDatasetArgs = field(default_factory=lambda: REAL_WORLD_DATASET_ARGS)
+    test_dataset: RealWorldDatasetArgs = field(default_factory=lambda: DatasetArgs.real_world())
     """the test dataset generation parameters"""
 
     # to be filled in runtime

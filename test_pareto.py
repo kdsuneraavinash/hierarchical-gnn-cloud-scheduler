@@ -20,8 +20,8 @@ from algorithms.nsga_2 import Nsga2Scheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
-from constants import REAL_WORLD_DATASET_ARGS, TEST_SEED
-from dataset.generator import generate_dataset
+from constants import TEST_SEED
+from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
 from visualizers.mo_performance import plot_mo_summary
 from visualizers.pareto_front import plot_2d_pareto_fronts
@@ -106,7 +106,7 @@ def main():
     run_evaluation(
         generate_dataset(
             rng=np.random.RandomState(TEST_SEED),
-            args=REAL_WORLD_DATASET_ARGS,
+            args=DatasetArgs.real_world(),
         )
     )
 

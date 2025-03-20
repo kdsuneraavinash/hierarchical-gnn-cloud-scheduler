@@ -4,7 +4,7 @@ import icecream
 import numpy as np
 import torch
 
-from constants import REAL_WORLD_DATASET_ARGS
+from dataset.generator import DatasetArgs
 from env.gym_env import GymEnvironment
 from models.gnn_agent import GnnAgent
 
@@ -15,7 +15,7 @@ def main() -> None:
     np.random.seed(0)
 
     agent = GnnAgent(torch.device("cpu"))
-    env = GymEnvironment(dataset_args=REAL_WORLD_DATASET_ARGS)
+    env = GymEnvironment(dataset_args=DatasetArgs.real_world())
     obs, info = env.reset(seed=0)
     tensor_obs = torch.Tensor(obs)
     curr_iter = 0

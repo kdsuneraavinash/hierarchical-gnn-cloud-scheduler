@@ -19,9 +19,8 @@ from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from constants import (
     EVALUATION_SEED,
-    REAL_WORLD_DATASET_ARGS,
 )
-from dataset.generator import generate_dataset
+from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Dataset, Solution
 from visualizers.summary_chart import plot_summary_charts
 
@@ -43,7 +42,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
         MoheftScheduler(solution_count=7, index=0),
-        DrlAgentScheduler("Proposed", model_path="logs/1742332237_test/model.pt", agent_type="gnn"),
+        DrlAgentScheduler("Proposed", model_path="logs/1742421617_gnn_real_dag/model.pt", agent_type="gnn"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
@@ -113,5 +112,5 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     rng = np.random.RandomState(EVALUATION_SEED)
-    datasets = [generate_dataset(rng=rng, args=REAL_WORLD_DATASET_ARGS) for _ in range(4)]
+    datasets = [generate_dataset(rng=rng, args=DatasetArgs.real_world()) for _ in range(4)]
     run_evaluation(datasets)

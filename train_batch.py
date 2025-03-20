@@ -1,5 +1,5 @@
 from itertools import product
-from constants import REAL_WORLD_DATASET_ARGS
+from dataset.generator import DatasetArgs
 from train import Args, train
 
 
@@ -13,7 +13,7 @@ for m, e, s in product(range(3), range(3), range(3)):
             wandb_project_name="hierarchical-cloud-task-scheduling",
             wandb_entity="kdsuneraavinash-shared-team",
             test_iterations=4,
-            dataset=REAL_WORLD_DATASET_ARGS.with_priority(m, e, s),
-            test_dataset=REAL_WORLD_DATASET_ARGS.with_priority(m, e, s),
+            dataset=DatasetArgs.real_world().with_priority(m, e, s),
+            test_dataset=DatasetArgs.real_world().with_priority(m, e, s),
         )
     )

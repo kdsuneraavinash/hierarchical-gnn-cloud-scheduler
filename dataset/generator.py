@@ -2,6 +2,15 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from constants import (
+    DEFAULT_MAX_HOST_COUNT,
+    DEFAULT_MAX_TASKS_PER_WORKFLOW,
+    DEFAULT_MAX_VM_COUNT,
+    DEFAULT_TASK_COUNT,
+    ENERGY_CONSUMPTION_PREFERENCE,
+    LATENCY_SCORE_PREFERENCE,
+    MAKESPAN_PREFERENCE,
+)
 from dataset.models import Dataset
 
 
@@ -30,6 +39,34 @@ class DatasetArgs:
         kwargs["energy_consumption_preference"] = energy_consumption
         kwargs["latency_score_preference"] = latency_score
         return type(self)(**kwargs)
+
+    @staticmethod
+    def real_world():
+        from dataset.real_world import RealWorldDatasetArgs
+
+        return RealWorldDatasetArgs(
+            task_count=DEFAULT_TASK_COUNT,
+            max_vm_count=DEFAULT_MAX_VM_COUNT,
+            max_host_count=DEFAULT_MAX_HOST_COUNT,
+            makespan_preference=MAKESPAN_PREFERENCE,
+            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+            latency_score_preference=LATENCY_SCORE_PREFERENCE,
+            dag_structure="Epigenomics",
+        )
+
+    @staticmethod
+    def synthentic():
+        from dataset.synthetic import SyntheticDatasetArgs
+
+        return SyntheticDatasetArgs(
+            task_count=DEFAULT_TASK_COUNT,
+            max_vm_count=DEFAULT_MAX_VM_COUNT,
+            max_host_count=DEFAULT_MAX_HOST_COUNT,
+            max_tasks_per_workflow=DEFAULT_MAX_TASKS_PER_WORKFLOW,
+            makespan_preference=MAKESPAN_PREFERENCE,
+            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+            latency_score_preference=LATENCY_SCORE_PREFERENCE,
+        )
 
 
 def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
