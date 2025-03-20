@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
 
-from algorithms.base_mo import SolutionStore
+from algorithms.base_mo import SolutionStoreType
 from algorithms.drl_agent import DrlAgentScheduler
 from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
@@ -27,8 +27,8 @@ from visualizers.mo_performance import plot_mo_summary
 from visualizers.pareto_front import plot_2d_pareto_fronts
 
 
-moheft_store = SolutionStore()
-nsga2_store = SolutionStore()
+moheft_store: SolutionStoreType = {}
+nsga2_store: SolutionStoreType = {}
 
 
 def run_evaluation(dataset: Dataset) -> None:

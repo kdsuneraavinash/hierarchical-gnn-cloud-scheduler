@@ -23,7 +23,7 @@ class RealWorldDatasetArgs(DatasetArgs):
     """dag structure to use"""
 
 
-def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
+def generate_real_world_dataset(key: int, args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
     """
     Generate a dataset with the specified arguments.
     """
@@ -41,7 +41,7 @@ def generate_real_world_dataset(args: RealWorldDatasetArgs, rng: np.random.Rando
         task.req_memory_gb = 0
         task.req_disk_gb = 0
 
-    dataset = Dataset(preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+    dataset = Dataset(key=key, preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
     dataset.check_sanity()
     return dataset
 

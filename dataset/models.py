@@ -75,6 +75,7 @@ class Preference:
 
 @dataclass
 class Dataset:
+    key: int
     preference: Preference
     workflows: list[Workflow]
     tasks: list[Task]
@@ -86,13 +87,14 @@ class Dataset:
 
     @staticmethod
     def from_json(data: dict[str, Any]) -> "Dataset":
+        key = data.pop("key")
         preference = Preference(**data.pop("preference"))
         workflows = [Workflow(**workflow) for workflow in data.pop("workflows")]
         tasks = [Task(**task) for task in data.pop("tasks")]
         vms = [Vm(**vm) for vm in data.pop("vms")]
         hosts = [Host(**host) for host in data.pop("hosts")]
 
-        dataset = Dataset(preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+        dataset = Dataset(key=key, preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
         dataset.check_sanity()
         return dataset
 

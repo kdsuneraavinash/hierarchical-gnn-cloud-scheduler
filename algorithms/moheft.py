@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Callable
-from algorithms.base_mo import BaseMoScheduler, SolutionStore
+from algorithms.base_mo import BaseMoScheduler, SolutionStoreType
 from dataset.models import Dataset
 from env.utils import compute_task_makespan_ranks
 
@@ -11,8 +11,8 @@ class MoheftScheduler(BaseMoScheduler):
     Returns K tradeoff workflow schedules, each as a list of VmAssignment.
     """
 
-    def __init__(self, solution_count: int, store: SolutionStore | None = None, index: int = 0):
-        super().__init__("MOHEFT", store if store is not None else SolutionStore(), index)
+    def __init__(self, solution_count: int, store: SolutionStoreType | None = None, index: int = 0):
+        super().__init__("MOHEFT", store if store is not None else {}, index)
         self.solution_count = solution_count
 
     def get_pareto_solutions(self, dataset: Dataset) -> list[list[tuple[int, int]]]:

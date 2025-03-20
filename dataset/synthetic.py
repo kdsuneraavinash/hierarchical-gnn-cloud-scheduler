@@ -40,7 +40,7 @@ class SyntheticDatasetArgs(DatasetArgs):
     """additional context for the dataset"""
 
 
-def generate_synthetic_dataset(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> Dataset:
+def generate_synthetic_dataset(key: int, args: SyntheticDatasetArgs, rng: np.random.RandomState) -> Dataset:
     """
     Generate a dataset with the specified arguments.
     """
@@ -58,7 +58,7 @@ def generate_synthetic_dataset(args: SyntheticDatasetArgs, rng: np.random.Random
         task.req_memory_gb = args.min_memory_gb
         task.req_disk_gb = args.min_disk_gb
 
-    dataset = Dataset(preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+    dataset = Dataset(key, preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
     dataset.check_sanity()
     return dataset
 

@@ -69,12 +69,12 @@ class DatasetArgs:
         )
 
 
-def generate_dataset(args: DatasetArgs, rng: np.random.RandomState) -> Dataset:
+def generate_dataset(args: DatasetArgs, rng: np.random.RandomState, dataset_key: int = 0) -> Dataset:
     from dataset.synthetic import SyntheticDatasetArgs, generate_synthetic_dataset
     from dataset.real_world import RealWorldDatasetArgs, generate_real_world_dataset
 
     if isinstance(args, SyntheticDatasetArgs):
-        return generate_synthetic_dataset(args, rng)
+        return generate_synthetic_dataset(dataset_key, args, rng)
     if isinstance(args, RealWorldDatasetArgs):
-        return generate_real_world_dataset(args, rng)
+        return generate_real_world_dataset(dataset_key, args, rng)
     raise ValueError("Unknown dataset args type: " + str(args))

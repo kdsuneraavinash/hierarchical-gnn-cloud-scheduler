@@ -1,5 +1,4 @@
 import random
-import time
 
 import numpy as np
 import torch
@@ -42,47 +41,58 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
         MoheftScheduler(solution_count=7, index=0),
-        DrlAgentScheduler("Proposed", model_path="logs/1742421617_gnn_real_dag/model.pt", agent_type="gnn"),
+        DrlAgentScheduler("Proposed", model_path="logs/1742469300_gnn_real_dag[1][0][0]/model.pt", agent_type="gnn"),
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(len(schedulers) * len(datasets)))
-    summary_data: list[tuple[str, float, float, float, float]] = []
+    summary_data: list[dict[str, float]] = []
 
     for sch_i, scheduler in enumerate(schedulers):
         table.update("name", scheduler.name, width=15)
         for d_i, dataset in enumerate(datasets):
-            run_start_time = time.time()
             assignments = scheduler.schedule(dataset)
-            run_end_time = time.time()
-
             solution = Solution(dataset, assignments)
             table.update("index", value=d_i)
             table.update("makespan", value=solution.makespan())
             table.update("energy_consumption", value=solution.energy_consumption())
             table.update("latency_score", value=solution.latency_score())
-            table.update("run_time", value=run_end_time - run_start_time)
+            table.update("run_time", value=scheduler.run_time())
+            table.update("decision_latency", value=scheduler.decision_latency())
             table.next_row()
             progress_bar.update(1)
 
         sch_start_i = sch_i * (len(datasets) + 1)
         sch_end_i = sch_start_i + len(datasets)
-        sch_makespan = table.at[sch_start_i:sch_end_i, 2]
-        sch_e_consumption = table.at[sch_start_i:sch_end_i, 3]
-        sch_latency = table.at[sch_start_i:sch_end_i, 4]
-        sch_run_time = table.at[sch_start_i:sch_end_i, 5]
+        sch_range = range(sch_start_i, sch_end_i)
+        sch_makespan = [table.at[i, 2] for i in sch_range]
+        sch_e_consumption = [table.at[i, 3] for i in sch_range]
+        sch_latency = [table.at[i, 4] for i in sch_range]
+        sch_run_time = [table.at[i, 5] for i in sch_range]
+        sch_decision_latency = [table.at[i, 6] for i in sch_range]
 
         avg_makespan = sum(sch_makespan) / len(sch_makespan)
-        avg_energy = sum(sch_e_consumption) / len(sch_e_consumption)
+        avg_energy_consumption = sum(sch_e_consumption) / len(sch_e_consumption)
         avg_latency = sum(sch_latency) / len(sch_latency)
         avg_run_time = sum(sch_run_time) / len(sch_run_time)
-        summary_data.append((scheduler.name, avg_makespan, avg_energy, avg_latency, avg_run_time))
+        avg_decision_latency = sum(sch_decision_latency) / len(sch_decision_latency)
+        summary_data.append(
+            {
+                "name": scheduler.name,
+                "makespan": avg_makespan,
+                "energy_consumption": avg_energy_consumption,
+                "latency": avg_latency,
+                "run_time": avg_run_time,
+                "decision_latency": avg_decision_latency,
+            }
+        )
 
         table.update("name", scheduler.name)
         table.update("makespan", value=avg_makespan, cell_color="bold")
-        table.update("energy_consumption", value=avg_energy, cell_color="bold")
+        table.update("energy_consumption", value=avg_energy_consumption, cell_color="bold")
         table.update("latency_score", value=avg_latency, cell_color="bold")
         table.update("run_time", value=avg_run_time, cell_color="bold")
+        table.update("decision_latency", value=avg_decision_latency, cell_color="bold")
         table.next_row(split=True)
 
     table.close()
@@ -90,16 +100,18 @@ def run_evaluation(datasets: list[Dataset]) -> None:
     print("\nSummary:")
     summary_table = ProgressTable(print_header_every_n_rows=0)
     for row in summary_data:
-        summary_table.update("name", row[0], width=15)
-        summary_table.update("makespan", row[1], width=20)
-        summary_table.update("energy_consumption", row[2], width=20)
-        summary_table.update("latency", row[3], width=10)
-        summary_table.update("run_time", row[4], width=10)
+        summary_table.update("name", row["name"], width=15)
+        summary_table.update("makespan", row["makespan"], width=20)
+        summary_table.update("energy_consumption", row["energy_consumption"], width=20)
+        summary_table.update("latency", row["latency"], width=10)
+        summary_table.update("run_time", row["run_time"], width=10)
+        summary_table.update("decision_latency", row["decision_latency"], width=10)
         summary_table.next_row()
     higlight_best_results(summary_table, 1)
     higlight_best_results(summary_table, 2)
     higlight_best_results(summary_table, 3)
     higlight_best_results(summary_table, 4)
+    higlight_best_results(summary_table, 5)
     summary_table.close()
 
     plot_summary_charts(table.to_df())
@@ -112,5 +124,5 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     rng = np.random.RandomState(EVALUATION_SEED)
-    datasets = [generate_dataset(rng=rng, args=DatasetArgs.real_world()) for _ in range(4)]
+    datasets = [generate_dataset(rng=rng, args=DatasetArgs.real_world(), dataset_key=i) for i in range(4)]
     run_evaluation(datasets)
