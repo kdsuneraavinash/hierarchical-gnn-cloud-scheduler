@@ -51,7 +51,7 @@ class DatasetArgs:
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
             latency_score_preference=LATENCY_SCORE_PREFERENCE,
-            dag_structure="Epigenomics",
+            dag_structure="BranchParallel",
         )
 
     @staticmethod

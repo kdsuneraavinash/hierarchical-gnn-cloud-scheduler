@@ -6,22 +6,20 @@ import numpy as np
 from constants import N_TASK
 from dataset.utils import random_list
 
-MIN_DAG_SIZE = 25
-
-
 # Base DAG
 # ----------------------------------------------------------------------------------------------------------------------
 
 
 class BaseDagGen:
     possibilities: dict[int, list[tuple[int, ...]]]
+    min_size: int = 1
 
     def __init__(self):
         self.possibilities = {}
 
     def generate(self, n: int, rng: np.random.RandomState) -> dict[int, set[int]]:
         if len(self.possibilities) == 0:
-            self.possibilities = self._possibilities(N_TASK)
+            self.possibilities = self._possibilities(N_TASK + 1)
         if n not in self.possibilities:
             raise ValueError(f"{n=} is not supported by this dag gen")
         curr_possibilities = self.possibilities[n]
@@ -44,6 +42,8 @@ class BaseDagGen:
 
 
 class EpigenomicsDagGen(BaseDagGen):
+    min_size: int = 9
+
     def _possibilities(self, max_range: int) -> dict[int, list[tuple[int, ...]]]:
         possibilities: dict[int, list[tuple[int, ...]]] = defaultdict(list)
         for len_a in range(1, max_range):
@@ -82,6 +82,8 @@ class EpigenomicsDagGen(BaseDagGen):
 
 
 class InspiralDagGen(BaseDagGen):
+    min_size: int = 7
+
     def _possibilities(self, max_range: int) -> dict[int, list[tuple[int, ...]]]:
         possibilities: dict[int, list[tuple[int, ...]]] = defaultdict(list)
         for a in range(1, max_range):
@@ -129,6 +131,44 @@ class InspiralDagGen(BaseDagGen):
 
         if pad > 0:
             graph[global_end].add(global_end + 1)
+
+
+# Branch Parallel DAG
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class BranchParallelDagGen(BaseDagGen):
+    min_size = 3
+
+    def _possibilities(self, max_range: int) -> dict[int, list[tuple[int, ...]]]:
+        possibilities: dict[int, list[tuple[int, ...]]] = defaultdict(list)
+        for dag_size in range(3, max_range):
+            for b_k in range(1, 5):
+                dag_size = max(dag_size, b_k + 2)
+                possibilities[dag_size].append((b_k + 2, dag_size))
+        return possibilities
+
+    def _generate(self, graph: dict[int, set[int]], rng: np.random.RandomState, *args):
+        len_x, sum_x = args
+        a, *b, c = random_list(len_x, sum_x, rng)
+
+        for i in range(a - 1):
+            graph[i].add(i + 1)
+
+        linear_end = a - 1
+        merge_start = a + sum(b)
+        for i, b_len in enumerate(b):
+            branch_start = a + sum(b[:i])
+            for b_i in range(branch_start, branch_start + b_len):
+                if b_i == branch_start:
+                    graph[linear_end].add(b_i)
+                if b_i == branch_start + b_len - 1:
+                    graph[b_i].add(merge_start)
+                else:
+                    graph[b_i].add(b_i + 1)
+
+        for i in range(c - 1):
+            graph[merge_start + i].add(merge_start + i + 1)
 
 
 if __name__ == "__main__":

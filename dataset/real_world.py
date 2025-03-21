@@ -7,7 +7,7 @@ import numpy as np
 from scipy import stats
 import tyro
 
-from dataset.dag_gen import MIN_DAG_SIZE, EpigenomicsDagGen, InspiralDagGen
+from dataset.dag_gen import BaseDagGen, BranchParallelDagGen, EpigenomicsDagGen, InspiralDagGen
 from dataset.generator import DatasetArgs
 from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
 from dataset.utils import random_list
@@ -15,6 +15,7 @@ from dataset.utils import random_list
 
 epigenomics_dag_gen = EpigenomicsDagGen()
 inspiral_dag_gen = InspiralDagGen()
+branch_parallel_dag_gen = BranchParallelDagGen()
 
 
 @dataclass
@@ -137,13 +138,23 @@ def generate_vms(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def generate_dag_pegasus(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
-    workflow_task_count = int(args.context["workflow_task_count"])
+def get_dag_gen(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> BaseDagGen:
     if args.dag_structure == "Epigenomics":
-        return epigenomics_dag_gen.generate(workflow_task_count, rng)
+        return epigenomics_dag_gen
     if args.dag_structure == "Inspiral":
-        return inspiral_dag_gen.generate(workflow_task_count, rng)
+        return inspiral_dag_gen
+    if args.dag_structure == "BranchParallel":
+        return branch_parallel_dag_gen
     raise ValueError("Unknown dag structure")
+
+
+def generate_dag(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
+    workflow_task_count = int(args.context["workflow_task_count"])
+    return get_dag_gen(args, rng).generate(workflow_task_count, rng)
+
+
+def min_dag_size(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
+    return get_dag_gen(args, rng).min_size
 
 
 # Generating Tasks
@@ -176,7 +187,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
     tasks: list[Task] = []
     for workflow_id in range(workflow_count):
         args.context["workflow_task_count"] = str(tasks_per_workflow[workflow_id])
-        dag = generate_dag_pegasus(args, rng)
+        dag = generate_dag(args, rng)
         tasks.extend(
             [
                 Task(
@@ -217,9 +228,10 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     Generate a list of workflows.
     """
 
-    max_workflow_count = args.task_count // MIN_DAG_SIZE
+    min_size = min_dag_size(args, rng)
+    max_workflow_count = args.task_count // min_size
     workflow_count = rng.randint(1, max_workflow_count + 1)
-    tasks_per_workflow = random_list(workflow_count, args.task_count, rng, min_value=MIN_DAG_SIZE)
+    tasks_per_workflow = random_list(workflow_count, args.task_count, rng, min_value=min_size)
 
     args.context["workflow_count"] = str(workflow_count)
     args.context["tasks_per_workflow"] = ",".join(map(str, tasks_per_workflow))
