@@ -1,10 +1,8 @@
-import json
 import math
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
-import tyro
 from scipy import stats
 
 from dataset.generator import DatasetArgs
@@ -211,10 +209,3 @@ def generate_workflows(args: SyntheticDatasetArgs, rng: np.random.RandomState) -
         workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
 
     return workflows
-
-
-if __name__ == "__main__":
-    rng = np.random.RandomState(0)
-    dataset = generate_synthetic_dataset(tyro.cli(SyntheticDatasetArgs), rng)
-    json_data = json.dumps(dataset.to_json())
-    print(json_data)

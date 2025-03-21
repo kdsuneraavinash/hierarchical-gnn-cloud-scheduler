@@ -5,7 +5,6 @@ from typing import Any
 
 import numpy as np
 from scipy import stats
-import tyro
 
 from dataset.dag_gen import BaseDagGen, BranchParallelDagGen, EpigenomicsDagGen, InspiralDagGen
 from dataset.generator import DatasetArgs
@@ -153,7 +152,7 @@ def generate_dag(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict
     return get_dag_gen(args, rng).generate(workflow_task_count, rng)
 
 
-def min_dag_size(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
+def min_dag_size(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> int:
     return get_dag_gen(args, rng).min_size
 
 
@@ -243,10 +242,3 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
         workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
 
     return workflows
-
-
-if __name__ == "__main__":
-    rng = np.random.RandomState(0)
-    dataset = generate_real_world_dataset(tyro.cli(RealWorldDatasetArgs), rng)
-    json_data = json.dumps(dataset.to_json())
-    print(json_data)

@@ -46,7 +46,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
     progress_bar: TableProgressBar = table.pbar(range(len(schedulers) * len(datasets)))
-    summary_data: list[dict[str, float]] = []
+    summary_data: list[tuple[str, dict[str, float]]] = []
 
     for sch_i, scheduler in enumerate(schedulers):
         table.update("name", scheduler.name, width=15)
@@ -65,11 +65,11 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         sch_start_i = sch_i * (len(datasets) + 1)
         sch_end_i = sch_start_i + len(datasets)
         sch_range = range(sch_start_i, sch_end_i)
-        sch_makespan = [table.at[i, 2] for i in sch_range]
-        sch_e_consumption = [table.at[i, 3] for i in sch_range]
-        sch_latency = [table.at[i, 4] for i in sch_range]
-        sch_run_time = [table.at[i, 5] for i in sch_range]
-        sch_decision_latency = [table.at[i, 6] for i in sch_range]
+        sch_makespan: list[float] = [table.at[i, 2] for i in sch_range]  # type: ignore
+        sch_e_consumption: list[float] = [table.at[i, 3] for i in sch_range]  # type: ignore
+        sch_latency: list[float] = [table.at[i, 4] for i in sch_range]  # type: ignore
+        sch_run_time: list[float] = [table.at[i, 5] for i in sch_range]  # type: ignore
+        sch_decision_latency: list[float] = [table.at[i, 6] for i in sch_range]  # type: ignore
 
         avg_makespan = sum(sch_makespan) / len(sch_makespan)
         avg_energy_consumption = sum(sch_e_consumption) / len(sch_e_consumption)
@@ -77,14 +77,16 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         avg_run_time = sum(sch_run_time) / len(sch_run_time)
         avg_decision_latency = sum(sch_decision_latency) / len(sch_decision_latency)
         summary_data.append(
-            {
-                "name": scheduler.name,
-                "makespan": avg_makespan,
-                "energy_consumption": avg_energy_consumption,
-                "latency": avg_latency,
-                "run_time": avg_run_time,
-                "decision_latency": avg_decision_latency,
-            }
+            (
+                scheduler.name,
+                {
+                    "makespan": avg_makespan,
+                    "energy_consumption": avg_energy_consumption,
+                    "latency": avg_latency,
+                    "run_time": avg_run_time,
+                    "decision_latency": avg_decision_latency,
+                },
+            )
         )
 
         table.update("name", scheduler.name)
@@ -99,8 +101,8 @@ def run_evaluation(datasets: list[Dataset]) -> None:
 
     print("\nSummary:")
     summary_table = ProgressTable(print_header_every_n_rows=0)
-    for row in summary_data:
-        summary_table.update("name", row["name"], width=15)
+    for name, row in summary_data:
+        summary_table.update("name", name, width=15)
         summary_table.update("makespan", row["makespan"], width=20)
         summary_table.update("energy_consumption", row["energy_consumption"], width=20)
         summary_table.update("latency", row["latency"], width=10)
