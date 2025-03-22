@@ -10,7 +10,7 @@ def plot_summary_charts(df: pd.DataFrame) -> None:
         {"makespan": "mean", "energy_consumption": "mean", "latency_score": "mean"}
     )
 
-    avg_df["proposed"] = avg_df["name"] == "Proposed"
+    avg_df["proposed"] = avg_df["name"].str.startswith("Proposed")
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharex=False)
     for i, metric in enumerate(["makespan", "energy_consumption", "latency_score"]):

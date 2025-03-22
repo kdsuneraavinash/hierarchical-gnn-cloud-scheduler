@@ -64,7 +64,7 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
     df = pd.DataFrame(data)
     print(df)
 
-    df["proposed"] = df["name"] == "Proposed"
+    df["proposed"] = df["name"].str.startswith("Proposed")
 
     fig, axes_ = plt.subplots(2, 3, figsize=(18, 10), sharex=False)
     axes: list[Axes] = list(axes_.flatten())

@@ -1,13 +1,13 @@
 # --- Default sizes ---
 
-DEFAULT_TASK_COUNT = 200
+DEFAULT_TASK_COUNT = 100
 DEFAULT_MAX_VM_COUNT = 10
 DEFAULT_MAX_HOST_COUNT = 4
 DEFAULT_MAX_TASKS_PER_WORKFLOW = 20
 
 # --- Buffer size/Tensor size constraints ---
 
-N_TASK = 200
+N_TASK = 100
 N_VM = 10
 F_TASK = 7  # Number of task features
 F_VM = 4  # Number of VM features
@@ -22,7 +22,7 @@ EVALUATION_SEED = 200_000  # Seed used for evaluation
 # --- Preferences ---
 
 MAKESPAN_PREFERENCE = 1
-ENERGY_CONSUMPTION_PREFERENCE = 0
+ENERGY_CONSUMPTION_PREFERENCE = 1
 LATENCY_SCORE_PREFERENCE = 0
 
 # --- Other Constants ---

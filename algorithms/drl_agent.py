@@ -19,10 +19,11 @@ class DrlAgentScheduler(BaseDynamicScheduler):
     ):
         super().__init__(name)
 
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if agent is not None:
             self.agent = agent
         elif model_path is not None:
-            self.agent = make_agent(agent_type, torch.device("cpu"))
+            self.agent = make_agent(agent_type, device)
             self.agent.load_state_dict(torch.load(model_path, weights_only=True))
         else:
             raise ValueError("Must provide one of model path or agent")

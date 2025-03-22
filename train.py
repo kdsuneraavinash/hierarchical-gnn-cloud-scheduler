@@ -166,7 +166,7 @@ def train(args: Args) -> None:
 
     last_model_save = 0
     if args.load_model_dir:
-        model_path = Path(__file__).parent.parent.parent / "logs" / args.load_model_dir / "model.pt"
+        model_path = Path(__file__).parent / "logs" / args.load_model_dir / "model.pt"
         agent.load_state_dict(torch.load(str(model_path), weights_only=True))
         print(f"Loaded model from {model_path}")
 

@@ -16,7 +16,6 @@ from algorithms.least_loaded_first import LeastLoadedFirstScheduler
 from algorithms.max_min import MaxMinScheduler
 from algorithms.min_min import MinMinScheduler
 from algorithms.moheft import MoheftScheduler
-from algorithms.nsga_2 import Nsga2Scheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
@@ -29,6 +28,28 @@ from visualizers.pareto_front import plot_2d_pareto_fronts
 
 moheft_store: SolutionStoreType = {}
 nsga2_store: SolutionStoreType = {}
+synthetic_models = [
+    "logs/1742069194_gnn_syn_[0][0][1]/model.pt",
+    "logs/1742072960_gnn_syn_[0][1][0]/model.pt",
+    "logs/1742076667_gnn_syn_[0][1][1]/model.pt",
+    "logs/1742080365_gnn_syn_[1][0][0]/model.pt",
+    "logs/1742084059_gnn_syn_[1][0][1]/model.pt",
+    "logs/1742087722_gnn_syn_[1][1][0]/model.pt",
+    "logs/1742091521_gnn_syn_[1][1][1]/model.pt",
+]
+real_world_peg_models = [
+    "logs/1742469300_gnn_real_peg_[1][0][0]/model.pt",
+    "logs/1742507315_gnn_real_peg_[0][1][0]/model.pt",
+    "logs/1742421617_gnn_real_peg_[1][1][1]/model.pt",
+]
+real_world_br_models = [
+    "logs/1742544338_gnn_real_[1][1][0]/model.pt",
+    "logs/1742535569_gnn_real_[1][1][1]/model.pt",
+]
+real_world_ret_models = [
+    "logs/1742583459_gnn_real_branch_[1][1][1]/model.pt",
+    "logs/1742616419_gnn_real_branch_[1][0][0]/model.pt",
+]
 
 
 def run_evaluation(dataset: Dataset) -> None:
@@ -42,14 +63,11 @@ def run_evaluation(dataset: Dataset) -> None:
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
         *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(100)],
-        *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
-        DrlAgentScheduler("Proposed", model_path="logs/1742069194_gnn_[0][0][1]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed", model_path="logs/1742072960_gnn_[0][1][0]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed", model_path="logs/1742076667_gnn_[0][1][1]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed", model_path="logs/1742080365_gnn_[1][0][0]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed", model_path="logs/1742084059_gnn_[1][0][1]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed", model_path="logs/1742087722_gnn_[1][1][0]/model.pt", agent_type="gnn"),
-        DrlAgentScheduler("Proposed", model_path="logs/1742091521_gnn_[1][1][1]/model.pt", agent_type="gnn"),
+        # *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
+        *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
+        *[DrlAgentScheduler("Proposed-Pegasus", model_path=model, agent_type="gnn") for model in real_world_peg_models],
+        *[DrlAgentScheduler("Proposed-Branch", model_path=model, agent_type="gnn") for model in real_world_br_models],
+        *[DrlAgentScheduler("Proposed-Ret", model_path=model, agent_type="gnn") for model in real_world_ret_models],
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
