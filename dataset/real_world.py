@@ -41,7 +41,7 @@ def generate_real_world_dataset(key: int, args: RealWorldDatasetArgs, rng: np.ra
         task.req_memory_gb = 0
         task.req_disk_gb = 0
 
-    dataset = Dataset(key=key, preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+    dataset = Dataset(key, preference, workflows, tasks, vms, hosts, [])
     dataset.check_sanity()
     return dataset
 

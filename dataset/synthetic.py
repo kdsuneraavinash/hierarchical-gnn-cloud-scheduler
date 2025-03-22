@@ -6,7 +6,7 @@ import numpy as np
 from scipy import stats
 
 from dataset.generator import DatasetArgs
-from dataset.models import Dataset, Task, Vm, Workflow
+from dataset.models import Dataset, Task, Vm, VmEvent, Workflow
 from dataset.real_world import generate_hosts, generate_poisson_delay, generate_preference
 
 
@@ -56,7 +56,8 @@ def generate_synthetic_dataset(key: int, args: SyntheticDatasetArgs, rng: np.ran
         task.req_memory_gb = args.min_memory_gb
         task.req_disk_gb = args.min_disk_gb
 
-    dataset = Dataset(key, preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+    vm_events = [VmEvent(10, 0, 0)]
+    dataset = Dataset(key, preference, workflows, tasks, vms, hosts, vm_events)
     dataset.check_sanity()
     return dataset
 

@@ -44,7 +44,6 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             dataset=self.simulation.dataset,
             task_states=self.simulation.state.task_states,
             vm_states=self.simulation.state.vm_states,
-            task_dependencies=self.simulation.state.task_dependencies,
         )
         self.reward_function.next_episode(self.simulation)
         return encode_env_obs(obs), {}
@@ -64,7 +63,6 @@ class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
             dataset=self.simulation.dataset,
             task_states=self.simulation.state.task_states,
             vm_states=self.simulation.state.vm_states,
-            task_dependencies=self.simulation.state.task_dependencies,
         )
         if error:
             penalty = sum(-1000 if task.assigned_vm_id is None else 0 for task in self.simulation.state.task_states)

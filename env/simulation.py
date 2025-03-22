@@ -17,15 +17,13 @@ class Simulation:
 
         # Initialize task states and dependencies
         task_states = [TaskState(is_ready=True) for _ in dataset.tasks]
-        task_dependencies = {(task.id, child_id) for task in dataset.tasks for child_id in task.child_ids}
-
-        # Mark child tasks as not ready
-        for _, child_id in task_dependencies:
-            task_states[child_id].is_ready = False
+        for task in dataset.tasks:
+            for child_id in task.child_ids:
+                task_states[child_id].is_ready = False
 
         # Map to the state
         self.dataset = dataset
-        self.state = SimulationState(task_states, vm_states, task_dependencies)
+        self.state = SimulationState(task_states, vm_states)
 
     # Assignment
     # ------------------------------------------------------------------------------------------------------------------
@@ -45,11 +43,12 @@ class Simulation:
 
         # Convert to numpy arrays
         processing_time = self.dataset.vms[vm_id].execution_time(self.dataset.tasks[task_id])
-        task_dependencies = {dep for dep in self.state.task_dependencies}
+        task_dependencies = {(task.id, child_id) for task in self.dataset.tasks for child_id in task.child_ids}
         task_is_ready = np.array([t.is_ready for t in self.state.task_states])
         task_start_time = np.array([t.start_time for t in self.state.task_states])
         task_completion_time = np.array([t.completion_time for t in self.state.task_states])
         vm_completion_time = np.array([v.completion_time for v in self.state.vm_states])
+        task_prev_task_id = np.array([-1 if t.prev_task_id is None else t.prev_task_id for t in self.state.task_states])
         task_assigned_vm_id = np.array(
             [-1 if t.assigned_vm_id is None else t.assigned_vm_id for t in self.state.task_states]
         )
@@ -66,6 +65,7 @@ class Simulation:
             task_start_time,
             task_completion_time,
             vm_completion_time,
+            task_prev_task_id,
             task_assigned_vm_id,
             vm_assigned_task_id,
         )
@@ -77,6 +77,7 @@ class Simulation:
                 start_time=task_start_time[t_id],
                 completion_time=task_completion_time[t_id],
                 assigned_vm_id=None if task_assigned_vm_id[t_id] == -1 else task_assigned_vm_id[t_id],
+                prev_task_id=None if task_prev_task_id[t_id] == -1 else task_prev_task_id[t_id],
             )
             for t_id in range(len(self.state.task_states))
         ]
@@ -88,8 +89,22 @@ class Simulation:
             for v_id in range(len(self.state.vm_states))
         ]
 
-        self.state = SimulationState(new_task_states, new_vm_states, task_dependencies)
+        self.state = SimulationState(new_task_states, new_vm_states, time=self.state.time)
         return None, done
+
+    # def wait(self) -> bool:
+    #     future_events = [evt for evt in self.dataset.vm_events if evt.time > self.state.time]
+    #     next_event = min(future_events, key=lambda evt: evt.time, default=None)
+    #     if next_event is None:
+    #         return False
+
+    #     # We will have to disregard all task assignments that happen in future
+    #     new_task_states = [
+    #         TaskState() if task_state.start_time > self.state.time else task_state
+    #         for task_state in self.state.task_states
+    #     ]
+
+    #     self.state = SimulationState(self.state.task_states, self.state.vm_states, time=next_event.time)
 
     # Step
     # ------------------------------------------------------------------------------------------------------------------
@@ -110,21 +125,13 @@ class Simulation:
         return [assignment[1] for assignment in assignments]
 
     def makespan(self) -> float:
-        return max(
-            task_completion_time_est(
-                self.dataset, self.state.task_states, self.state.vm_states, self.state.task_dependencies
-            )
-        )
+        return max(task_completion_time_est(self.dataset, self.state.task_states, self.state.vm_states))
 
     def total_energy_consumption(self) -> float:
         return sum(task_energy_consumption_est(self.dataset, self.state.task_states))
 
     def total_latency_score(self) -> float:
-        return sum(
-            task_latency_score_est(
-                self.dataset, self.state.task_states, self.state.vm_states, self.state.task_dependencies
-            )
-        )
+        return sum(task_latency_score_est(self.dataset, self.state.task_states, self.state.vm_states))
 
 
 def _assign_vm(
@@ -136,6 +143,7 @@ def _assign_vm(
     task_start_time: np.ndarray,
     task_completion_time: np.ndarray,
     vm_completion_time: np.ndarray,
+    task_prev_task_id: np.ndarray,
     task_assigned_vm_id: np.ndarray,
     vm_assigned_task_id: np.ndarray,
 ) -> bool:
@@ -163,7 +171,7 @@ def _assign_vm(
 
     # New dependencies (a new edge between the old task in the VM and this task)
     if vm_prev_task_id != -1:
-        task_dependencies.add((vm_prev_task_id, task_id))
+        task_prev_task_id[task_id] = vm_prev_task_id
 
     # Find whether there are any more tasks remaining
     done: bool = (task_assigned_vm_id != -1).all()

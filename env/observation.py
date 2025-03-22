@@ -40,13 +40,11 @@ class EnvObsTensor:
 # ------------------------------------------------------------------------------------------------------------------
 
 
-def create_env_obs(
-    dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState], task_dependencies: set[tuple[int, int]]
-) -> EnvObs:
+def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState]) -> EnvObs:
     task_makespan_ranks = compute_task_makespan_ranks(dataset)
-    task_completion_time = task_completion_time_est(dataset, task_states, vm_states, task_dependencies)
+    task_completion_time = task_completion_time_est(dataset, task_states, vm_states)
     task_energy_consumption = task_energy_consumption_est(dataset, task_states)
-    task_latency_score = task_latency_score_est(dataset, task_states, vm_states, task_dependencies)
+    task_latency_score = task_latency_score_est(dataset, task_states, vm_states)
 
     # --- Task Features ---
 
@@ -113,7 +111,9 @@ def create_env_obs(
 
     def feat_task_task_dependent(p_id: int, c_id: int) -> int:
         if p_id < len(task_states) and c_id < len(task_states):
-            return int((p_id, c_id) in task_dependencies)
+            is_parent = c_id in dataset.tasks[p_id].child_ids
+            is_vm_prev_task = task_states[c_id].prev_task_id == p_id
+            return int(is_parent or is_vm_prev_task)
         return 0
 
     # --- Create feature vectors ---

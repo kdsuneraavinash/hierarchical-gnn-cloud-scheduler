@@ -29,12 +29,7 @@ class DrlAgentScheduler(BaseDynamicScheduler):
             raise ValueError("Must provide one of model path or agent")
 
     def select_task_and_vm(self, dataset: Dataset, state: SimulationState) -> tuple[int, int]:
-        obs = create_env_obs(
-            dataset=dataset,
-            task_states=state.task_states,
-            vm_states=state.vm_states,
-            task_dependencies=state.task_dependencies,
-        )
+        obs = create_env_obs(dataset, state.task_states, state.vm_states)
         encoded_obs = encode_env_obs(obs)
         encoded_obs_tensor = torch.Tensor(encoded_obs).to(self.agent.device)
         action, _, _, _ = self.agent.get_action_and_value(encoded_obs_tensor.unsqueeze(0))

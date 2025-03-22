@@ -60,6 +60,13 @@ class Host:
 
 
 @dataclass
+class VmEvent:
+    time: float
+    vm_id: int
+    event_type: int  # 0 - Crash, 1 - Restore
+
+
+@dataclass
 class VmAssignment:
     task_id: int
     vm_id: int
@@ -81,20 +88,22 @@ class Dataset:
     tasks: list[Task]
     vms: list[Vm]
     hosts: list[Host]
+    vm_events: list[VmEvent]
 
     def to_json(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
 
     @staticmethod
     def from_json(data: dict[str, Any]) -> "Dataset":
-        key = data.pop("key")
-        preference = Preference(**data.pop("preference"))
-        workflows = [Workflow(**workflow) for workflow in data.pop("workflows")]
-        tasks = [Task(**task) for task in data.pop("tasks")]
-        vms = [Vm(**vm) for vm in data.pop("vms")]
-        hosts = [Host(**host) for host in data.pop("hosts")]
-
-        dataset = Dataset(key=key, preference=preference, workflows=workflows, tasks=tasks, vms=vms, hosts=hosts)
+        dataset = Dataset(
+            key=data.pop("key"),
+            preference=Preference(**data.pop("preference")),
+            workflows=[Workflow(**workflow) for workflow in data.pop("workflows")],
+            tasks=[Task(**task) for task in data.pop("tasks")],
+            vms=[Vm(**vm) for vm in data.pop("vms")],
+            hosts=[Host(**host) for host in data.pop("hosts")],
+            vm_events=[VmEvent(**vm_event) for vm_event in data.pop("vm_events")],
+        )
         dataset.check_sanity()
         return dataset
 
