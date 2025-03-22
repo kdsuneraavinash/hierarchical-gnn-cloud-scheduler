@@ -48,11 +48,13 @@ real_world_br_models = [
 ]
 real_world_ret_models = [
     "logs/1742583459_gnn_real_branch_[1][1][1]/model.pt",
+    "logs/1742623721_gnn_real_branch_[1][1][0]/model.pt",
     "logs/1742616419_gnn_real_branch_[1][0][0]/model.pt",
+    "logs/1742627613_gnn_real_branch_[0][1][0]/model.pt",
 ]
 
 
-def run_evaluation(dataset: Dataset) -> None:
+def run_evaluation(datasets: list[Dataset]) -> None:
     schedulers: list[BaseAbstractScheduler] = [
         HeftScheduler(),
         FerptsScheduler(),
@@ -62,7 +64,7 @@ def run_evaluation(dataset: Dataset) -> None:
         MaxMinScheduler(),
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
-        *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(100)],
+        *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(7)],
         # *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
         *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
         *[DrlAgentScheduler("Proposed-Pegasus", model_path=model, agent_type="gnn") for model in real_world_peg_models],
@@ -71,38 +73,49 @@ def run_evaluation(dataset: Dataset) -> None:
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
-    progress_bar: TableProgressBar = table.pbar(range(len(schedulers)))
+    progress_bar: TableProgressBar = table.pbar(range(len(schedulers) * len(datasets)))
     summary_data: defaultdict[str, list[dict[str, float]]] = defaultdict(list)
 
-    prev_scheduler_name = ""
+    prev_scheduler_name = schedulers[0].name
     for scheduler in schedulers:
         if scheduler.name != prev_scheduler_name:
             table.next_row()
 
-        table.update("name", scheduler.name)
+        total_makespan: float = 0
+        total_energy_consumption: float = 0
+        total_latency_score: float = 0
+        total_run_time: float = 0
+        total_decision_latency: float = 0
+        for dataset in datasets:
+            table.update("name", scheduler.name)
+            assignments = scheduler.schedule(dataset)
+            solution = Solution(dataset, assignments)
 
-        assignments = scheduler.schedule(dataset)
+            makespan = solution.makespan()
+            energy_consumption = solution.energy_consumption()
+            latency_score = solution.latency_score()
+            run_time = scheduler.run_time()
+            decision_latency = scheduler.decision_latency()
+            table.update("makespan", value=makespan, aggregate="mean")
+            table.update("energy_consumption", value=energy_consumption, aggregate="mean")
+            table.update("latency_score", value=latency_score, aggregate="mean")
+            table.update("run_time", value=run_time, aggregate="sum")
+            table.update("decision_latency", value=decision_latency, aggregate="sum")
+            total_makespan += makespan
+            total_energy_consumption += energy_consumption
+            total_latency_score += latency_score
+            total_run_time += run_time
+            total_decision_latency += decision_latency
+            progress_bar.update(1)
 
-        solution = Solution(dataset, assignments)
-        makespan = solution.makespan()
-        energy_consumption = solution.energy_consumption()
-        latency_score = solution.latency_score()
-        run_time = scheduler.run_time()
-        decision_latency = scheduler.decision_latency()
-        table.update("makespan", value=makespan, aggregate="mean")
-        table.update("energy_consumption", value=energy_consumption, aggregate="mean")
-        table.update("latency_score", value=latency_score, aggregate="mean")
-        table.update("run_time", value=run_time, aggregate="sum")
-        table.update("decision_latency", value=decision_latency, aggregate="sum")
-        progress_bar.update(1)
         prev_scheduler_name = scheduler.name
         summary_data[scheduler.name].append(
             {
-                "makespan": makespan,
-                "energy_consumption": energy_consumption,
-                "latency_score": latency_score,
-                "run_time": run_time,
-                "decision_latency": decision_latency,
+                "makespan": total_makespan / len(datasets),
+                "energy_consumption": total_energy_consumption / len(datasets),
+                "latency_score": total_latency_score / len(datasets),
+                "run_time": total_run_time / len(datasets),
+                "decision_latency": total_decision_latency / len(datasets),
             }
         )
 
@@ -122,10 +135,14 @@ def main():
     torch.backends.cudnn.deterministic = True
 
     run_evaluation(
-        generate_dataset(
-            rng=np.random.RandomState(TEST_SEED),
-            args=DatasetArgs.real_world(),
-        )
+        [
+            generate_dataset(
+                dataset_key=key,
+                rng=np.random.RandomState(TEST_SEED),
+                args=DatasetArgs.real_world(),
+            )
+            for key in range(1)
+        ]
     )
 
 

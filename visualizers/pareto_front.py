@@ -1,4 +1,4 @@
-from matplotlib import axes, figure
+from matplotlib import axes, figure, pyplot as plt
 import numpy as np
 
 from visualizers.mo_performance import find_pareto_front
@@ -18,6 +18,10 @@ def plot_pareto_front(ax: axes.Axes, data: dict[str, list[tuple[float, float]]])
     ax.plot(
         ref_pareto_sorted[:, 0], ref_pareto_sorted[:, 1], marker="o", linestyle="--", label="Reference", color="black"
     )
+
+    colormap = plt.cm.nipy_spectral
+    colors = colormap(np.linspace(0, 1, len(data)))
+    ax.set_prop_cycle("color", colors)
 
     for scheduler, results in data.items():
         results = np.array(results)
