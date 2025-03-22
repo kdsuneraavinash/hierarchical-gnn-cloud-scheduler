@@ -5,7 +5,9 @@ import numpy as np
 import pandas as pd
 from pymoo.indicators.hv import HV
 from pymoo.indicators.igd import IGD
+from pymoo.indicators.igd_plus import IGDPlus
 from pymoo.indicators.gd import GD
+from pymoo.indicators.gd_plus import GDPlus
 import seaborn as sns
 
 from constants import CHART_AXIS_PAD
@@ -47,6 +49,8 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
     hv = HV(ref_point=reference_point)
     gd = GD(ref_pareto_points)
     igd = IGD(ref_pareto_points)
+    gd_plus = GDPlus(ref_pareto_points)
+    igd_plus = IGDPlus(ref_pareto_points)
 
     data: list[dict[str, Any]] = []
     for scheduler, pareto_points in pareto_point_map.items():
@@ -56,6 +60,8 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
                 "hypervolume": hv(pareto_points),
                 "gd": gd(pareto_points),
                 "igd": igd(pareto_points),
+                "gd_plus": gd_plus(pareto_points),
+                "igd_plus": igd_plus(pareto_points),
                 "run_time": direct_metrics[scheduler]["run_time"],
                 "decision_latency": direct_metrics[scheduler]["decision_latency"],
             }
@@ -66,13 +72,25 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
 
     df["proposed"] = df["name"].str.startswith("Proposed")
 
-    fig, axes_ = plt.subplots(2, 3, figsize=(18, 10), sharex=False)
+    fig, axes_ = plt.subplots(3, 3, figsize=(18, 10), sharex=False)
     axes: list[Axes] = list(axes_.flatten())
 
-    for i, metric in enumerate(["hypervolume", "gd", "igd", "run_time", "decision_latency"]):
+    metrics = [
+        # metric key, log scale
+        ("hypervolume", False),
+        ("gd", True),
+        ("igd", True),
+        ("gd_plus", True),
+        ("igd_plus", True),
+        ("run_time", True),
+        ("decision_latency", True),
+    ]
+    for i, (metric, log_scale) in enumerate(metrics):
         avg_sorted = df.sort_values(metric)
         sns.barplot(data=avg_sorted, x="name", y=metric, hue="proposed", ax=axes[i], palette="Set2", legend=False)
         y_min, y_max = avg_sorted[metric].min(), avg_sorted[metric].max()
+        if log_scale:
+            axes[i].set_yscale("log")
         axes[i].set_ylim(y_min * (1 - CHART_AXIS_PAD), y_max * (1 + CHART_AXIS_PAD))
         axes[i].set_ylabel(metric)
         axes[i].xaxis.set_ticks(avg_sorted["name"].unique())
