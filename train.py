@@ -1,7 +1,7 @@
 # docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ppo/#ppopy
 import random
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import tyro
+from tyro.conf import Suppress
 from gymnasium.wrappers import RecordEpisodeStatistics
 from progress_table import ProgressTable
 from progress_table.v1.progress_table import TableProgressBar
@@ -22,7 +23,6 @@ from constants import (
 )
 from dataset.generator import DatasetArgs, generate_dataset
 from dataset.models import Solution
-from dataset.real_world import RealWorldDatasetArgs
 from env.gym_env import GymEnvironment
 from models.agent import make_agent
 from models.base_agent import BaseAgent
@@ -51,8 +51,8 @@ class Args:
     wandb_entity: str | None = None
     """the entity (team) of wandb's project"""
     load_model_dir: str | None = None
-    """Directory to load the model from"""
-    test_iterations: int = 1
+    """directory to load the model from"""
+    test_iterations: int = 4
     """number of test iterations"""
 
     # Algorithm specific arguments
@@ -65,7 +65,7 @@ class Args:
     num_steps: int = 128
     """the number of steps to run in each environment per policy rollout"""
     anneal_lr: bool = True
-    """Toggle learning rate annealing for policy and value networks"""
+    """toggle learning rate annealing for policy and value networks"""
     gamma: float = 0.99
     """the discount factor gamma"""
     gae_lambda: float = 0.95
@@ -75,11 +75,11 @@ class Args:
     update_epochs: int = 4
     """the K epochs to update the policy"""
     norm_adv: bool = True
-    """Toggles advantages normalization"""
+    """toggles advantages normalization"""
     clip_coef: float = 0.2
     """the surrogate clipping coefficient"""
     clip_vloss: bool = True
-    """Toggles whether or not to use a clipped loss for the value function, as per the paper."""
+    """toggles whether or not to use a clipped loss for the value function, as per the paper."""
     ent_coef: float = 0.01
     """coefficient of the entropy"""
     vf_coef: float = 0.5
@@ -89,20 +89,26 @@ class Args:
     target_kl: float | None = None
     """the target KL divergence threshold"""
 
-    dataset: RealWorldDatasetArgs = field(default_factory=lambda: DatasetArgs.real_world())
-    """the dataset generation parameters"""
-    test_dataset: RealWorldDatasetArgs = field(default_factory=lambda: DatasetArgs.real_world())
-    """the test dataset generation parameters"""
+    dataset_type: str = "synthetic"
+    """the dataset type to use"""
+    makespan_pref: float = 1
+    """the makespan preference of the reward"""
+    energy_pref: float = 1
+    """the energy consumption preference of the reward"""
+    latency_pref: float = 1
+    """the latency score preference of the reward"""
 
     # to be filled in runtime
-    batch_size: int = 0
+    batch_size: Suppress[int] = 0
     """the batch size (computed in runtime)"""
-    minibatch_size: int = 0
+    minibatch_size: Suppress[int] = 0
     """the mini-batch size (computed in runtime)"""
-    num_iterations: int = 0
+    num_iterations: Suppress[int] = 0
     """the number of iterations (computed in runtime)"""
-    run_name: str = ""
+    run_name: Suppress[str] = ""
     """the full name of the run"""
+    dataset: Suppress[DatasetArgs | None] = None
+    """the dataset args of this run"""
 
 
 # Environment creation
@@ -110,8 +116,21 @@ class Args:
 
 
 def make_env(idx: int, args: Args) -> gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]:
+    assert args.dataset is not None
     env = GymEnvironment(dataset_args=args.dataset)
     return RecordEpisodeStatistics(env)
+
+
+def make_dataset_args(args: Args) -> DatasetArgs:
+    if args.dataset_type == "synthetic":
+        dataset = DatasetArgs.synthentic()
+    elif args.dataset_type == "real_world":
+        dataset = DatasetArgs.real_world()
+    elif args.dataset_type == "real_world_breakdowns":
+        dataset = DatasetArgs.real_world_breakdowns()
+    else:
+        raise ValueError(f"Unknown dataset type: {args.dataset_type}")
+    return dataset.with_priority(args.makespan_pref, args.energy_pref, args.latency_pref)
 
 
 # Training Agent
@@ -123,6 +142,7 @@ def train(args: Args) -> None:
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
     args.run_name = f"{int(time.time())}_{args.exp_name}"
+    args.dataset = make_dataset_args(args)
     if args.track:
         import wandb
 
@@ -373,6 +393,7 @@ def train(args: Args) -> None:
 
 
 def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
+    assert args.dataset is not None
     test_rng = np.random.RandomState(TEST_SEED)
 
     total_makespan = 0.0
@@ -380,7 +401,7 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
     total_latency_score = 0.0
 
     for _ in range(args.test_iterations):
-        dataset = generate_dataset(args.test_dataset, test_rng)
+        dataset = generate_dataset(args.dataset, test_rng)
 
         test_scheduler = DrlAgentScheduler(name="Agent", agent=agent, agent_type=args.agent_type)
         assignments = test_scheduler.schedule(dataset)
