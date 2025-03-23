@@ -23,7 +23,7 @@ class RealWorldDatasetArgs(DatasetArgs):
     """dag structure to use"""
     vm_breakdowns: bool = False
     """existance of vm breakdowns where vms are not available"""
-    vm_revival_max_gap: int = 5
+    vm_revival_max_gap: int = 20
     """gap between a vm breakdown and its revival"""
     vm_breakdown_max_gap: int = 5
     """gap between a vm revival and a new vm breakdown"""

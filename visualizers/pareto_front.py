@@ -1,5 +1,6 @@
-from matplotlib import axes, figure, pyplot as plt
+from matplotlib import axes, figure
 import numpy as np
+import seaborn
 
 from visualizers.mo_performance import find_pareto_front
 
@@ -19,8 +20,7 @@ def plot_pareto_front(ax: axes.Axes, data: dict[str, list[tuple[float, float]]])
         ref_pareto_sorted[:, 0], ref_pareto_sorted[:, 1], marker="o", linestyle="--", label="Reference", color="black"
     )
 
-    colormap = plt.cm.nipy_spectral
-    colors = colormap(np.linspace(0, 1, len(data)))
+    colors = seaborn.color_palette("husl", len(data))
     ax.set_prop_cycle("color", colors)
 
     for scheduler, results in data.items():
