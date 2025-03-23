@@ -12,6 +12,6 @@ class Nsga2Scheduler(BaseMoScheduler):
     def get_pareto_solutions(self, dataset: Dataset) -> list[list[tuple[int, int]]]:
         problem = PyMooOptimizationProblem(dataset)
         algorithm = NSGA2(pop_size=100)
-        res = minimize(problem, algorithm, termination=("n_gen", 20), seed=1)
+        res = minimize(problem, algorithm, termination=("n_gen", 5), seed=1)
 
         return [decode_pymoo_x(dataset, sol) for sol in res.X]  # type: ignore
