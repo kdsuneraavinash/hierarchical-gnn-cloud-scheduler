@@ -12,6 +12,7 @@ class EnvState:
 class VmState:
     assigned_task_id: int | None = None
     completion_time: float = 0
+    is_available: bool = True
 
 
 @dataclass

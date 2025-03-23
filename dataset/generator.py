@@ -52,6 +52,22 @@ class DatasetArgs:
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
             latency_score_preference=LATENCY_SCORE_PREFERENCE,
             dag_structure="BranchParallel",
+            vm_breakdowns=False,
+        )
+
+    @staticmethod
+    def real_world_breakdowns():
+        from dataset.real_world import RealWorldDatasetArgs
+
+        return RealWorldDatasetArgs(
+            task_count=DEFAULT_TASK_COUNT,
+            max_vm_count=DEFAULT_MAX_VM_COUNT,
+            max_host_count=DEFAULT_MAX_HOST_COUNT,
+            makespan_preference=MAKESPAN_PREFERENCE,
+            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+            latency_score_preference=LATENCY_SCORE_PREFERENCE,
+            dag_structure="BranchParallel",
+            vm_breakdowns=True,
         )
 
     @staticmethod
@@ -69,7 +85,7 @@ class DatasetArgs:
         )
 
 
-def generate_dataset(args: DatasetArgs, rng: np.random.RandomState, dataset_key: int = 0) -> Dataset:
+def generate_dataset(args: DatasetArgs, rng: np.random.RandomState, dataset_key: str = "") -> Dataset:
     from dataset.synthetic import SyntheticDatasetArgs, generate_synthetic_dataset
     from dataset.real_world import RealWorldDatasetArgs, generate_real_world_dataset
 

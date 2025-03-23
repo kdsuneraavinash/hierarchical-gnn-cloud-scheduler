@@ -1,5 +1,5 @@
 import numpy as np
-from dataset.models import Dataset, VmAssignment
+from dataset.models import Dataset, VmAssignment, VmEvent
 from env.state import SimulationState, TaskState, VmState
 from env.utils import task_completion_time_est, task_energy_consumption_est, task_latency_score_est
 
@@ -40,6 +40,8 @@ class Simulation:
             return f"{task_id=} {vm_id=}: Not ready task", True
         if not self.dataset.vms[vm_id].is_compatible(self.dataset.tasks[task_id]):
             return f"{task_id=} {vm_id=}: Not compatible", True
+        if not self.state.vm_states[vm_id].is_available:
+            return f"{task_id=} {vm_id=}: VM not available", True
 
         # Convert to numpy arrays
         processing_time = self.dataset.vms[vm_id].execution_time(self.dataset.tasks[task_id])
@@ -85,6 +87,7 @@ class Simulation:
             VmState(
                 completion_time=vm_completion_time[v_id],
                 assigned_task_id=None if vm_assigned_task_id[v_id] == -1 else vm_assigned_task_id[v_id],
+                is_available=self.state.vm_states[v_id].is_available,
             )
             for v_id in range(len(self.state.vm_states))
         ]
@@ -92,19 +95,44 @@ class Simulation:
         self.state = SimulationState(new_task_states, new_vm_states, time=self.state.time)
         return None, done
 
-    # def wait(self) -> bool:
-    #     future_events = [evt for evt in self.dataset.vm_events if evt.time > self.state.time]
-    #     next_event = min(future_events, key=lambda evt: evt.time, default=None)
-    #     if next_event is None:
-    #         return False
+    def wait(self) -> bool:
+        future_events = [evt for evt in self.dataset.vm_events if evt.time > self.state.time]
+        event = min(future_events, key=lambda evt: evt.time, default=None)
+        if event is None:
+            return False
 
-    #     # We will have to disregard all task assignments that happen in future
-    #     new_task_states = [
-    #         TaskState() if task_state.start_time > self.state.time else task_state
-    #         for task_state in self.state.task_states
-    #     ]
+        all_task_scheduled_timed = max(task_state.start_time for task_state in self.state.task_states)
+        if all_task_scheduled_timed <= event.time:
+            return False
 
-    #     self.state = SimulationState(self.state.task_states, self.state.vm_states, time=next_event.time)
+        # We will have to disregard all task assignments that happen in future
+        new_task_states = [
+            TaskState(is_ready=True) if task_state.start_time > event.time else task_state
+            for task_state in self.state.task_states
+        ]
+        for task_id, task in enumerate(self.dataset.tasks):
+            if new_task_states[task_id].assigned_vm_id is None:
+                for child_id in task.child_ids:
+                    new_task_states[child_id].is_ready = False
+        # Completion time is at least the scheduled task end time
+        new_vm_states = [VmState() for _ in self.dataset.vms]
+        for task_id, task_state in enumerate(new_task_states):
+            if task_state.assigned_vm_id is not None:
+                if new_vm_states[task_state.assigned_vm_id].completion_time <= task_state.completion_time:
+                    new_vm_states[task_state.assigned_vm_id].assigned_task_id = task_id
+                    new_vm_states[task_state.assigned_vm_id].completion_time = task_state.completion_time
+        # Completion time is at least now
+        for vm_id in range(len(self.dataset.vms)):
+            new_vm_states[vm_id].completion_time = max(new_vm_states[vm_id].completion_time, event.time)
+
+        # Mark unavailability
+        if event.event_type == VmEvent.T.OFF:
+            new_vm_states[event.vm_id].is_available = False
+        elif event.event_type == VmEvent.T.ON:
+            new_vm_states[event.vm_id].is_available = True
+
+        self.state = SimulationState(new_task_states, new_vm_states, time=event.time)
+        return True
 
     # Step
     # ------------------------------------------------------------------------------------------------------------------
@@ -128,7 +156,7 @@ class Simulation:
         return max(task_completion_time_est(self.dataset, self.state.task_states, self.state.vm_states))
 
     def total_energy_consumption(self) -> float:
-        return sum(task_energy_consumption_est(self.dataset, self.state.task_states))
+        return sum(task_energy_consumption_est(self.dataset, self.state.task_states, self.state.vm_states))
 
     def total_latency_score(self) -> float:
         return sum(task_latency_score_est(self.dataset, self.state.task_states, self.state.vm_states))

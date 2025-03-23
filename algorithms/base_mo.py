@@ -2,7 +2,7 @@ from abc import abstractmethod
 from algorithms.base_static import BaseStaticScheduler
 from dataset.models import Dataset
 
-SolutionStoreType = dict[int, list[list[tuple[int, int]]]]
+SolutionStoreType = dict[str, list[list[tuple[int, int]]]]
 
 
 class BaseMoScheduler(BaseStaticScheduler):

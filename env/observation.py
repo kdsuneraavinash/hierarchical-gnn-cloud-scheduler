@@ -43,7 +43,7 @@ class EnvObsTensor:
 def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState]) -> EnvObs:
     task_makespan_ranks = compute_task_makespan_ranks(dataset)
     task_completion_time = task_completion_time_est(dataset, task_states, vm_states)
-    task_energy_consumption = task_energy_consumption_est(dataset, task_states)
+    task_energy_consumption = task_energy_consumption_est(dataset, task_states, vm_states)
     task_latency_score = task_latency_score_est(dataset, task_states, vm_states)
 
     # --- Task Features ---
@@ -94,7 +94,7 @@ def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: li
 
     def feat_task_vm_is_schedulable(t_id: int, v_id: int) -> int:
         if t_id < len(task_states) and v_id < len(vm_states):
-            return int(dataset.vms[v_id].is_compatible(dataset.tasks[t_id]))
+            return int(dataset.vms[v_id].is_compatible(dataset.tasks[t_id], vm_states[v_id]))
         return 0
 
     def feat_task_vm_execution_time(t_id: int, v_id: int) -> float:

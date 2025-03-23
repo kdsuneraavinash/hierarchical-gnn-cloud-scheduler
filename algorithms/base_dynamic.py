@@ -18,8 +18,8 @@ class BaseDynamicScheduler(BaseAbstractScheduler, ABC):
         self.run_time_history.clear()
         simulation = Simulation(dataset)
 
-        done = False
-        while not done:
+        done = need_reschedule = False
+        while not done or need_reschedule:
             start_time = perf_counter()
             task_id, vm_id = self.select_task_and_vm(dataset, simulation.state)
             end_time = perf_counter()
@@ -28,6 +28,8 @@ class BaseDynamicScheduler(BaseAbstractScheduler, ABC):
             error, done = simulation.assign_vm(task_id, vm_id)
             if error:
                 raise ValueError(error)
+            if done:
+                need_reschedule = simulation.wait()
         return simulation.to_assignments()
 
     @abstractmethod

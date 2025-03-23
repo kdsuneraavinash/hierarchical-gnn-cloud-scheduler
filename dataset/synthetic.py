@@ -6,7 +6,7 @@ import numpy as np
 from scipy import stats
 
 from dataset.generator import DatasetArgs
-from dataset.models import Dataset, Task, Vm, VmEvent, Workflow
+from dataset.models import Dataset, Task, Vm, Workflow
 from dataset.real_world import generate_hosts, generate_poisson_delay, generate_preference
 
 
@@ -38,7 +38,7 @@ class SyntheticDatasetArgs(DatasetArgs):
     """additional context for the dataset"""
 
 
-def generate_synthetic_dataset(key: int, args: SyntheticDatasetArgs, rng: np.random.RandomState) -> Dataset:
+def generate_synthetic_dataset(key: str, args: SyntheticDatasetArgs, rng: np.random.RandomState) -> Dataset:
     """
     Generate a dataset with the specified arguments.
     """
@@ -56,8 +56,7 @@ def generate_synthetic_dataset(key: int, args: SyntheticDatasetArgs, rng: np.ran
         task.req_memory_gb = args.min_memory_gb
         task.req_disk_gb = args.min_disk_gb
 
-    vm_events = [VmEvent(10, 0, 0)]
-    dataset = Dataset(key, preference, workflows, tasks, vms, hosts, vm_events)
+    dataset = Dataset(key, preference, workflows, tasks, vms, hosts, [])
     dataset.check_sanity()
     return dataset
 

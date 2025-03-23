@@ -8,7 +8,7 @@ from scipy import stats
 
 from dataset.dag_gen import BaseDagGen, BranchParallelDagGen, EpigenomicsDagGen, InspiralDagGen
 from dataset.generator import DatasetArgs
-from dataset.models import Dataset, Host, Preference, Task, Vm, Workflow
+from dataset.models import Dataset, Host, Preference, Task, Vm, VmEvent, Workflow
 from dataset.utils import random_list
 
 
@@ -21,9 +21,15 @@ branch_parallel_dag_gen = BranchParallelDagGen()
 class RealWorldDatasetArgs(DatasetArgs):
     dag_structure: str = "Epigenomics"
     """dag structure to use"""
+    vm_breakdowns: bool = False
+    """existance of vm breakdowns where vms are not available"""
+    vm_revival_max_gap: int = 5
+    """gap between a vm breakdown and its revival"""
+    vm_breakdown_max_gap: int = 5
+    """gap between a vm revival and a new vm breakdown"""
 
 
-def generate_real_world_dataset(key: int, args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
+def generate_real_world_dataset(key: str, args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
     """
     Generate a dataset with the specified arguments.
     """
@@ -35,13 +41,31 @@ def generate_real_world_dataset(key: int, args: RealWorldDatasetArgs, rng: np.ra
 
     # Check if there are tasks that cannot be assigned to any VM
     # If so, they get their reqs reset (so they are assignable to any)
+    disposable_vm_ids: set[int] = set(range(len(vms)))
     for task in tasks:
-        if any(vm.is_compatible(task) for vm in vms):
-            continue
-        task.req_memory_gb = 0
-        task.req_disk_gb = 0
+        compatible_vms = [vm for vm in vms if vm.is_compatible(task)]
+        if len(compatible_vms) == 0:
+            task.req_memory_gb = 0
+            task.req_disk_gb = 0
+        elif len(compatible_vms) == 1:
+            if compatible_vms[0].id in disposable_vm_ids:
+                disposable_vm_ids.remove(compatible_vms[0].id)
 
-    dataset = Dataset(key, preference, workflows, tasks, vms, hosts, [])
+    # Create VM events of breakdown and revival based on non-critical VMs
+    vm_events: list[VmEvent] = []
+    if args.vm_breakdowns:
+        vm_events.append(VmEvent(0, -1, -1))
+        for _ in range(100):
+            vm_id: int = rng.choice(list(disposable_vm_ids))
+            vm_event_off_time = vm_events[-1].time + rng.randint(1, args.vm_breakdown_max_gap)
+            vm_event_off = VmEvent(time=vm_event_off_time, vm_id=vm_id, event_type=VmEvent.T.OFF)
+            vm_events.append(vm_event_off)
+            vm_event_on_time = vm_events[-1].time + rng.randint(1, args.vm_revival_max_gap)
+            vm_event_on = VmEvent(time=vm_event_on_time, vm_id=vm_id, event_type=VmEvent.T.ON)
+            vm_events.append(vm_event_on)
+        vm_events.pop(0)
+
+    dataset = Dataset(key, preference, workflows, tasks, vms, hosts, vm_events)
     dataset.check_sanity()
     return dataset
 

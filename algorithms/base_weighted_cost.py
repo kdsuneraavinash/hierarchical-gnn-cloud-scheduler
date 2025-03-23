@@ -26,7 +26,7 @@ class BaseWeightedCostScheduler(BaseDynamicScheduler, ABC):
             task = dataset.tasks[task_id]
 
             for vm in dataset.vms:
-                if not vm.is_compatible(task):
+                if not vm.is_compatible(task, state.vm_states[vm.id]):
                     continue
                 total_cost = self.weighted_cost(task, vm, dataset, state)
                 if total_cost < min_weighted_cost:

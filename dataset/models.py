@@ -5,6 +5,7 @@ from hashlib import md5
 from typing import Any
 
 from constants import N_TASK, N_VM
+from env.state import VmState
 
 
 @dataclass
@@ -36,8 +37,12 @@ class Vm:
     memory_gb: float
     disk_gb: float
 
-    def is_compatible(self, task: Task) -> bool:
-        return self.memory_gb >= task.req_memory_gb and self.disk_gb >= task.req_disk_gb
+    def is_compatible(self, task: Task, vm_state: VmState | None = None) -> bool:
+        return (
+            (vm_state is None or vm_state.is_available)
+            and self.memory_gb >= task.req_memory_gb
+            and self.disk_gb >= task.req_disk_gb
+        )
 
     def execution_time(self, task: Task) -> float:
         return task.length / self.cpu_speed_mips
@@ -61,6 +66,10 @@ class Host:
 
 @dataclass
 class VmEvent:
+    class T:
+        OFF = 0
+        ON = 1
+
     time: float
     vm_id: int
     event_type: int  # 0 - Crash, 1 - Restore
@@ -82,7 +91,7 @@ class Preference:
 
 @dataclass
 class Dataset:
-    key: int
+    key: str
     preference: Preference
     workflows: list[Workflow]
     tasks: list[Task]

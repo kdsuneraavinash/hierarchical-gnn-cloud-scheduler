@@ -91,7 +91,8 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
         y_min, y_max = avg_sorted[metric].min(), avg_sorted[metric].max()
         if log_scale:
             axes[i].set_yscale("log")
-        axes[i].set_ylim(y_min * (1 - CHART_AXIS_PAD), y_max * (1 + CHART_AXIS_PAD))
+        else:
+            axes[i].set_ylim(y_min * (1 - CHART_AXIS_PAD), y_max * (1 + CHART_AXIS_PAD))
         axes[i].set_ylabel(metric)
         axes[i].xaxis.set_ticks(avg_sorted["name"].unique())
         axes[i].set_xticklabels(axes[i].get_xticklabels(), rotation=45, ha="right")

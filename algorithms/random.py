@@ -15,5 +15,5 @@ class RandomScheduler(BaseGreedyScheduler):
 
     def select_vm(self, task_id: int, dataset: Dataset, state: SimulationState) -> int:
         """Schedule the task on the next VM in the list."""
-        compatible_vms = [vm for vm in dataset.vms if vm.is_compatible(dataset.tasks[task_id])]
+        compatible_vms = [vm for vm in dataset.vms if vm.is_compatible(dataset.tasks[task_id], state.vm_states[vm.id])]
         return random.choice([vm.id for vm in compatible_vms])

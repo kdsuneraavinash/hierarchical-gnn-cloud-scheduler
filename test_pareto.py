@@ -138,9 +138,9 @@ def main():
     run_evaluation(
         [
             generate_dataset(
-                dataset_key=key,
+                dataset_key=str(key),
                 rng=np.random.RandomState(TEST_SEED),
-                args=DatasetArgs.real_world(),
+                args=DatasetArgs.real_world_breakdowns(),
             )
             for key in range(1)
         ]
