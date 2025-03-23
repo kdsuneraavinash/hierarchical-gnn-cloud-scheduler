@@ -2,7 +2,7 @@ from itertools import product
 from train import Args, train
 
 
-for m, e, s in product(range(3), range(3), range(3)):
+for m, e, s in product(range(2), range(2), range(2)):
     if m + e + s == 0:
         continue
     train(

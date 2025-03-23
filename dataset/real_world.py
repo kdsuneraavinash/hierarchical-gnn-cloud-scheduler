@@ -27,6 +27,14 @@ class RealWorldDatasetArgs(DatasetArgs):
     """gap between a vm breakdown and its revival"""
     vm_breakdown_max_gap: int = 5
     """gap between a vm revival and a new vm breakdown"""
+    estimation_errors: bool = False
+    """existance of estimation errors (actual when running is different)"""
+    task_length_estimation_error: float = 0.1
+    """error rate of the task length estimation"""
+    cpu_speed_estimation_error: float = 0.02
+    """error rate of the host/vm cpu speed estimation"""
+    power_estimation_error: float = 0.05
+    """error rate of the host/vm power estimation"""
 
 
 def generate_real_world_dataset(key: str, args: RealWorldDatasetArgs, rng: np.random.RandomState) -> Dataset:
@@ -93,12 +101,7 @@ def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Prefer
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-def generate_hosts(args: DatasetArgs, rng: np.random.RandomState) -> list[Host]:
-    """
-    Generate a list of hosts with the specified number of hosts.
-    Uses the host specifications from data/host_specs.json.
-    """
-
+def generate_hosts(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list[Host]:
     with open(Path(__file__).parent / "data" / "host_specs.json", "r") as f:
         available_hosts: list[dict[str, Any]] = json.load(f)
 
@@ -108,13 +111,20 @@ def generate_hosts(args: DatasetArgs, rng: np.random.RandomState) -> list[Host]:
     hosts: list[Host] = []
     for i in range(host_count):
         spec = available_hosts[rng.randint(0, len(available_hosts))]
+        actual_cpu_speed, est_cpu_speed = _estimate(float(spec["cpu_speed_gips"] * 1e3), "cpu", args, rng)
+        actual_power_idle, est_power_idle = _estimate(float(spec["power_idle_watt"]), "power", args, rng)
+        actual_power_peak, est_power_peak = _estimate(float(spec["power_peak_watt"]), "power", args, rng)
+
         hosts.append(
             Host(
                 id=i,
                 cores=int(spec["cores"]),
-                cpu_speed_mips=int(spec["cpu_speed_gips"] * 1e3),
-                power_idle_watt=int(spec["power_idle_watt"]),
-                power_peak_watt=int(spec["power_peak_watt"]),
+                cpu_speed_mips=int(est_cpu_speed),
+                power_idle_watt=int(est_power_idle),
+                power_peak_watt=int(est_power_peak),
+                actual_cpu_speed_mips=int(actual_cpu_speed),
+                actual_power_idle_watt=int(actual_power_idle),
+                actual_power_peak_watt=int(actual_power_peak),
             )
         )
     return hosts
@@ -141,16 +151,19 @@ def generate_vms(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list
         probabilities = list(map(float, vm_specs[key].values()))
         return int(rng.choice(values, p=probabilities))
 
-    vms = [
-        Vm(
-            id=i,
-            host_id=rng.randint(0, host_count),
-            cpu_speed_mips=from_vm_dist("speed_mips"),
-            memory_gb=from_vm_dist("memory_gb") / 1024,
-            disk_gb=from_vm_dist("disk_gb"),
+    vms: list[Vm] = []
+    for i in range(vm_count):
+        actual_cpu_speed, est_cpu_speed = _estimate(from_vm_dist("speed_mips"), "cpu", args, rng)
+        vms.append(
+            Vm(
+                id=i,
+                host_id=rng.randint(0, host_count),
+                cpu_speed_mips=int(est_cpu_speed),
+                memory_gb=from_vm_dist("memory_mb") / 1024,
+                disk_gb=from_vm_dist("disk_gb"),
+                actual_cpu_speed_mips=int(actual_cpu_speed),
+            )
         )
-        for i in range(vm_count)
-    ]
 
     args.context["max_vm_memory_gb"] = str(max(vm.memory_gb for vm in vms))
     args.context["max_vm_disk_gb"] = str(max(vm.disk_gb for vm in vms))
@@ -169,11 +182,6 @@ def get_dag_gen(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> BaseD
     if args.dag_structure == "BranchParallel":
         return branch_parallel_dag_gen
     raise ValueError("Unknown dag structure")
-
-
-def generate_dag(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> dict[int, set[int]]:
-    workflow_task_count = int(args.context["workflow_task_count"])
-    return get_dag_gen(args, rng).generate(workflow_task_count, rng)
 
 
 def min_dag_size(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> int:
@@ -209,22 +217,22 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     tasks: list[Task] = []
     for workflow_id in range(workflow_count):
-        args.context["workflow_task_count"] = str(tasks_per_workflow[workflow_id])
-        dag = generate_dag(args, rng)
-        tasks.extend(
-            [
+        dag = get_dag_gen(args, rng).generate(tasks_per_workflow[workflow_id], rng)
+        task_offset = len(tasks)
+        for task_id, child_ids in dag.items():
+            actual_task_length, est_task_length = _estimate(task_length(), "task_length", args, rng)
+            tasks.append(
                 Task(
-                    id=len(tasks) + task_id,
+                    id=task_offset + task_id,
                     workflow_id=workflow_id,
-                    length=int(task_length()),
-                    child_ids=[len(tasks) + child_id for child_id in child_ids],
+                    length=int(est_task_length),
+                    child_ids=[task_offset + child_id for child_id in child_ids],
                     req_memory_gb=rng.uniform(low=0, high=max_vm_memory_gb),
                     req_disk_gb=rng.uniform(low=0, high=max_vm_disk_gb),
                     priority=int(rng.random() <= priority_production_prob),
+                    actual_length=int(actual_task_length),
                 )
-                for task_id, child_ids in dag.items()
-            ]
-        )
+            )
 
     return tasks
 
@@ -266,3 +274,25 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
         workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
 
     return workflows
+
+
+# Utils
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+def _estimate(actual: float, metric: str, args: RealWorldDatasetArgs, rng: np.random.RandomState):
+    estimation = actual
+    if args.estimation_errors:
+        error_rate = 0
+        if metric == "cpu":
+            error_rate = args.cpu_speed_estimation_error
+        elif metric == "power":
+            error_rate = args.power_estimation_error
+        elif metric == "task_length":
+            error_rate = args.task_length_estimation_error
+        else:
+            raise ValueError(f"Unknown metric: {metric}")
+
+        error = (2 * rng.random() - 1) * error_rate
+        estimation += int(error * estimation)
+    return actual, estimation

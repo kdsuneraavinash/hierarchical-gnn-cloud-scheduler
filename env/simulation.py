@@ -44,7 +44,7 @@ class Simulation:
             return f"{task_id=} {vm_id=}: VM not available", True
 
         # Convert to numpy arrays
-        processing_time = self.dataset.vms[vm_id].execution_time(self.dataset.tasks[task_id])
+        processing_time = self.dataset.vms[vm_id].actual_execution_time(self.dataset.tasks[task_id])
         task_dependencies = {(task.id, child_id) for task in self.dataset.tasks for child_id in task.child_ids}
         task_is_ready = np.array([t.is_ready for t in self.state.task_states])
         task_start_time = np.array([t.start_time for t in self.state.task_states])
@@ -151,6 +151,8 @@ class Simulation:
 
         assignments.sort(key=lambda x: x[0])
         return [assignment[1] for assignment in assignments]
+
+    # --- estimated metrics ---
 
     def makespan(self) -> float:
         return max(task_completion_time_est(self.dataset, self.state.task_states, self.state.vm_states))

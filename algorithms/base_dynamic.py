@@ -3,6 +3,7 @@ from time import perf_counter
 
 from algorithms.base_abstract import BaseAbstractScheduler
 from dataset.models import Dataset, VmAssignment
+from dataset.utils import safe_clone
 from env.simulation import Simulation
 from env.state import SimulationState
 
@@ -17,11 +18,12 @@ class BaseDynamicScheduler(BaseAbstractScheduler, ABC):
     def schedule(self, dataset: Dataset) -> list[VmAssignment]:
         self.run_time_history.clear()
         simulation = Simulation(dataset)
+        safe_dataset = safe_clone(0, dataset)
 
         done = need_reschedule = False
         while not done or need_reschedule:
             start_time = perf_counter()
-            task_id, vm_id = self.select_task_and_vm(dataset, simulation.state)
+            task_id, vm_id = self.select_task_and_vm(safe_dataset, simulation.state)
             end_time = perf_counter()
             self.run_time_history.append(end_time - start_time)
 

@@ -23,10 +23,7 @@ class Task:
     req_memory_gb: float
     req_disk_gb: float
     priority: float
-
-    @staticmethod
-    def dummy(id: int, workflow_id: int):
-        return Task(id=id, workflow_id=workflow_id, length=0, child_ids=[], req_memory_gb=0, req_disk_gb=0, priority=0)
+    actual_length: int
 
 
 @dataclass
@@ -36,6 +33,7 @@ class Vm:
     cpu_speed_mips: int
     memory_gb: float
     disk_gb: float
+    actual_cpu_speed_mips: int
 
     def is_compatible(self, task: Task, vm_state: VmState | None = None) -> bool:
         return (
@@ -47,6 +45,9 @@ class Vm:
     def execution_time(self, task: Task) -> float:
         return task.length / self.cpu_speed_mips
 
+    def actual_execution_time(self, task: Task) -> float:
+        return task.length / self.actual_cpu_speed_mips
+
 
 @dataclass
 class Host:
@@ -55,13 +56,23 @@ class Host:
     cpu_speed_mips: int
     power_idle_watt: int
     power_peak_watt: int
+    actual_cpu_speed_mips: int
+    actual_power_idle_watt: int
+    actual_power_peak_watt: int
 
     @property
     def active_power_consumption_rate(self) -> float:
         return (self.power_peak_watt - self.power_idle_watt) / self.cpu_speed_mips
 
+    @property
+    def actual_active_power_consumption_rate(self) -> float:
+        return (self.actual_power_peak_watt - self.actual_power_idle_watt) / self.actual_cpu_speed_mips
+
     def active_power_consumption(self, task: Task) -> float:
         return task.length * self.active_power_consumption_rate
+
+    def actual_active_power_consumption(self, task: Task) -> float:
+        return task.length * self.actual_active_power_consumption_rate
 
 
 @dataclass
@@ -158,24 +169,26 @@ class Solution:
         vm_assignments = [VmAssignment(**vm_assignment) for vm_assignment in data.pop("vm_assignments")]
         return Solution(dataset=dataset, vm_assignments=vm_assignments)
 
-    def makespan(self) -> float:
+    # --- actual metrics ---
+
+    def actual_makespan(self) -> float:
         makespan: float = 0
         for assignment in self.vm_assignments:
             task = self.dataset.tasks[assignment.task_id]
             vm = self.dataset.vms[assignment.vm_id]
-            makespan = max(makespan, assignment.start_time + vm.execution_time(task))
+            makespan = max(makespan, assignment.start_time + vm.actual_execution_time(task))
         return makespan
 
-    def energy_consumption(self) -> float:
+    def actual_energy_consumption(self) -> float:
         energy_consumption: float = 0
         for assignment in self.vm_assignments:
             task = self.dataset.tasks[assignment.task_id]
             vm = self.dataset.vms[assignment.vm_id]
             host = self.dataset.hosts[vm.host_id]
-            energy_consumption += host.active_power_consumption(task)
+            energy_consumption += host.actual_active_power_consumption(task)
         return energy_consumption
 
-    def latency_score(self) -> float:
+    def actual_latency_score(self) -> float:
         latency_score: float = 0
         for assignment in self.vm_assignments:
             task = self.dataset.tasks[assignment.task_id]

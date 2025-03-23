@@ -54,9 +54,9 @@ def run_evaluation(datasets: list[Dataset]) -> None:
             assignments = scheduler.schedule(dataset)
             solution = Solution(dataset, assignments)
             table.update("index", value=d_i)
-            table.update("makespan", value=solution.makespan())
-            table.update("energy_consumption", value=solution.energy_consumption())
-            table.update("latency_score", value=solution.latency_score())
+            table.update("makespan", value=solution.actual_makespan())
+            table.update("energy_consumption", value=solution.actual_energy_consumption())
+            table.update("latency_score", value=solution.actual_latency_score())
             table.update("run_time", value=scheduler.run_time())
             table.update("decision_latency", value=scheduler.decision_latency())
             table.next_row()
@@ -126,5 +126,5 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     rng = np.random.RandomState(EVALUATION_SEED)
-    datasets = [generate_dataset(rng=rng, args=DatasetArgs.real_world(), dataset_key=i) for i in range(4)]
+    datasets = [generate_dataset(rng=rng, args=DatasetArgs.real_world(), dataset_key=str(i)) for i in range(4)]
     run_evaluation(datasets)

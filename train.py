@@ -126,8 +126,8 @@ def make_dataset_args(args: Args) -> DatasetArgs:
         dataset = DatasetArgs.synthentic()
     elif args.dataset_type == "real_world":
         dataset = DatasetArgs.real_world()
-    elif args.dataset_type == "real_world_breakdowns":
-        dataset = DatasetArgs.real_world_breakdowns()
+    elif args.dataset_type == "real_world_dynamic":
+        dataset = DatasetArgs.real_world_dynamic()
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
     return dataset.with_priority(args.makespan_pref, args.energy_pref, args.latency_pref)
@@ -407,9 +407,9 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
         assignments = test_scheduler.schedule(dataset)
         solution = Solution(dataset, assignments)
 
-        total_makespan += solution.makespan()
-        total_energy_consumption += solution.energy_consumption()
-        total_latency_score += solution.latency_score()
+        total_makespan += solution.actual_makespan()
+        total_energy_consumption += solution.actual_energy_consumption()
+        total_latency_score += solution.actual_latency_score()
 
     avg_makespan = total_makespan / args.test_iterations
     avg_energy_consumption = total_energy_consumption / args.test_iterations

@@ -92,9 +92,9 @@ def run_evaluation(datasets: list[Dataset]) -> None:
             assignments = scheduler.schedule(dataset)
             solution = Solution(dataset, assignments)
 
-            makespan = solution.makespan()
-            energy_consumption = solution.energy_consumption()
-            latency_score = solution.latency_score()
+            makespan = solution.actual_makespan()
+            energy_consumption = solution.actual_energy_consumption()
+            latency_score = solution.actual_latency_score()
             run_time = scheduler.run_time()
             decision_latency = scheduler.decision_latency()
             table.update("makespan", value=makespan, aggregate="mean")
@@ -140,7 +140,7 @@ def main():
             generate_dataset(
                 dataset_key=str(key),
                 rng=np.random.RandomState(TEST_SEED),
-                args=DatasetArgs.real_world_breakdowns(),
+                args=DatasetArgs.real_world_dynamic(),
             )
             for key in range(1)
         ]

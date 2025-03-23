@@ -53,10 +53,11 @@ class DatasetArgs:
             latency_score_preference=LATENCY_SCORE_PREFERENCE,
             dag_structure="BranchParallel",
             vm_breakdowns=False,
+            estimation_errors=False,
         )
 
     @staticmethod
-    def real_world_breakdowns():
+    def real_world_dynamic():
         from dataset.real_world import RealWorldDatasetArgs
 
         return RealWorldDatasetArgs(
@@ -68,6 +69,7 @@ class DatasetArgs:
             latency_score_preference=LATENCY_SCORE_PREFERENCE,
             dag_structure="BranchParallel",
             vm_breakdowns=True,
+            estimation_errors=True,
         )
 
     @staticmethod

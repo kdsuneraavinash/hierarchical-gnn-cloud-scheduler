@@ -1,13 +1,15 @@
+import json
 import math
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 from scipy import stats
 
 from dataset.generator import DatasetArgs
-from dataset.models import Dataset, Task, Vm, Workflow
-from dataset.real_world import generate_hosts, generate_poisson_delay, generate_preference
+from dataset.models import Dataset, Host, Task, Vm, Workflow
+from dataset.real_world import generate_poisson_delay, generate_preference
 
 
 @dataclass
@@ -61,6 +63,35 @@ def generate_synthetic_dataset(key: str, args: SyntheticDatasetArgs, rng: np.ran
     return dataset
 
 
+# Generating Hosts
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+def generate_hosts(args: DatasetArgs, rng: np.random.RandomState) -> list[Host]:
+    with open(Path(__file__).parent / "data" / "host_specs.json", "r") as f:
+        available_hosts: list[dict[str, Any]] = json.load(f)
+
+    host_count = rng.randint(2, args.max_host_count + 1)
+    args.context["host_count"] = str(host_count)
+
+    hosts: list[Host] = []
+    for i in range(host_count):
+        spec = available_hosts[rng.randint(0, len(available_hosts))]
+        hosts.append(
+            Host(
+                id=i,
+                cores=int(spec["cores"]),
+                cpu_speed_mips=int(spec["cpu_speed_gips"] * 1e3),
+                power_idle_watt=int(spec["power_idle_watt"]),
+                power_peak_watt=int(spec["power_peak_watt"]),
+                actual_cpu_speed_mips=int(spec["cpu_speed_gips"] * 1e3),
+                actual_power_idle_watt=int(spec["power_idle_watt"]),
+                actual_power_peak_watt=int(spec["power_peak_watt"]),
+            )
+        )
+    return hosts
+
+
 # Generating and Allocating VMs
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -74,16 +105,21 @@ def generate_vms(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> list
     vm_count = rng.randint(2, args.max_vm_count + 1)
     args.context["vm_count"] = str(vm_count)
 
-    return [
-        Vm(
-            id=i,
-            host_id=rng.randint(0, host_count),
-            cpu_speed_mips=rng.randint(args.min_cpu_speed, args.max_cpu_speed + 1),
-            memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
-            disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
+    vms: list[Vm] = []
+    for i in range(vm_count):
+        cpu_speed_mips = rng.randint(args.min_cpu_speed, args.max_cpu_speed + 1)
+        vms.append(
+            Vm(
+                id=i,
+                host_id=rng.randint(0, host_count),
+                cpu_speed_mips=cpu_speed_mips,
+                memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
+                disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
+                actual_cpu_speed_mips=cpu_speed_mips,
+            )
         )
-        for i in range(vm_count)
-    ]
+
+    return vms
 
 
 # Generating Task Length
@@ -169,20 +205,21 @@ def generate_tasks(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> li
     for workflow_id in range(workflow_count):
         args.context["workflow_task_count"] = workflow_task_counts[workflow_id]
         dag = generate_dag(args, rng)
-        tasks.extend(
-            [
+        task_offset = len(tasks)
+        for task_id, child_ids in dag.items():
+            task_length = generate_task_length(args, rng)
+            tasks.append(
                 Task(
-                    id=len(tasks) + task_id,
+                    id=task_offset + task_id,
                     workflow_id=workflow_id,
-                    length=int(generate_task_length(args, rng)),
-                    child_ids=[len(tasks) + child_id for child_id in child_ids],
+                    length=int(task_length),
+                    child_ids=[task_offset + child_id for child_id in child_ids],
                     req_memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
                     req_disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
                     priority=int(rng.random() <= args.task_high_priority_probability),
+                    actual_length=int(task_length),
                 )
-                for task_id, child_ids in dag.items()
-            ]
-        )
+            )
 
     assert len(tasks) == args.task_count, f"Unexpected number of tasks generated: {len(tasks)}"
     return tasks
