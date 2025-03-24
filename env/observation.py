@@ -8,7 +8,6 @@ from constants import F_TASK, F_VM, N_TASK, N_VM, OBS_SIZE
 from dataset.models import Dataset
 from env.state import TaskState, VmState
 from env.utils import (
-    compute_task_makespan_ranks,
     task_completion_time_est,
     task_energy_consumption_est,
     task_latency_score_est,
@@ -41,7 +40,6 @@ class EnvObsTensor:
 
 
 def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState]) -> EnvObs:
-    task_makespan_ranks = compute_task_makespan_ranks(dataset)
     task_completion_time = task_completion_time_est(dataset, task_states, vm_states)
     task_energy_consumption = task_energy_consumption_est(dataset, task_states, vm_states)
     task_latency_score = task_latency_score_est(dataset, task_states, vm_states)
@@ -61,11 +59,6 @@ def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: li
     def feat_task_completion_time(t_id: int) -> float:
         if t_id < len(task_states):
             return task_completion_time[t_id]
-        return 0
-
-    def feat_task_makespan_rank(t_id: int) -> float:
-        if t_id < len(task_states):
-            return task_makespan_ranks[t_id]
         return 0
 
     def feat_task_energy_consumption(t_id: int) -> float:
@@ -124,7 +117,6 @@ def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: li
                 feat_task_is_schedulable(t_id),
                 feat_task_is_scheduled(t_id),
                 feat_task_completion_time(t_id),
-                feat_task_makespan_rank(t_id),
                 feat_task_energy_consumption(t_id),
                 feat_task_latency_score(t_id),
                 feat_task_priority(t_id),

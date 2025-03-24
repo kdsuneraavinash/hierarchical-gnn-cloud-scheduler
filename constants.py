@@ -7,9 +7,9 @@ DEFAULT_MAX_TASKS_PER_WORKFLOW = 20
 
 # --- Buffer size/Tensor size constraints ---
 
-N_TASK = 100
-N_VM = 10
-F_TASK = 7  # Number of task features
+N_TASK = DEFAULT_TASK_COUNT
+N_VM = DEFAULT_MAX_VM_COUNT
+F_TASK = 6  # Number of task features
 F_VM = 4  # Number of VM features
 OBS_SIZE = (N_TASK * F_TASK) + (N_TASK * N_VM * F_VM) + N_TASK + (N_TASK * N_VM) + (N_TASK * N_TASK)
 ACT_SIZE = N_TASK * N_VM + N_VM
@@ -23,7 +23,7 @@ EVALUATION_SEED = 200_000  # Seed used for evaluation
 
 MAKESPAN_PREFERENCE = 1
 ENERGY_CONSUMPTION_PREFERENCE = 1
-LATENCY_SCORE_PREFERENCE = 0
+LATENCY_SCORE_PREFERENCE = 1
 
 # --- Other Constants ---
 

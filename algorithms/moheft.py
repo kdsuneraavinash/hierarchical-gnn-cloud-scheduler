@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Callable
 from algorithms.base_mo import BaseMoScheduler, SolutionStoreType
+from algorithms.heft import compute_task_makespan_ranks
 from dataset.models import Dataset
-from env.utils import compute_task_makespan_ranks
 
 
 class MoheftScheduler(BaseMoScheduler):
