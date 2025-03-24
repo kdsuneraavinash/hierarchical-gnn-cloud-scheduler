@@ -5,10 +5,9 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from progress_table import ProgressTable
-from progress_table.v1.progress_table import TableProgressBar
+from progress_table.progress_table import TableProgressBar
 
 from algorithms.base_mo import SolutionStoreType
-from algorithms.drl_agent import DrlAgentScheduler
 from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
 from algorithms.heft import HeftScheduler
@@ -78,9 +77,9 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
         *[Nsga3Scheduler(store=nsga3_store, index=i) for i in range(100)],
         *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
-        *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
-        *[DrlAgentScheduler("Proposed-Real", model_path=model, agent_type="gnn") for model in real_world_real_models],
-        *[DrlAgentScheduler("Proposed-MLP", model_path=model, agent_type="mlp") for model in synthetic_mlp_models],
+        # *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
+        # *[DrlAgentScheduler("Proposed-Real", model_path=model, agent_type="gnn") for model in real_world_real_models],
+        # *[DrlAgentScheduler("Proposed-MLP", model_path=model, agent_type="mlp") for model in synthetic_mlp_models],
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
@@ -150,7 +149,7 @@ def main():
             generate_dataset(
                 dataset_key=str(key),
                 rng=np.random.RandomState(TEST_SEED),
-                args=DatasetArgs.real_world_dynamic(),
+                args=DatasetArgs.synthentic(),
             )
             for key in range(1)
         ]

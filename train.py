@@ -14,7 +14,7 @@ import tyro
 from tyro.conf import Suppress
 from gymnasium.wrappers import RecordEpisodeStatistics
 from progress_table import ProgressTable
-from progress_table.v1.progress_table import TableProgressBar
+from progress_table.progress_table import TableProgressBar
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from algorithms.drl_agent import DrlAgentScheduler

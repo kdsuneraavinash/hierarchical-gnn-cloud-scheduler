@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 from progress_table import ProgressTable
-from progress_table.v1.progress_table import TableProgressBar
+from progress_table.progress_table import TableProgressBar
 
 from algorithms.base_abstract import BaseAbstractScheduler
 from algorithms.drl_agent import DrlAgentScheduler
