@@ -132,7 +132,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
 
     table.close()
 
-    fig = plt.figure(figsize=(12, 5))
+    fig = plt.figure(figsize=(12, 10))
     plot_2d_pareto_fronts(fig, summary_data)
     plt.show()
 

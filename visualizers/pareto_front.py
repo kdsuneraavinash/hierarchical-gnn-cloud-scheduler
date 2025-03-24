@@ -40,11 +40,12 @@ def plot_pareto_front(ax: axes.Axes, data: dict[str, list[tuple[float, float]]])
 
 
 def plot_2d_pareto_fronts(fig: figure.Figure, data: dict[str, list[dict[str, float]]]) -> None:
-    axes = fig.subplots(1, 2)
+    axes = fig.subplots(2, 2).flatten()
     metric_pairs = [
         # xlabel, ylabel, x_axis_metric_key, y_axis_metric_key
         ("Makespan", "Energy Consumption", "makespan", "energy_consumption"),
-        ("Latency Score", "Energy Consumption", "sla_penalty", "energy_consumption"),
+        ("SLA Penalty", "Energy Consumption", "sla_penalty", "energy_consumption"),
+        ("Makespan", "SLA Penalty", "makespan", "sla_penalty"),
     ]
     for ax, (xlabel, ylabel, x_axis_metric_key, y_axis_metric_key) in zip(axes, metric_pairs):
         data_points = {k: [(w[x_axis_metric_key], w[y_axis_metric_key]) for w in v] for k, v in data.items()}
