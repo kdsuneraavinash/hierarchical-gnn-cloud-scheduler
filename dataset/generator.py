@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Literal
 
 import numpy as np
 
@@ -41,50 +42,45 @@ class DatasetArgs:
         return type(self)(**kwargs)
 
     @staticmethod
-    def real_world():
-        from dataset.real_world import RealWorldDatasetArgs
-
-        return RealWorldDatasetArgs(
-            task_count=DEFAULT_TASK_COUNT,
-            max_vm_count=DEFAULT_MAX_VM_COUNT,
-            max_host_count=DEFAULT_MAX_HOST_COUNT,
-            makespan_preference=MAKESPAN_PREFERENCE,
-            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-            sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
-            dag_structure="BranchParallel",
-            vm_breakdowns=False,
-            estimation_errors=False,
-        )
-
-    @staticmethod
-    def real_world_dynamic():
-        from dataset.real_world import RealWorldDatasetArgs
-
-        return RealWorldDatasetArgs(
-            task_count=DEFAULT_TASK_COUNT,
-            max_vm_count=DEFAULT_MAX_VM_COUNT,
-            max_host_count=DEFAULT_MAX_HOST_COUNT,
-            makespan_preference=MAKESPAN_PREFERENCE,
-            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-            sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
-            dag_structure="BranchParallel",
-            vm_breakdowns=True,
-            estimation_errors=True,
-        )
-
-    @staticmethod
-    def synthentic():
+    def create(dataset_type: "DatasetType"):
         from dataset.synthetic import SyntheticDatasetArgs
+        from dataset.real_world import RealWorldDatasetArgs
 
-        return SyntheticDatasetArgs(
-            task_count=DEFAULT_TASK_COUNT,
-            max_vm_count=DEFAULT_MAX_VM_COUNT,
-            max_host_count=DEFAULT_MAX_HOST_COUNT,
-            max_tasks_per_workflow=DEFAULT_MAX_TASKS_PER_WORKFLOW,
-            makespan_preference=MAKESPAN_PREFERENCE,
-            energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-            sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
-        )
+        if dataset_type == "synthetic":
+            return SyntheticDatasetArgs(
+                task_count=DEFAULT_TASK_COUNT,
+                max_vm_count=DEFAULT_MAX_VM_COUNT,
+                max_host_count=DEFAULT_MAX_HOST_COUNT,
+                max_tasks_per_workflow=DEFAULT_MAX_TASKS_PER_WORKFLOW,
+                makespan_preference=MAKESPAN_PREFERENCE,
+                energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+                sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
+            )
+        if dataset_type == "real_world":
+            return RealWorldDatasetArgs(
+                task_count=DEFAULT_TASK_COUNT,
+                max_vm_count=DEFAULT_MAX_VM_COUNT,
+                max_host_count=DEFAULT_MAX_HOST_COUNT,
+                makespan_preference=MAKESPAN_PREFERENCE,
+                energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+                sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
+                dag_structure="BranchParallel",
+                vm_breakdowns=False,
+                estimation_errors=False,
+            )
+        if dataset_type == "real_world_dynamic":
+            return RealWorldDatasetArgs(
+                task_count=DEFAULT_TASK_COUNT,
+                max_vm_count=DEFAULT_MAX_VM_COUNT,
+                max_host_count=DEFAULT_MAX_HOST_COUNT,
+                makespan_preference=MAKESPAN_PREFERENCE,
+                energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
+                sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
+                dag_structure="BranchParallel",
+                vm_breakdowns=True,
+                estimation_errors=True,
+            )
+        raise ValueError(f"Unknown dataset type: {dataset_type}")
 
 
 def generate_dataset(args: DatasetArgs, rng: np.random.RandomState, dataset_key: str = "") -> Dataset:
@@ -96,3 +92,6 @@ def generate_dataset(args: DatasetArgs, rng: np.random.RandomState, dataset_key:
     if isinstance(args, RealWorldDatasetArgs):
         return generate_real_world_dataset(dataset_key, args, rng)
     raise ValueError("Unknown dataset args type: " + str(args))
+
+
+DatasetType = Literal["synthetic", "real_world", "real_world_dynamic"]

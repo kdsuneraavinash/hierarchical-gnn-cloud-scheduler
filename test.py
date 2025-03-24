@@ -126,5 +126,5 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     rng = np.random.RandomState(EVALUATION_SEED)
-    datasets = [generate_dataset(rng=rng, args=DatasetArgs.real_world(), dataset_key=str(i)) for i in range(4)]
+    datasets = [generate_dataset(rng=rng, args=DatasetArgs.create("real_world"), dataset_key=str(i)) for i in range(4)]
     run_evaluation(datasets)

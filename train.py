@@ -21,10 +21,10 @@ from algorithms.drl_agent import DrlAgentScheduler
 from constants import (
     TEST_SEED,
 )
-from dataset.generator import DatasetArgs, generate_dataset
+from dataset.generator import DatasetArgs, DatasetType, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
-from models.agent import make_agent
+from models.agent import AgentType, make_agent
 from models.base_agent import BaseAgent
 
 
@@ -33,8 +33,8 @@ class Args:
     exp_name: str = "test"
     """the name of this experiment"""
 
-    agent_type: str = "gnn"
-    """the type of agent (gnn, drl)"""
+    agent_type: AgentType = "gnn"
+    """the type of agent"""
 
     seed: int = 1
     """seed of the experiment"""
@@ -89,7 +89,7 @@ class Args:
     target_kl: float | None = None
     """the target KL divergence threshold"""
 
-    dataset_type: str = "synthetic"
+    dataset_type: DatasetType = "synthetic"
     """the dataset type to use"""
     makespan_pref: float = 1
     """the makespan preference of the reward"""
@@ -100,11 +100,11 @@ class Args:
 
     # to be filled in runtime
     batch_size: Suppress[int] = 0
-    """the batch size (computed in runtime)"""
+    """the batch size"""
     minibatch_size: Suppress[int] = 0
-    """the mini-batch size (computed in runtime)"""
+    """the mini-batch size"""
     num_iterations: Suppress[int] = 0
-    """the number of iterations (computed in runtime)"""
+    """the number of iterations"""
     run_name: Suppress[str] = ""
     """the full name of the run"""
     dataset: Suppress[DatasetArgs | None] = None
@@ -122,14 +122,7 @@ def make_env(idx: int, args: Args) -> gym.Env[np.ndarray[tuple[int, ...], Any], 
 
 
 def make_dataset_args(args: Args) -> DatasetArgs:
-    if args.dataset_type == "synthetic":
-        dataset = DatasetArgs.synthentic()
-    elif args.dataset_type == "real_world":
-        dataset = DatasetArgs.real_world()
-    elif args.dataset_type == "real_world_dynamic":
-        dataset = DatasetArgs.real_world_dynamic()
-    else:
-        raise ValueError(f"Unknown dataset type: {args.dataset_type}")
+    dataset = DatasetArgs.create(args.dataset_type)
     return dataset.with_priority(args.makespan_pref, args.energy_pref, args.sla_penalty_pref)
 
 

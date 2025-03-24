@@ -149,7 +149,7 @@ def main():
             generate_dataset(
                 dataset_key=str(key),
                 rng=np.random.RandomState(TEST_SEED),
-                args=DatasetArgs.synthentic(),
+                args=DatasetArgs.create("synthetic"),
             )
             for key in range(1)
         ]

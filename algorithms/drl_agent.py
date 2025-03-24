@@ -5,7 +5,7 @@ from constants import N_VM
 from dataset.models import Dataset
 from env.observation import create_env_obs, encode_env_obs
 from env.state import SimulationState
-from models.agent import make_agent
+from models.agent import AgentType, make_agent
 from models.base_agent import BaseAgent
 
 
@@ -14,7 +14,7 @@ class DrlAgentScheduler(BaseDynamicScheduler):
         self,
         name: str,
         model_path: str | None = None,
-        agent_type: str | None = None,
+        agent_type: AgentType | None = None,
         agent: BaseAgent | None = None,
     ):
         super().__init__(name)

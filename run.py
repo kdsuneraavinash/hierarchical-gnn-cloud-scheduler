@@ -15,7 +15,7 @@ def main() -> None:
     np.random.seed(0)
 
     agent = GnnAgent(torch.device("cpu"))
-    env = GymEnvironment(dataset_args=DatasetArgs.real_world())
+    env = GymEnvironment(dataset_args=DatasetArgs.create("real_world"))
     obs, info = env.reset(seed=0)
     tensor_obs = torch.Tensor(obs)
     curr_iter = 0
