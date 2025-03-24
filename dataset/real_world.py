@@ -31,9 +31,9 @@ class RealWorldDatasetArgs(DatasetArgs):
     """existance of estimation errors (actual when running is different)"""
     task_length_estimation_error: float = 0.1
     """error rate of the task length estimation"""
-    cpu_speed_estimation_error: float = 0.02
+    cpu_speed_estimation_error: float = 0
     """error rate of the host/vm cpu speed estimation"""
-    power_estimation_error: float = 0.05
+    power_estimation_error: float = 0
     """error rate of the host/vm power estimation"""
 
 

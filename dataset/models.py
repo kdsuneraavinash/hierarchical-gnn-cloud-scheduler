@@ -46,7 +46,7 @@ class Vm:
         return task.length / self.cpu_speed_mips
 
     def actual_execution_time(self, task: Task) -> float:
-        return task.length / self.actual_cpu_speed_mips
+        return task.actual_length / self.actual_cpu_speed_mips
 
 
 @dataclass
@@ -72,7 +72,7 @@ class Host:
         return task.length * self.active_power_consumption_rate
 
     def actual_active_power_consumption(self, task: Task) -> float:
-        return task.length * self.actual_active_power_consumption_rate
+        return task.actual_length * self.actual_active_power_consumption_rate
 
 
 @dataclass
