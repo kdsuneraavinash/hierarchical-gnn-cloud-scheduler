@@ -1,7 +1,7 @@
 import numpy as np
 from dataset.models import Dataset, VmAssignment, VmEvent
 from env.state import SimulationState, TaskState, VmState
-from env.utils import task_completion_time_est, task_energy_consumption_est, task_latency_score_est
+from env.utils import task_completion_time_est, task_energy_consumption_est, task_sla_penalty_est
 
 
 class Simulation:
@@ -160,8 +160,8 @@ class Simulation:
     def total_energy_consumption(self) -> float:
         return sum(task_energy_consumption_est(self.dataset, self.state.task_states, self.state.vm_states))
 
-    def total_latency_score(self) -> float:
-        return sum(task_latency_score_est(self.dataset, self.state.task_states, self.state.vm_states))
+    def total_sla_penalty(self) -> float:
+        return sum(task_sla_penalty_est(self.dataset, self.state.task_states, self.state.vm_states))
 
 
 def _assign_vm(

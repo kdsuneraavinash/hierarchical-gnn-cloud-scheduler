@@ -24,9 +24,10 @@ class MoheftScheduler(BaseMoScheduler):
                 assignments=[],
                 vm_ready_times=[0] * len(dataset.vms),
                 task_completion_times=[-1] * len(dataset.tasks),
+                workflow_completion_times=[0] * len(dataset.workflows),
                 makespan=0,
                 energy_consumption=0,
-                latency_score=0,
+                sla_penalty=0,
             )
             for _ in range(self.solution_count)
         ]
@@ -48,16 +49,27 @@ class MoheftScheduler(BaseMoScheduler):
                     parent_max = max(parent_finish_times, default=0.0)
                     start_time = max(ready_time, parent_max)
                     finish_time = start_time + (task.length / vm.cpu_speed_mips)
-                    latency_score = start_time * task.priority
                     energy_cost = vm.host_id
+                    new_workflow_completion_times = schedule.workflow_completion_times.copy()
+                    new_workflow_completion_times[task.workflow_id] = max(
+                        finish_time, new_workflow_completion_times[task.workflow_id]
+                    )
+
+                    makespan = max(schedule.makespan, finish_time)
+                    energy_consumption = schedule.energy_consumption + energy_cost
+                    sla_penalty = sum(
+                        workflow.priority * completion_time
+                        for workflow, completion_time in zip(dataset.workflows, new_workflow_completion_times)
+                    )
 
                     new_schedule = CandidateSchedule(
                         assignments=schedule.assignments.copy(),
                         vm_ready_times=schedule.vm_ready_times.copy(),
                         task_completion_times=schedule.task_completion_times.copy(),
-                        makespan=max(schedule.makespan, finish_time),
-                        energy_consumption=schedule.energy_consumption + energy_cost,
-                        latency_score=schedule.latency_score + latency_score,
+                        workflow_completion_times=new_workflow_completion_times,
+                        makespan=makespan,
+                        energy_consumption=energy_consumption,
+                        sla_penalty=sla_penalty,
                     )
                     new_schedule.assignments.append((task.id, vm.id))
                     new_schedule.vm_ready_times[vm.id] = finish_time
@@ -72,7 +84,7 @@ class MoheftScheduler(BaseMoScheduler):
 
     def sort_by_crowding_distance(self, schedules: list["CandidateSchedule"]):
         """
-        Computes crowding distances for each schedule based on makespan, energy and latency.
+        Computes crowding distances for each schedule based on makespan, energy and sla penalties.
         Extreme schedules (best and worst for each objective) are assigned infinite distance.
         """
         if not schedules:
@@ -81,7 +93,7 @@ class MoheftScheduler(BaseMoScheduler):
         objective_fns: list[Callable[[CandidateSchedule], float]] = [
             lambda s: s.makespan,
             lambda s: s.energy_consumption,
-            lambda s: s.latency_score,
+            lambda s: s.sla_penalty,
         ]
         for obj_fn in objective_fns:
             schedules.sort(key=obj_fn)
@@ -105,7 +117,8 @@ class CandidateSchedule:
     assignments: list[tuple[int, int]]
     vm_ready_times: list[float]
     task_completion_times: list[float]
+    workflow_completion_times: list[float]
     makespan: float
     energy_consumption: float
-    latency_score: float
+    sla_penalty: float
     crowding_distance: float = 0

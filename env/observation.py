@@ -10,7 +10,7 @@ from env.state import TaskState, VmState
 from env.utils import (
     task_completion_time_est,
     task_energy_consumption_est,
-    task_latency_score_est,
+    task_sla_penalty_est,
 )
 
 # Dataclasses
@@ -42,7 +42,7 @@ class EnvObsTensor:
 def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState]) -> EnvObs:
     task_completion_time = task_completion_time_est(dataset, task_states, vm_states)
     task_energy_consumption = task_energy_consumption_est(dataset, task_states, vm_states)
-    task_latency_score = task_latency_score_est(dataset, task_states, vm_states)
+    task_sla_penalty = task_sla_penalty_est(dataset, task_states, vm_states)
 
     # --- Task Features ---
 
@@ -66,14 +66,9 @@ def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: li
             return task_energy_consumption[t_id]
         return 0
 
-    def feat_task_latency_score(t_id: int) -> float:
+    def feat_task_sla_penalty(t_id: int) -> float:
         if t_id < len(task_states):
-            return task_latency_score[t_id]
-        return 0
-
-    def feat_task_priority(t_id: int) -> float:
-        if t_id < len(task_states):
-            return dataset.tasks[t_id].priority
+            return task_sla_penalty[t_id]
         return 0
 
     # --- VM Features ---
@@ -118,8 +113,7 @@ def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: li
                 feat_task_is_scheduled(t_id),
                 feat_task_completion_time(t_id),
                 feat_task_energy_consumption(t_id),
-                feat_task_latency_score(t_id),
-                feat_task_priority(t_id),
+                feat_task_sla_penalty(t_id),
             )
             for t_id in range(N_TASK)
         ],

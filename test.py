@@ -56,7 +56,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
             table.update("index", value=d_i)
             table.update("makespan", value=solution.actual_makespan())
             table.update("energy_consumption", value=solution.actual_energy_consumption())
-            table.update("latency_score", value=solution.actual_latency_score())
+            table.update("sla_penalty", value=solution.actual_sla_penalty())
             table.update("run_time", value=scheduler.run_time())
             table.update("decision_latency", value=scheduler.decision_latency())
             table.next_row()
@@ -67,13 +67,13 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         sch_range = range(sch_start_i, sch_end_i)
         sch_makespan: list[float] = [table.at[i, 2] for i in sch_range]  # type: ignore
         sch_e_consumption: list[float] = [table.at[i, 3] for i in sch_range]  # type: ignore
-        sch_latency: list[float] = [table.at[i, 4] for i in sch_range]  # type: ignore
+        sch_sla_penalty: list[float] = [table.at[i, 4] for i in sch_range]  # type: ignore
         sch_run_time: list[float] = [table.at[i, 5] for i in sch_range]  # type: ignore
         sch_decision_latency: list[float] = [table.at[i, 6] for i in sch_range]  # type: ignore
 
         avg_makespan = sum(sch_makespan) / len(sch_makespan)
         avg_energy_consumption = sum(sch_e_consumption) / len(sch_e_consumption)
-        avg_latency = sum(sch_latency) / len(sch_latency)
+        avg_sla_penalty = sum(sch_sla_penalty) / len(sch_sla_penalty)
         avg_run_time = sum(sch_run_time) / len(sch_run_time)
         avg_decision_latency = sum(sch_decision_latency) / len(sch_decision_latency)
         summary_data.append(
@@ -82,7 +82,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
                 {
                     "makespan": avg_makespan,
                     "energy_consumption": avg_energy_consumption,
-                    "latency": avg_latency,
+                    "sla_penalty": avg_sla_penalty,
                     "run_time": avg_run_time,
                     "decision_latency": avg_decision_latency,
                 },
@@ -92,7 +92,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         table.update("name", scheduler.name)
         table.update("makespan", value=avg_makespan, cell_color="bold")
         table.update("energy_consumption", value=avg_energy_consumption, cell_color="bold")
-        table.update("latency_score", value=avg_latency, cell_color="bold")
+        table.update("sla_penalty", value=avg_sla_penalty, cell_color="bold")
         table.update("run_time", value=avg_run_time, cell_color="bold")
         table.update("decision_latency", value=avg_decision_latency, cell_color="bold")
         table.next_row(split=True)
@@ -105,7 +105,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         summary_table.update("name", name, width=15)
         summary_table.update("makespan", row["makespan"], width=20)
         summary_table.update("energy_consumption", row["energy_consumption"], width=20)
-        summary_table.update("latency", row["latency"], width=10)
+        summary_table.update("sla_penalty", row["sla_penalty"], width=10)
         summary_table.update("run_time", row["run_time"], width=10)
         summary_table.update("decision_latency", row["decision_latency"], width=10)
         summary_table.next_row()

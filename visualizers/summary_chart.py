@@ -7,13 +7,13 @@ from constants import CHART_AXIS_PAD
 
 def plot_summary_charts(df: pd.DataFrame) -> None:
     avg_df = df.groupby("name", as_index=False).agg(
-        {"makespan": "mean", "energy_consumption": "mean", "latency_score": "mean"}
+        {"makespan": "mean", "energy_consumption": "mean", "sla_penalty": "mean"}
     )
 
     avg_df["proposed"] = avg_df["name"].str.startswith("Proposed")
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5), sharex=False)
-    for i, metric in enumerate(["makespan", "energy_consumption", "latency_score"]):
+    for i, metric in enumerate(["makespan", "energy_consumption", "sla_penalty"]):
         avg_sorted = avg_df.sort_values(metric)
         sns.barplot(data=avg_sorted, x="name", y=metric, hue="proposed", ax=axes[i], palette="Set2", legend=False)
         y_min, y_max = avg_sorted[metric].min(), avg_sorted[metric].max()

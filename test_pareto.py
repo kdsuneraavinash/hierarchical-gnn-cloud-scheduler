@@ -51,6 +51,15 @@ real_world_real_models = [
     "logs/1742645566_gnn_real_branch_[0][0][1]/model.pt",
     "logs/1742650703_gnn_real_branch_[1][0][1]/model.pt",
 ]
+synthetic_mlp_models = [
+    "logs/1742758554_mlp_syn_[0][0][1]/model.pt",
+    "logs/1742762701_mlp_syn_[0][1][0]/model.pt",
+    "logs/1742769413_mlp_syn_[0][1][1]/model.pt",
+    "logs/1742771260_mlp_syn_[1][0][0]/model.pt",
+    "logs/1742773104_mlp_syn_[1][0][1]/model.pt",
+    "logs/1742774934_mlp_syn_[1][1][0]/model.pt",
+    "logs/1742776780_mlp_syn_[1][1][1]/model.pt",
+]
 
 
 def run_evaluation(datasets: list[Dataset]) -> None:
@@ -71,6 +80,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
         *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
         *[DrlAgentScheduler("Proposed-Real", model_path=model, agent_type="gnn") for model in real_world_real_models],
+        *[DrlAgentScheduler("Proposed-MLP", model_path=model, agent_type="mlp") for model in synthetic_mlp_models],
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
@@ -84,7 +94,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
 
         total_makespan: float = 0
         total_energy_consumption: float = 0
-        total_latency_score: float = 0
+        total_sla_penalty: float = 0
         total_run_time: float = 0
         total_decision_latency: float = 0
         for dataset in datasets:
@@ -94,17 +104,17 @@ def run_evaluation(datasets: list[Dataset]) -> None:
 
             makespan = solution.actual_makespan()
             energy_consumption = solution.actual_energy_consumption()
-            latency_score = solution.actual_latency_score()
+            sla_penalty = solution.actual_sla_penalty()
             run_time = scheduler.run_time()
             decision_latency = scheduler.decision_latency()
             table.update("makespan", value=makespan, aggregate="mean")
             table.update("energy_consumption", value=energy_consumption, aggregate="mean")
-            table.update("latency_score", value=latency_score, aggregate="mean")
+            table.update("sla_penalty", value=sla_penalty, aggregate="mean")
             table.update("run_time", value=run_time, aggregate="sum")
             table.update("decision_latency", value=decision_latency, aggregate="sum")
             total_makespan += makespan
             total_energy_consumption += energy_consumption
-            total_latency_score += latency_score
+            total_sla_penalty += sla_penalty
             total_run_time += run_time
             total_decision_latency += decision_latency
             progress_bar.update(1)
@@ -114,7 +124,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
             {
                 "makespan": total_makespan / len(datasets),
                 "energy_consumption": total_energy_consumption / len(datasets),
-                "latency_score": total_latency_score / len(datasets),
+                "sla_penalty": total_sla_penalty / len(datasets),
                 "run_time": total_run_time / len(datasets),
                 "decision_latency": total_decision_latency / len(datasets),
             }

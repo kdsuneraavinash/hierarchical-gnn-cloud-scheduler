@@ -67,5 +67,5 @@ class PyMooOptimizationProblem(ElementwiseProblem):
         out["F"] = [
             simulation.makespan(),
             simulation.total_energy_consumption(),
-            simulation.total_latency_score(),
+            simulation.total_sla_penalty(),
         ]

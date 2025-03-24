@@ -3,6 +3,18 @@ from env.state import TaskState, VmState
 
 
 def task_completion_time_est(dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState]) -> list[float]:
+    """
+    A heuristic for task completion time, every task will get a score
+    which denotes the min time that task completes. As a result, the maximum
+    completion time is always a min bound of the makespan.
+
+    Tcomp_i =
+        if scheduled -> Tactualcomp_i
+        otherwise    -> min(
+                            max(VMcomp_j, (Tcomp_k where k are parents)) + EXEC_i_j
+                            where j are compatible VMs
+                        )
+    """
     task_completion_time = [task_state.completion_time for task_state in task_states]
     for t_id, task_state in enumerate(task_states):
         if task_state.assigned_vm_id is None:
@@ -22,6 +34,15 @@ def task_completion_time_est(dataset: Dataset, task_states: list[TaskState], vm_
 def task_energy_consumption_est(
     dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState]
 ) -> list[float]:
+    """
+    A heuristic of task energy consumption, every task gets the score denoting
+    minimum energy consumption of that task. As a result the sum of values is
+    a min bound of energy consumption.
+
+    Tenergy_i =
+        if scheduled -> Tactualenergy_i
+        otherwise    -> min(ENERGY_i_j where j are compatible VMs)
+    """
     task_energy_consumption: list[float] = [0 for _ in range(len(task_states))]
     for t_id, task_state in enumerate(task_states):
         if task_state.assigned_vm_id is None:
@@ -36,22 +57,27 @@ def task_energy_consumption_est(
     return task_energy_consumption
 
 
-def task_latency_score_est(dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState]) -> list[float]:
-    task_latency_score: list[float] = []
-    task_completion_time = task_completion_time_est(dataset, task_states, vm_states)
-    for t_id, task_state in enumerate(task_states):
-        task_latency_score_i = task_states[t_id].start_time * dataset.tasks[t_id].priority
-        if task_state.assigned_vm_id is None:
-            earliest_start_time_p = max(
-                (task_completion_time[p_id] for p_id, p_task in enumerate(dataset.tasks) if t_id in p_task.child_ids),
-                default=0,
-            )
-            earliest_start_time_v = max(
-                vm_states[v_id].completion_time
-                for v_id in range(len(vm_states))
-                if dataset.vms[v_id].is_compatible(dataset.tasks[t_id], vm_states[v_id])
-            )
-            task_latency_score_i = max(earliest_start_time_p, earliest_start_time_v) * dataset.tasks[t_id].priority
-        task_latency_score.append(task_latency_score_i)
+def task_sla_penalty_est(dataset: Dataset, task_states: list[TaskState], vm_states: list[VmState]) -> list[float]:
+    """
+    A heuristic of SLA penalty, every task gets the score denoting
+    average sla penalty of that task for the workflow. As a result the sum of values is
+    a min bound of total sla penalty.
 
-    return task_latency_score
+    Tsla_i = max(Tcomp_j where j is every task in the same workflow) * priority / (number of tasks in same workflow)
+    """
+    task_sla_penalty: list[float] = []
+    task_completion_time = task_completion_time_est(dataset, task_states, vm_states)
+    workflow_completion_time: list[float] = [0] * len(dataset.workflows)
+    workflow_task_count: list[float] = [0] * len(dataset.workflows)
+    for t_id in range(len(dataset.tasks)):
+        w_id = dataset.tasks[t_id].workflow_id
+        workflow_completion_time[w_id] = max(workflow_completion_time[w_id], task_completion_time[t_id])
+        workflow_task_count[w_id] += 1
+
+    for t_id in range(len(dataset.tasks)):
+        w_id = dataset.tasks[t_id].workflow_id
+        task_sla_penalty.append(
+            (workflow_completion_time[w_id] * dataset.workflows[w_id].priority) / workflow_task_count[w_id]
+        )
+
+    return task_sla_penalty

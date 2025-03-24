@@ -216,7 +216,6 @@ def generate_tasks(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> li
                     child_ids=[task_offset + child_id for child_id in child_ids],
                     req_memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
                     req_disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
-                    priority=int(rng.random() <= args.task_high_priority_probability),
                     actual_length=int(task_length),
                 )
             )
@@ -243,6 +242,6 @@ def generate_workflows(args: SyntheticDatasetArgs, rng: np.random.RandomState) -
     workflows: list[Workflow] = []
     for workflow_id in range(len(workflow_task_counts)):
         arrival_time += int(generate_poisson_delay(args, rng))
-        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
+        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time, priority=rng.random()))
 
     return workflows

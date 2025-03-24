@@ -12,6 +12,6 @@ for m, e, s in product(range(2), range(2), range(2)):
             dataset_type="synthetic",
             makespan_pref=m,
             energy_pref=e,
-            latency_pref=s,
+            sla_penalty_pref=s,
         )
     )

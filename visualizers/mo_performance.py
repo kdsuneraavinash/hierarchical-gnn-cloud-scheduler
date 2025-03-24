@@ -17,14 +17,14 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
     pareto_point_map: dict[str, np.ndarray[tuple[int, ...], Any]] = {}
     direct_metrics: dict[str, dict[str, float]] = {}
     for scheduler, results in summary_data.items():
-        latency_score_results = [result["latency_score"] for result in results]
+        sla_penalty_results = [result["sla_penalty"] for result in results]
         makespan_results = np.array([result["makespan"] for result in results])
         energy_consumption_results = np.array([result["energy_consumption"] for result in results])
-        latency_score_results = np.array([result["latency_score"] for result in results])
+        sla_penalty_results = np.array([result["sla_penalty"] for result in results])
         run_time_results = np.array([result["run_time"] for result in results])
         decision_latency_results = np.array([result["decision_latency"] for result in results])
 
-        points = np.column_stack((makespan_results, energy_consumption_results, latency_score_results))
+        points = np.column_stack((makespan_results, energy_consumption_results, sla_penalty_results))
         pareto_indices = find_pareto_front(points)
         direct_metrics[scheduler] = {
             "run_time": run_time_results.sum(),
@@ -35,7 +35,7 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
                 (
                     makespan_results[pareto_index],
                     energy_consumption_results[pareto_index],
-                    latency_score_results[pareto_index],
+                    sla_penalty_results[pareto_index],
                 )
                 for pareto_index in pareto_indices
             ]

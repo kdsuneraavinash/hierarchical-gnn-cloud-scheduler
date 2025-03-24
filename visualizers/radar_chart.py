@@ -8,7 +8,7 @@ def plot_summary_radar_chart(df: pd.DataFrame) -> None:
 
     # Compute the average values per scheduler
     avg_df = df.groupby("name", as_index=False).agg(
-        {"makespan": "mean", "energy_consumption": "mean", "latency_score": "mean"}
+        {"makespan": "mean", "energy_consumption": "mean", "sla_penalty": "mean"}
     )
 
     # Normalize the data for better comparison
@@ -17,7 +17,7 @@ def plot_summary_radar_chart(df: pd.DataFrame) -> None:
         max_vals = data.max(axis=0)
         return (data - min_vals) / (max_vals - min_vals + 1e-8)
 
-    metrics = ["makespan", "energy_consumption", "latency_score"]
+    metrics = ["makespan", "energy_consumption", "sla_penalty"]
     normalized_values = normalize(avg_df[metrics].values)
 
     # Compute angles for the radar chart

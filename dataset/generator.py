@@ -28,16 +28,16 @@ class DatasetArgs:
     """preference for optimizing makespan"""
     energy_consumption_preference: float = 1
     """preference for optimizing energy consumption"""
-    latency_score_preference: float = 1
-    """preference for optimizing energy consumption"""
+    sla_penalty_preference: float = 1
+    """preference for optimizing sla penalty"""
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
-    def with_priority(self, makespan: float, energy_consumption: float, latency_score: float):
+    def with_priority(self, makespan: float, energy_consumption: float, sla_penalty: float):
         kwargs = self.__dict__
         kwargs["makespan_preference"] = makespan
         kwargs["energy_consumption_preference"] = energy_consumption
-        kwargs["latency_score_preference"] = latency_score
+        kwargs["sla_penalty_preference"] = sla_penalty
         return type(self)(**kwargs)
 
     @staticmethod
@@ -50,7 +50,7 @@ class DatasetArgs:
             max_host_count=DEFAULT_MAX_HOST_COUNT,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-            latency_score_preference=LATENCY_SCORE_PREFERENCE,
+            sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
             dag_structure="BranchParallel",
             vm_breakdowns=False,
             estimation_errors=False,
@@ -66,7 +66,7 @@ class DatasetArgs:
             max_host_count=DEFAULT_MAX_HOST_COUNT,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-            latency_score_preference=LATENCY_SCORE_PREFERENCE,
+            sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
             dag_structure="BranchParallel",
             vm_breakdowns=True,
             estimation_errors=True,
@@ -83,7 +83,7 @@ class DatasetArgs:
             max_tasks_per_workflow=DEFAULT_MAX_TASKS_PER_WORKFLOW,
             makespan_preference=MAKESPAN_PREFERENCE,
             energy_consumption_preference=ENERGY_CONSUMPTION_PREFERENCE,
-            latency_score_preference=LATENCY_SCORE_PREFERENCE,
+            sla_penalty_preference=LATENCY_SCORE_PREFERENCE,
         )
 
 

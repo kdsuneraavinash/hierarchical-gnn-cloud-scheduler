@@ -95,8 +95,8 @@ class Args:
     """the makespan preference of the reward"""
     energy_pref: float = 1
     """the energy consumption preference of the reward"""
-    latency_pref: float = 1
-    """the latency score preference of the reward"""
+    sla_penalty_pref: float = 1
+    """the SLA penalty preference of the reward"""
 
     # to be filled in runtime
     batch_size: Suppress[int] = 0
@@ -130,7 +130,7 @@ def make_dataset_args(args: Args) -> DatasetArgs:
         dataset = DatasetArgs.real_world_dynamic()
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
-    return dataset.with_priority(args.makespan_pref, args.energy_pref, args.latency_pref)
+    return dataset.with_priority(args.makespan_pref, args.energy_pref, args.sla_penalty_pref)
 
 
 # Training Agent
@@ -223,7 +223,7 @@ def train(args: Args) -> None:
     table.add_column("reward", width=10)
     table.add_column("t_makespan", width=10)
     table.add_column("t_energy_consumption", width=10)
-    table.add_column("t_latency_score", width=10)
+    table.add_column("t_sla_penalty", width=10)
 
     for iteration in range(1, args.num_iterations + 1):
         table.update("iter", value=iteration)
@@ -261,7 +261,7 @@ def train(args: Args) -> None:
                         writer.add_scalar("charts/episodic_length", infos["episode"]["l"][i], global_step)
                         writer.add_scalar("episode/makespan", infos["makespan"][i], global_step)
                         writer.add_scalar("episode/energy_consumption", infos["energy_consumption"][i], global_step)
-                        writer.add_scalar("episode/latency_score", infos["latency_score"][i], global_step)
+                        writer.add_scalar("episode/sla_penalty", infos["sla_penalty"][i], global_step)
                         table.update("reward", value=infos["episode"]["r"][i], aggregate="mean")
 
         progress_bar.set_step(global_step)
@@ -367,10 +367,10 @@ def train(args: Args) -> None:
             test_results = test_agent(agent, args)
             writer.add_scalar("tests/makespan", test_results[0], global_step)
             writer.add_scalar("tests/energy_consumption", test_results[1], global_step)
-            writer.add_scalar("tests/latency_score", test_results[2], global_step)
+            writer.add_scalar("tests/sla_penalty", test_results[2], global_step)
             table.update("t_makespan", value=test_results[0])
             table.update("t_energy_consumption", value=test_results[1])
-            table.update("t_latency_score", value=test_results[2])
+            table.update("t_sla_penalty", value=test_results[2])
 
         table.update("phase", value="done")
         if (global_step - last_model_save) >= 10_000:
@@ -398,7 +398,7 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
 
     total_makespan = 0.0
     total_energy_consumption = 0.0
-    total_latency_score = 0.0
+    total_sla_penalty = 0.0
 
     for _ in range(args.test_iterations):
         dataset = generate_dataset(args.dataset, test_rng)
@@ -409,12 +409,12 @@ def test_agent(agent: BaseAgent, args: Args) -> tuple[float, float, float]:
 
         total_makespan += solution.actual_makespan()
         total_energy_consumption += solution.actual_energy_consumption()
-        total_latency_score += solution.actual_latency_score()
+        total_sla_penalty += solution.actual_sla_penalty()
 
     avg_makespan = total_makespan / args.test_iterations
     avg_energy_consumption = total_energy_consumption / args.test_iterations
-    avg_latency_score = total_latency_score / args.test_iterations
-    return avg_makespan, avg_energy_consumption, avg_latency_score
+    avg_sla_penalty = total_sla_penalty / args.test_iterations
+    return avg_makespan, avg_energy_consumption, avg_sla_penalty
 
 
 if __name__ == "__main__":

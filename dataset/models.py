@@ -12,6 +12,7 @@ from env.state import VmState
 class Workflow:
     id: int
     arrival_time: int
+    priority: float
 
 
 @dataclass
@@ -22,7 +23,6 @@ class Task:
     child_ids: list[int]
     req_memory_gb: float
     req_disk_gb: float
-    priority: float
     actual_length: int
 
 
@@ -97,7 +97,7 @@ class VmAssignment:
 class Preference:
     makespan: float
     energy_consumption: float
-    latency_score: float
+    sla_penalty: float
 
 
 @dataclass
@@ -188,9 +188,15 @@ class Solution:
             energy_consumption += host.actual_active_power_consumption(task)
         return energy_consumption
 
-    def actual_latency_score(self) -> float:
-        latency_score: float = 0
+    def actual_sla_penalty(self) -> float:
+        workflow_completion_times: list[float] = [0] * len(self.dataset.workflows)
         for assignment in self.vm_assignments:
             task = self.dataset.tasks[assignment.task_id]
-            latency_score += assignment.start_time * task.priority
-        return latency_score
+            vm = self.dataset.vms[assignment.vm_id]
+            finish_time = assignment.start_time + vm.actual_execution_time(task)
+            workflow_completion_times[task.workflow_id] = max(finish_time, workflow_completion_times[task.workflow_id])
+
+        return sum(
+            workflow.priority * completion_time
+            for workflow, completion_time in zip(self.dataset.workflows, workflow_completion_times)
+        )

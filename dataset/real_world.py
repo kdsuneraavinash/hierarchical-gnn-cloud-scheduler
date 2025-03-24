@@ -85,15 +85,15 @@ def generate_real_world_dataset(key: str, args: RealWorldDatasetArgs, rng: np.ra
 def generate_preference(args: DatasetArgs, rng: np.random.RandomState) -> Preference:
     makespan = args.makespan_preference
     energy_consumption = args.energy_consumption_preference
-    latency_score = args.latency_score_preference
-    if makespan + energy_consumption + latency_score == 0:
-        makespan = energy_consumption = latency_score = 1
-    max_pref = max(makespan, energy_consumption, latency_score)
+    sla_penalty = args.sla_penalty_preference
+    if makespan + energy_consumption + sla_penalty == 0:
+        makespan = energy_consumption = sla_penalty = 1
+    max_pref = max(makespan, energy_consumption, sla_penalty)
 
     return Preference(
         makespan=makespan / max_pref,
         energy_consumption=energy_consumption / max_pref,
-        latency_score=latency_score / max_pref,
+        sla_penalty=sla_penalty / max_pref,
     )
 
 
@@ -204,8 +204,6 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     with open(Path(__file__).parent / "data" / "task_specs.json", "r") as f:
         task_specs: dict[str, Any] = json.load(f)
-
-    priority_production_prob = float(task_specs["priority_production_prob"])
     task_length_mean = float(task_specs["task_length_mean"])
     task_length_std = float(task_specs["task_length_std"])
 
@@ -229,7 +227,6 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
                     child_ids=[task_offset + child_id for child_id in child_ids],
                     req_memory_gb=rng.uniform(low=0, high=max_vm_memory_gb),
                     req_disk_gb=rng.uniform(low=0, high=max_vm_disk_gb),
-                    priority=int(rng.random() <= priority_production_prob),
                     actual_length=int(actual_task_length),
                 )
             )
@@ -271,7 +268,7 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     workflows: list[Workflow] = []
     for workflow_id in range(workflow_count):
         arrival_time += int(generate_poisson_delay(args, rng))
-        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
+        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time, priority=rng.random()))
 
     return workflows
 
