@@ -1,17 +1,30 @@
 from itertools import product
+
+import tyro
+from dataset.generator import DatasetType
+from models.agent import AgentType
 from train import Args, train
 
 
-for m, e, s in product(range(2), range(2), range(2)):
-    if m + e + s == 0:
-        continue
-    train(
-        Args(
-            exp_name=f"mlp_syn_[{m}][{e}][{s}]",
-            agent_type="mlp",
-            dataset_type="synthetic",
+def main(agent_type: AgentType = "gnn", dataset_type: DatasetType = "synthetic"):
+    prefs = sorted(list(product([0, 1], repeat=3)), key=sum, reverse=True)
+    for m, e, s in prefs:
+        if m + e + s == 0:
+            continue
+
+        args = Args(
+            exp_name=f"{agent_type}_{dataset_type}_[{m}][{e}][{s}]",
+            agent_type=agent_type,
+            dataset_type=dataset_type,
             makespan_pref=m,
             energy_pref=e,
             sla_penalty_pref=s,
         )
-    )
+
+        print()
+        print(f"--- Running experiment: {args.exp_name} ---")
+        train(args)
+
+
+if __name__ == "__main__":
+    tyro.cli(main)
