@@ -8,12 +8,11 @@ from progress_table import ProgressTable
 from progress_table.progress_table import TableProgressBar
 
 from algorithms.base_mo import SolutionStoreType
+from algorithms.drl_agent import DrlAgentScheduler
 from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
 from algorithms.heft import HeftScheduler
 from algorithms.least_loaded_first import LeastLoadedFirstScheduler
-from algorithms.max_min import MaxMinScheduler
-from algorithms.min_min import MinMinScheduler
 from algorithms.moea_d import MoeaDScheduler
 from algorithms.moheft import MoheftScheduler
 from algorithms.nsga_2 import Nsga2Scheduler
@@ -33,53 +32,32 @@ nsga2_store: SolutionStoreType = {}
 nsga3_store: SolutionStoreType = {}
 moead_store: SolutionStoreType = {}
 synthetic_models = [
-    "logs/1742069194_gnn_syn_[0][0][1]/model.pt",
-    "logs/1742072960_gnn_syn_[0][1][0]/model.pt",
-    "logs/1742076667_gnn_syn_[0][1][1]/model.pt",
-    "logs/1742080365_gnn_syn_[1][0][0]/model.pt",
-    "logs/1742084059_gnn_syn_[1][0][1]/model.pt",
-    "logs/1742087722_gnn_syn_[1][1][0]/model.pt",
-    "logs/1742091521_gnn_syn_[1][1][1]/model.pt",
-]
-real_world_real_models = [
-    "logs/1742583459_gnn_real_branch_[1][1][1]/model.pt",
-    "logs/1742623721_gnn_real_branch_[1][1][0]/model.pt",
-    "logs/1742637987_gnn_real_branch_[0][1][1]/model.pt",
-    "logs/1742616419_gnn_real_branch_[1][0][0]/model.pt",
-    "logs/1742627613_gnn_real_branch_[0][1][0]/model.pt",
-    "logs/1742645566_gnn_real_branch_[0][0][1]/model.pt",
-    "logs/1742650703_gnn_real_branch_[1][0][1]/model.pt",
-]
-synthetic_mlp_models = [
-    "logs/1742758554_mlp_syn_[0][0][1]/model.pt",
-    "logs/1742762701_mlp_syn_[0][1][0]/model.pt",
-    "logs/1742769413_mlp_syn_[0][1][1]/model.pt",
-    "logs/1742771260_mlp_syn_[1][0][0]/model.pt",
-    "logs/1742773104_mlp_syn_[1][0][1]/model.pt",
-    "logs/1742774934_mlp_syn_[1][1][0]/model.pt",
-    "logs/1742776780_mlp_syn_[1][1][1]/model.pt",
+    "logs/1742974151_gnn_synthetic_[1][1][1]/model.pt",
+    "logs/1742977444_gnn_synthetic_[0][1][1]/model.pt",
+    "logs/1742981117_gnn_synthetic_[1][0][1]/model.pt",
+    "logs/1742984795_gnn_synthetic_[1][1][0]/model.pt",
+    "logs/1742988413_gnn_synthetic_[0][0][1]/model.pt",
+    "logs/1742992157_gnn_synthetic_[0][1][0]/model.pt",
 ]
 
 
 def run_evaluation(datasets: list[Dataset]) -> None:
     schedulers: list[BaseAbstractScheduler] = [
-        # Single-Objective Schedulers
+        # Single-Objective Schedulers - Static
         HeftScheduler(),
         FerptsScheduler(),
+        # Single-Objective Schedulers - Dynamic
         RandomScheduler(),
         LeastLoadedFirstScheduler(),
-        MinMinScheduler(),
-        MaxMinScheduler(),
         RoundRobinScheduler(),
         EnergyAwareSchduler(alpha=0.5),
-        # Multi-Objective Schedulers
+        # Multi-Objective Schedulers - Static
         *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(7)],
         *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
         *[Nsga3Scheduler(store=nsga3_store, index=i) for i in range(100)],
         *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
-        # *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
-        # *[DrlAgentScheduler("Proposed-Real", model_path=model, agent_type="gnn") for model in real_world_real_models],
-        # *[DrlAgentScheduler("Proposed-MLP", model_path=model, agent_type="mlp") for model in synthetic_mlp_models],
+        # Multi-Objective Schedulers - Dynamic
+        *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)

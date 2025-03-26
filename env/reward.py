@@ -8,7 +8,7 @@ class RewardFunction:
     prev_energy_consumption: float
     prev_sla_penalty: float
 
-    def __init__(self, makespan_alpha: float = 1, energy_alpha: float = 1, sla_penalty_alpha: float = 1):
+    def __init__(self, makespan_alpha: float = 1, energy_alpha: float = 17.3, sla_penalty_alpha: float = 0.8):
         self.makespan_alpha = makespan_alpha
         self.energy_alpha = energy_alpha
         self.sla_penalty_alpha = sla_penalty_alpha
@@ -25,17 +25,14 @@ class RewardFunction:
         curr_sla_penalty = simulation.total_sla_penalty()
 
         makespan_reward_diff = (curr_makespan - self.prev_makespan) / curr_makespan
-        energy_consumption_reward_diff = (
-            curr_energy_consumption - self.prev_energy_consumption
-        ) / curr_energy_consumption
+        energy_reward_diff = (curr_energy_consumption - self.prev_energy_consumption) / curr_energy_consumption
         sla_penalty_reward_diff = (curr_sla_penalty - self.prev_sla_penalty) / (curr_sla_penalty + 1e-8)
 
         preference = simulation.dataset.preference
-        total_preference = preference.makespan + preference.energy_consumption + preference.sla_penalty
         reward = -(
-            self.makespan_alpha * makespan_reward_diff * preference.makespan / total_preference
-            + self.energy_alpha * energy_consumption_reward_diff * preference.energy_consumption / total_preference
-            + self.sla_penalty_alpha * sla_penalty_reward_diff * preference.sla_penalty / total_preference
+            (self.makespan_alpha * makespan_reward_diff * preference.makespan)
+            + (self.energy_alpha * energy_reward_diff * preference.energy_consumption)
+            + (self.sla_penalty_alpha * sla_penalty_reward_diff * preference.sla_penalty)
         )
 
         self.prev_makespan = curr_makespan
