@@ -8,7 +8,7 @@ class RewardFunction:
     prev_energy_consumption: float
     prev_sla_penalty: float
 
-    def __init__(self, makespan_alpha: float = 1, energy_alpha: float = 17.3, sla_penalty_alpha: float = 0.8):
+    def __init__(self, makespan_alpha: float = 1, energy_alpha: float = 1, sla_penalty_alpha: float = 1):
         self.makespan_alpha = makespan_alpha
         self.energy_alpha = energy_alpha
         self.sla_penalty_alpha = sla_penalty_alpha
