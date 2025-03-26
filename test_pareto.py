@@ -38,6 +38,7 @@ synthetic_models = [
     "logs/1742984795_gnn_synthetic_[1][1][0]/model.pt",
     "logs/1742988413_gnn_synthetic_[0][0][1]/model.pt",
     "logs/1742992157_gnn_synthetic_[0][1][0]/model.pt",
+    "logs/1742995483_gnn_synthetic_[1][0][0]/model.pt",
 ]
 
 
