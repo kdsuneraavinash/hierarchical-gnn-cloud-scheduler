@@ -206,6 +206,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
         task_specs: dict[str, Any] = json.load(f)
     task_length_mean = float(task_specs["task_length_mean"])
     task_length_std = float(task_specs["task_length_std"])
+    priority_production_prob = float(task_specs["priority_production_prob"])
 
     def task_length() -> float:
         value: float = 0
@@ -228,6 +229,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
                     req_memory_gb=rng.uniform(low=0, high=max_vm_memory_gb),
                     req_disk_gb=rng.uniform(low=0, high=max_vm_disk_gb),
                     actual_length=int(actual_task_length),
+                    priority=int(rng.random() < priority_production_prob),
                 )
             )
 
@@ -268,7 +270,7 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     workflows: list[Workflow] = []
     for workflow_id in range(workflow_count):
         arrival_time += int(generate_poisson_delay(args, rng))
-        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time, priority=rng.random()))
+        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
 
     return workflows
 

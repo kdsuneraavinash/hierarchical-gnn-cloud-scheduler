@@ -67,17 +67,19 @@ def task_sla_penalty_est(dataset: Dataset, task_states: list[TaskState], vm_stat
     """
     task_sla_penalty: list[float] = []
     task_completion_time = task_completion_time_est(dataset, task_states, vm_states)
-    workflow_completion_time: list[float] = [0] * len(dataset.workflows)
-    workflow_task_count: list[float] = [0] * len(dataset.workflows)
-    for t_id in range(len(dataset.tasks)):
-        w_id = dataset.tasks[t_id].workflow_id
-        workflow_completion_time[w_id] = max(workflow_completion_time[w_id], task_completion_time[t_id])
-        workflow_task_count[w_id] += 1
-
-    for t_id in range(len(dataset.tasks)):
-        w_id = dataset.tasks[t_id].workflow_id
-        task_sla_penalty.append(
-            (workflow_completion_time[w_id] * dataset.workflows[w_id].priority) / workflow_task_count[w_id]
-        )
+    for t_id, task_state in enumerate(task_states):
+        task_latency_score_i = task_states[t_id].start_time * dataset.tasks[t_id].priority
+        if task_state.assigned_vm_id is None:
+            earliest_start_time_p = max(
+                (task_completion_time[p_id] for p_id, p_task in enumerate(dataset.tasks) if t_id in p_task.child_ids),
+                default=0,
+            )
+            earliest_start_time_v = max(
+                vm_states[v_id].completion_time
+                for v_id in range(len(vm_states))
+                if dataset.vms[v_id].is_compatible(dataset.tasks[t_id], vm_states[v_id])
+            )
+            task_latency_score_i = max(earliest_start_time_p, earliest_start_time_v) * dataset.tasks[t_id].priority
+        task_sla_penalty.append(task_latency_score_i)
 
     return task_sla_penalty

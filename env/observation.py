@@ -71,6 +71,11 @@ def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: li
             return task_sla_penalty[t_id]
         return 0
 
+    def feat_task_priority(t_id: int) -> float:
+        if t_id < len(task_states):
+            return dataset.tasks[t_id].priority
+        return 0
+
     # --- VM Features ---
 
     def feat_vm_completion_time(v_id: int) -> float:
@@ -114,6 +119,7 @@ def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: li
                 feat_task_completion_time(t_id),
                 feat_task_energy_consumption(t_id),
                 feat_task_sla_penalty(t_id),
+                feat_task_priority(t_id),
             )
             for t_id in range(N_TASK)
         ],

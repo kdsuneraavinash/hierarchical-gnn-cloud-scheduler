@@ -1,15 +1,15 @@
 # --- Default sizes ---
 
-DEFAULT_TASK_COUNT = 100
-DEFAULT_MAX_VM_COUNT = 10
+DEFAULT_TASK_COUNT = 50
+DEFAULT_MAX_VM_COUNT = 5
 DEFAULT_MAX_HOST_COUNT = 4
-DEFAULT_MAX_TASKS_PER_WORKFLOW = 20
+DEFAULT_MAX_TASKS_PER_WORKFLOW = 10
 
 # --- Buffer size/Tensor size constraints ---
 
 N_TASK = DEFAULT_TASK_COUNT
 N_VM = DEFAULT_MAX_VM_COUNT
-F_TASK = 5  # Number of task features
+F_TASK = 6  # Number of task features
 F_VM = 4  # Number of VM features
 OBS_SIZE = (N_TASK * F_TASK) + (N_TASK * N_VM * F_VM) + N_TASK + (N_TASK * N_VM) + (N_TASK * N_TASK)
 ACT_SIZE = N_TASK * N_VM + N_VM
