@@ -29,7 +29,6 @@ def safe_clone(sub_index: int, dataset: Dataset) -> Dataset:
                 req_memory_gb=task.req_memory_gb,
                 req_disk_gb=task.req_disk_gb,
                 actual_length=task.length,
-                priority=task.priority,
             )
             for task in dataset.tasks
         ],

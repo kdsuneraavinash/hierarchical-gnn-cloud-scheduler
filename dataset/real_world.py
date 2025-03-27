@@ -206,7 +206,6 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
         task_specs: dict[str, Any] = json.load(f)
     task_length_mean = float(task_specs["task_length_mean"])
     task_length_std = float(task_specs["task_length_std"])
-    priority_production_prob = float(task_specs["priority_production_prob"])
 
     def task_length() -> float:
         value: float = 0
@@ -229,7 +228,6 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
                     req_memory_gb=rng.uniform(low=0, high=max_vm_memory_gb),
                     req_disk_gb=rng.uniform(low=0, high=max_vm_disk_gb),
                     actual_length=int(actual_task_length),
-                    priority=int(rng.random() < priority_production_prob),
                 )
             )
 
@@ -263,6 +261,10 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     workflow_count = rng.randint(1, max_workflow_count + 1)
     tasks_per_workflow = random_list(workflow_count, args.task_count, rng, min_value=min_size)
 
+    with open(Path(__file__).parent / "data" / "workflow.json", "r") as f:
+        workflow_specs: dict[str, Any] = json.load(f)
+    priority_production_prob = float(workflow_specs["priority_production_prob"])
+
     args.context["workflow_count"] = str(workflow_count)
     args.context["tasks_per_workflow"] = ",".join(map(str, tasks_per_workflow))
 
@@ -270,7 +272,13 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     workflows: list[Workflow] = []
     for workflow_id in range(workflow_count):
         arrival_time += int(generate_poisson_delay(args, rng))
-        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
+        workflows.append(
+            Workflow(
+                id=workflow_id,
+                arrival_time=arrival_time,
+                priority=int(rng.random() < priority_production_prob),
+            )
+        )
 
     return workflows
 

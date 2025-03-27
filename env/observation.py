@@ -73,7 +73,7 @@ def create_env_obs(dataset: Dataset, task_states: list[TaskState], vm_states: li
 
     def feat_task_priority(t_id: int) -> float:
         if t_id < len(task_states):
-            return dataset.tasks[t_id].priority
+            return dataset.workflows[dataset.tasks[t_id].workflow_id].priority
         return 0
 
     # --- VM Features ---

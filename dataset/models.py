@@ -12,6 +12,7 @@ from env.state import VmState
 class Workflow:
     id: int
     arrival_time: int
+    priority: float
 
 
 @dataclass
@@ -23,7 +24,6 @@ class Task:
     req_memory_gb: float
     req_disk_gb: float
     actual_length: int
-    priority: float
 
 
 @dataclass
@@ -192,5 +192,5 @@ class Solution:
         sla_penalty: float = 0
         for assignment in self.vm_assignments:
             task = self.dataset.tasks[assignment.task_id]
-            sla_penalty += assignment.start_time * task.priority
+            sla_penalty += assignment.start_time * self.dataset.workflows[task.workflow_id].priority
         return sla_penalty

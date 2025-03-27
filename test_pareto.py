@@ -32,13 +32,13 @@ nsga2_store: SolutionStoreType = {}
 nsga3_store: SolutionStoreType = {}
 moead_store: SolutionStoreType = {}
 synthetic_models = [
-    "logs/1742974151_gnn_synthetic_[1][1][1]/model.pt",
-    "logs/1742977444_gnn_synthetic_[0][1][1]/model.pt",
-    "logs/1742981117_gnn_synthetic_[1][0][1]/model.pt",
-    "logs/1742984795_gnn_synthetic_[1][1][0]/model.pt",
-    "logs/1742988413_gnn_synthetic_[0][0][1]/model.pt",
-    "logs/1742992157_gnn_synthetic_[0][1][0]/model.pt",
-    "logs/1742995483_gnn_synthetic_[1][0][0]/model.pt",
+    "logs/1743004795_gnn_synthetic_[1][1][1]/model.pt",
+    "logs/1743008150_gnn_synthetic_[0][1][1]/model.pt",
+    "logs/1743011666_gnn_synthetic_[1][0][1]/model.pt",
+    "logs/1743014991_gnn_synthetic_[1][1][0]/model.pt",
+    "logs/1743018436_gnn_synthetic_[0][0][1]/model.pt",
+    "logs/1743021872_gnn_synthetic_[0][1][0]/model.pt",
+    "logs/1743025325_gnn_synthetic_[1][0][0]/model.pt",
 ]
 
 

@@ -19,6 +19,9 @@ def main(agent_type: AgentType = "gnn", dataset_type: DatasetType = "synthetic")
             makespan_pref=m,
             energy_pref=e,
             sla_penalty_pref=s,
+            makespan_alpha=0.541,
+            energy_alpha=9.093,
+            sla_penalty_alpha=0.425,
         )
 
         print()
