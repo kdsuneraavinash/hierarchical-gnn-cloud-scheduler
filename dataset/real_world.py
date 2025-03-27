@@ -261,7 +261,7 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     workflow_count = rng.randint(1, max_workflow_count + 1)
     tasks_per_workflow = random_list(workflow_count, args.task_count, rng, min_value=min_size)
 
-    with open(Path(__file__).parent / "data" / "workflow.json", "r") as f:
+    with open(Path(__file__).parent / "data" / "workflow_specs.json", "r") as f:
         workflow_specs: dict[str, Any] = json.load(f)
     priority_production_prob = float(workflow_specs["priority_production_prob"])
 
