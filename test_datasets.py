@@ -38,7 +38,7 @@ DS_SYNTHETIC_3 = SyntheticDatasetArgs(
 DsType = Literal["ds_syn_1", "ds_syn_2", "ds_syn_3"]
 
 
-def get_dataset(ds_type: DsType):
+def get_dataset_args(ds_type: DsType):
     if ds_type == "ds_syn_1":
         return DS_SYNTHETIC_1
     if ds_type == "ds_syn_2":

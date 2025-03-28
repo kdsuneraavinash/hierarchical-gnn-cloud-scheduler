@@ -26,7 +26,7 @@ from algorithms.weighted_dynamic import WeightedDynamicSchduler
 from constants import TEST_SEED
 from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
-from test_datasets import DsType, get_dataset
+from test_datasets import DsType, get_dataset_args
 from visualizers.mo_performance import plot_mo_summary
 from visualizers.pareto_front import plot_2d_pareto_fronts
 
@@ -138,29 +138,30 @@ def run_evaluation(datasets: list[Dataset]) -> None:
     return summary_data
 
 
-def main(ds_type: DsType, load_json: bool = True):
+def main(ds_type: DsType, run: bool = False):
     random.seed(0)
     np.random.seed(0)
     torch.manual_seed(0)
     torch.backends.cudnn.deterministic = True
 
-    log_json = Path(__file__).parent / "logs" / ds_type
-    if load_json:
-        with open(log_json, "r") as fr:
-            summary_data = json.load(fr)
-
-    else:
+    log_json = Path(__file__).parent / "logs" / f"{ds_type}.json"
+    if run:
+        dataset_args = get_dataset_args(ds_type)
         datasets = [
             generate_dataset(
                 dataset_key=str(key),
                 rng=np.random.RandomState(TEST_SEED),
-                args=get_dataset(ds_type),
+                args=dataset_args,
             )
             for key in range(1)
         ]
         summary_data = run_evaluation(datasets)
         with open(log_json, "w") as fw:
             json.dump(summary_data, fw)
+
+    else:
+        with open(log_json, "r") as fr:
+            summary_data = json.load(fr)
 
     fig = plt.figure(figsize=(16, 5))
     plot_2d_pareto_fronts(fig, summary_data)
