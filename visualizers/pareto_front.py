@@ -48,12 +48,9 @@ def plot_pareto_front(ax: axes.Axes, data: dict[str, list[tuple[float, float]]])
         pareto_sorted = pareto_points[np.argsort(pareto_points[:, 0])]
         ax.plot(pareto_sorted[:, 0], pareto_sorted[:, 1], marker="o", label=scheduler)
 
-    ax.legend()
-    ax.grid(True)
-
 
 def plot_2d_pareto_fronts(fig: figure.Figure, data: dict[str, list[dict[str, float]]]) -> None:
-    axes = fig.subplots(2, 2).flatten()
+    axes = fig.subplots(1, 3).flatten()
     metric_pairs = [
         # xlabel, ylabel, x_axis_metric_key, y_axis_metric_key
         ("Makespan", "Energy Consumption", "makespan", "energy_consumption"),
@@ -65,5 +62,4 @@ def plot_2d_pareto_fronts(fig: figure.Figure, data: dict[str, list[dict[str, flo
         plot_pareto_front(ax, data_points)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
-        ax.legend()
         ax.grid()

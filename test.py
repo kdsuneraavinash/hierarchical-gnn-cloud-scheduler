@@ -7,7 +7,6 @@ from progress_table.progress_table import TableProgressBar
 
 from algorithms.base_abstract import BaseAbstractScheduler
 from algorithms.drl_agent import DrlAgentScheduler
-from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
 from algorithms.heft import HeftScheduler
 from algorithms.least_loaded_first import LeastLoadedFirstScheduler
@@ -16,6 +15,7 @@ from algorithms.min_min import MinMinScheduler
 from algorithms.moheft import MoheftScheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
+from algorithms.weighted_dynamic import WeightedDynamicSchduler
 from constants import (
     EVALUATION_SEED,
 )
@@ -39,7 +39,7 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         MinMinScheduler(),
         MaxMinScheduler(),
         RoundRobinScheduler(),
-        EnergyAwareSchduler(alpha=0.5),
+        WeightedDynamicSchduler(),
         MoheftScheduler(solution_count=7, index=0),
         DrlAgentScheduler("Proposed", model_path="logs/1742469300_gnn_real_dag[1][0][0]/model.pt", agent_type="gnn"),
     ]

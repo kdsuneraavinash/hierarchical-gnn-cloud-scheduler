@@ -1,4 +1,6 @@
 from collections import defaultdict
+import json
+from pathlib import Path
 import random
 
 import numpy as np
@@ -6,10 +8,10 @@ import torch
 from matplotlib import pyplot as plt
 from progress_table import ProgressTable
 from progress_table.progress_table import TableProgressBar
+import tyro
 
 from algorithms.base_mo import SolutionStoreType
 from algorithms.drl_agent import DrlAgentScheduler
-from algorithms.energy_aware import EnergyAwareSchduler
 from algorithms.ferpts import FerptsScheduler
 from algorithms.heft import HeftScheduler
 from algorithms.least_loaded_first import LeastLoadedFirstScheduler
@@ -20,18 +22,16 @@ from algorithms.nsga_3 import Nsga3Scheduler
 from algorithms.random import RandomScheduler
 from algorithms.round_robin import RoundRobinScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
+from algorithms.weighted_dynamic import WeightedDynamicSchduler
 from constants import TEST_SEED
-from dataset.generator import DatasetArgs, generate_dataset
+from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
+from test_datasets import DsType, get_dataset
 from visualizers.mo_performance import plot_mo_summary
 from visualizers.pareto_front import plot_2d_pareto_fronts
 
 
-moheft_store: SolutionStoreType = {}
-nsga2_store: SolutionStoreType = {}
-nsga3_store: SolutionStoreType = {}
-moead_store: SolutionStoreType = {}
-synthetic_models = [
+models = [
     "logs/1743004795_gnn_synthetic_[1][1][1]/model.pt",
     "logs/1743008150_gnn_synthetic_[0][1][1]/model.pt",
     "logs/1743011666_gnn_synthetic_[1][0][1]/model.pt",
@@ -39,7 +39,32 @@ synthetic_models = [
     "logs/1743018436_gnn_synthetic_[0][0][1]/model.pt",
     "logs/1743021872_gnn_synthetic_[0][1][0]/model.pt",
     "logs/1743025325_gnn_synthetic_[1][0][0]/model.pt",
+    "logs/1743101013_gnn_synthetic_[0.5][1.0][1.0]/model.pt",
+    "logs/1743104152_gnn_synthetic_[1.0][0.5][1.0]/model.pt",
+    "logs/1743107501_gnn_synthetic_[1.0][1.0][0.5]/model.pt",
+    "logs/1743110872_gnn_synthetic_[0.5][0.5][1.0]/model.pt",
+    "logs/1743114241_gnn_synthetic_[0.5][1.0][0.5]/model.pt",
+    "logs/1743117583_gnn_synthetic_[1.0][0.5][0.5]/model.pt",
+    "logs/1743120904_gnn_synthetic_[0.0][0.5][1.0]/model.pt",
+    "logs/1743124213_gnn_synthetic_[0.0][1.0][0.5]/model.pt",
+    "logs/1743127535_gnn_synthetic_[0.5][0.0][1.0]/model.pt",
+    "logs/1743131083_gnn_synthetic_[0.5][1.0][0.0]/model.pt",
+    "logs/1743135407_gnn_synthetic_[1.0][0.0][0.5]/model.pt",
+    "logs/1743139924_gnn_synthetic_[1.0][0.5][0.0]/model.pt",
+    # "logs/1743047332_gnn_real_world_[1][1][1]/model.pt",
+    # "logs/1743050525_gnn_real_world_[0][1][1]/model.pt",
+    # "logs/1743053835_gnn_real_world_[1][0][1]/model.pt",
+    # "logs/1743057186_gnn_real_world_[1][1][0]/model.pt",
+    # "logs/1743060567_gnn_real_world_[0][0][1]/model.pt",
+    # "logs/1743063925_gnn_real_world_[0][1][0]/model.pt",
+    # "logs/1743067392_gnn_real_world_[1][0][0]/model.pt",
 ]
+
+
+moheft_store: SolutionStoreType = {}
+nsga2_store: SolutionStoreType = {}
+nsga3_store: SolutionStoreType = {}
+moead_store: SolutionStoreType = {}
 
 
 def run_evaluation(datasets: list[Dataset]) -> None:
@@ -51,14 +76,14 @@ def run_evaluation(datasets: list[Dataset]) -> None:
         RandomScheduler(),
         LeastLoadedFirstScheduler(),
         RoundRobinScheduler(),
-        EnergyAwareSchduler(alpha=0.5),
+        WeightedDynamicSchduler(),
         # Multi-Objective Schedulers - Static
         *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(7)],
         *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
         *[Nsga3Scheduler(store=nsga3_store, index=i) for i in range(100)],
         *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
         # Multi-Objective Schedulers - Dynamic
-        *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
+        *[DrlAgentScheduler("Proposed", model_path=model, agent_type="gnn") for model in models],
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
@@ -110,30 +135,40 @@ def run_evaluation(datasets: list[Dataset]) -> None:
 
     table.close()
 
-    fig = plt.figure(figsize=(12, 10))
-    plot_2d_pareto_fronts(fig, summary_data)
-    plt.show()
-
-    plot_mo_summary(summary_data)
+    return summary_data
 
 
-def main():
+def main(ds_type: DsType, load_json: bool = True):
     random.seed(0)
     np.random.seed(0)
     torch.manual_seed(0)
     torch.backends.cudnn.deterministic = True
 
-    run_evaluation(
-        [
+    log_json = Path(__file__).parent / "logs" / ds_type
+    if load_json:
+        with open(log_json, "r") as fr:
+            summary_data = json.load(fr)
+
+    else:
+        datasets = [
             generate_dataset(
                 dataset_key=str(key),
                 rng=np.random.RandomState(TEST_SEED),
-                args=DatasetArgs.create("synthetic"),
+                args=get_dataset(ds_type),
             )
             for key in range(1)
         ]
-    )
+        summary_data = run_evaluation(datasets)
+        with open(log_json, "w") as fw:
+            json.dump(summary_data, fw)
+
+    fig = plt.figure(figsize=(16, 5))
+    plot_2d_pareto_fronts(fig, summary_data)
+    plt.tight_layout()
+    plt.show()
+
+    plot_mo_summary(summary_data)
 
 
 if __name__ == "__main__":
-    main()
+    tyro.cli(main)
