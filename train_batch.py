@@ -7,10 +7,17 @@ from train import Args, train
 
 
 def main(agent_type: AgentType = "gnn", dataset_type: DatasetType = "synthetic"):
-    prefs = sorted(list(product([0, 1], repeat=3)), key=sum, reverse=True)
+    prefs = sorted(list(product([0, 0.5, 1], repeat=3)), key=sum, reverse=True)
+    completed_prefs = set(list(product([0, 1], repeat=3)))
     for m, e, s in prefs:
         if m + e + s == 0:
             continue
+
+        max_pref = max(m, e, s)
+        m, e, s = m / max_pref, e / max_pref, s / max_pref
+        if (m, e, s) in completed_prefs:
+            continue
+        completed_prefs.add((m, e, s))
 
         args = Args(
             exp_name=f"{agent_type}_{dataset_type}_[{m}][{e}][{s}]",
