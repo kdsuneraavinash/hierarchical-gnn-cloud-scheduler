@@ -25,7 +25,7 @@ class RealWorldDatasetArgs(DatasetArgs):
     """existance of vm breakdowns where vms are not available"""
     vm_revival_max_gap: int = 20
     """gap between a vm breakdown and its revival"""
-    vm_breakdown_max_gap: int = 5
+    vm_breakdown_max_gap: int = 40
     """gap between a vm revival and a new vm breakdown"""
     estimation_errors: bool = False
     """existance of estimation errors (actual when running is different)"""

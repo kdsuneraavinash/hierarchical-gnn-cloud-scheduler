@@ -28,3 +28,18 @@ LATENCY_SCORE_PREFERENCE = 1
 # --- Other Constants ---
 
 CHART_AXIS_PAD = 0.1
+SCH_COLORS = {
+    "HEFT": "#1f77b4",  # muted blue
+    "FERPTS": "#ff7f0e",  # orange
+    "Random": "#2ca02c",  # green
+    "Least Loaded First": "#d62728",  # red
+    "Round--Robin": "#9467bd",  # purple
+    "Weighted Dynamic": "#8c564b",  # brown
+    "MOHEFT": "#e377c2",  # pink
+    "NSGA-II": "#7f7f7f",  # gray
+    "NSGA-III": "#bcbd22",  # olive
+    "MOEA/D": "#17becf",  # cyan
+    "Proposed": "#1a55FF",  # strong blue
+    "Proposed-Syn": "#1a55FF",  # strong blue
+    "Proposed-Real": "#FF1493",  # deep pink
+}
