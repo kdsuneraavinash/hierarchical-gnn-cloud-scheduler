@@ -8,7 +8,7 @@ from train import Args, train
 
 def main(agent_type: AgentType = "gnn", dataset_type: DatasetType = "synthetic"):
     prefs = sorted(list(product([0, 0.5, 1], repeat=3)), key=sum, reverse=True)
-    completed_prefs = set()
+    completed_prefs = set(list(product([0.0, 1.0], repeat=3)))
     for m, e, s in prefs:
         if m + e + s == 0:
             continue
@@ -26,9 +26,9 @@ def main(agent_type: AgentType = "gnn", dataset_type: DatasetType = "synthetic")
             makespan_pref=m,
             energy_pref=e,
             sla_penalty_pref=s,
-            makespan_alpha=0.541,
-            energy_alpha=9.093,
-            sla_penalty_alpha=0.425,
+            makespan_alpha=0.91,
+            energy_alpha=14.398,
+            sla_penalty_alpha=0.602,
         )
 
         print()

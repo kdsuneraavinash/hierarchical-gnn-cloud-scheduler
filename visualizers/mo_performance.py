@@ -24,7 +24,7 @@ dynamic_schedulers = {
 }
 
 
-def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]], num_tasks: int, dataset_name: str) -> None:
+def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]], num_tasks: int, dataset_name: str):
     pareto_point_map: dict[str, np.ndarray[tuple[int, ...], Any]] = {}
     direct_metrics: dict[str, dict[str, float]] = {}
     for scheduler, results in summary_data.items():

@@ -54,7 +54,7 @@ def generate_real_world_dataset(key: str, args: RealWorldDatasetArgs, rng: np.ra
         compatible_vms = [vm for vm in vms if vm.is_compatible(task)]
         if len(compatible_vms) == 0:
             task.req_memory_gb = 0
-            task.req_disk_gb = 0
+            task.req_core_count = 0
         elif len(compatible_vms) == 1:
             if compatible_vms[0].id in disposable_vm_ids:
                 disposable_vm_ids.remove(compatible_vms[0].id)
@@ -160,13 +160,13 @@ def generate_vms(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list
                 host_id=rng.randint(0, host_count),
                 cpu_speed_mips=int(est_cpu_speed),
                 memory_gb=from_vm_dist("memory_mb") / 1024,
-                disk_gb=from_vm_dist("disk_gb"),
+                core_count=from_vm_dist("core_count"),
                 actual_cpu_speed_mips=int(actual_cpu_speed),
             )
         )
 
     args.context["max_vm_memory_gb"] = str(max(vm.memory_gb for vm in vms))
-    args.context["max_vm_disk_gb"] = str(max(vm.disk_gb for vm in vms))
+    args.context["max_vm_core_count"] = str(max(vm.core_count for vm in vms))
     return vms
 
 
@@ -199,7 +199,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     workflow_count = int(args.context["workflow_count"])
     max_vm_memory_gb = float(args.context["max_vm_memory_gb"])
-    max_vm_disk_gb = float(args.context["max_vm_disk_gb"])
+    max_vm_core_count = float(args.context["max_vm_core_count"])
     tasks_per_workflow = list(map(int, args.context["tasks_per_workflow"].split(",")))
 
     with open(Path(__file__).parent / "data" / "task_specs.json", "r") as f:
@@ -226,7 +226,7 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
                     length=int(est_task_length),
                     child_ids=[task_offset + child_id for child_id in child_ids],
                     req_memory_gb=rng.uniform(low=0, high=max_vm_memory_gb),
-                    req_disk_gb=rng.uniform(low=0, high=max_vm_disk_gb),
+                    req_core_count=rng.uniform(low=0, high=max_vm_core_count),
                     actual_length=int(actual_task_length),
                 )
             )

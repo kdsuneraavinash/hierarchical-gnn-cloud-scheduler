@@ -70,7 +70,7 @@ nsga3_store: SolutionStoreType = {}
 moead_store: SolutionStoreType = {}
 
 
-def run_evaluation(datasets: list[Dataset]) -> None:
+def run_evaluation(datasets: list[Dataset]):
     schedulers: list[BaseAbstractScheduler] = [
         # Single-Objective Schedulers - Static
         HeftScheduler(),

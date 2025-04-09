@@ -22,7 +22,7 @@ class BaseStaticScheduler(BaseAbstractScheduler, ABC):
             for vm_id in range(len(dataset.vms)):
                 if not simulation.state.vm_states[vm_id].is_available:
                     safe_dataset.vms[vm_id].memory_gb = -1
-                    safe_dataset.vms[vm_id].disk_gb = -1
+                    safe_dataset.vms[vm_id].core_count = -1
 
             start_time = perf_counter()
             assignments = self.compute_assignments(safe_dataset)

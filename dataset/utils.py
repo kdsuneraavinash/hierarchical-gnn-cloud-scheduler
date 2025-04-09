@@ -27,7 +27,7 @@ def safe_clone(sub_index: int, dataset: Dataset) -> Dataset:
                 length=task.length,
                 child_ids=task.child_ids,
                 req_memory_gb=task.req_memory_gb,
-                req_disk_gb=task.req_disk_gb,
+                req_core_count=task.req_core_count,
                 actual_length=task.length,
             )
             for task in dataset.tasks
@@ -38,7 +38,7 @@ def safe_clone(sub_index: int, dataset: Dataset) -> Dataset:
                 host_id=vm.host_id,
                 cpu_speed_mips=vm.cpu_speed_mips,
                 memory_gb=vm.memory_gb,
-                disk_gb=vm.disk_gb,
+                core_count=vm.core_count,
                 actual_cpu_speed_mips=vm.cpu_speed_mips,
             )
             for vm in dataset.vms

@@ -7,8 +7,8 @@ DEFAULT_MAX_TASKS_PER_WORKFLOW = 10
 
 # --- Buffer size/Tensor size constraints ---
 
-N_TASK = DEFAULT_TASK_COUNT
-N_VM = DEFAULT_MAX_VM_COUNT
+N_TASK = 250
+N_VM = 20
 F_TASK = 6  # Number of task features
 F_VM = 4  # Number of VM features
 OBS_SIZE = (N_TASK * F_TASK) + (N_TASK * N_VM * F_VM) + N_TASK + (N_TASK * N_VM) + (N_TASK * N_TASK)

@@ -18,14 +18,14 @@ log_dirs: list[tuple[int, int, int, str]] = [
 
 
 def get_df(path: str):
-    path = Path(__file__).parent / path
+    path_ = Path(__file__).parent / path
     tfevents_file: Path | None = None
-    for file in path.iterdir():
+    for file in path_.iterdir():
         if file.name.startswith("events.out.tfevents"):
             tfevents_file = file
             break
     if tfevents_file is None:
-        raise ValueError(f"No log file found inside {path}")
+        raise ValueError(f"No log file found inside {path_}")
 
     ea = event_accumulator.EventAccumulator(
         str(tfevents_file),
