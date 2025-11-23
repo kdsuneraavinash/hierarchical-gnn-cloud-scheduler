@@ -24,6 +24,7 @@ from constants import (
 from dataset.generator import DatasetArgs, DatasetType, generate_dataset
 from dataset.models import Solution
 from env.gym_env import GymEnvironment
+from env.reward import RewardFunction
 from models.agent import AgentType, make_agent
 from models.base_agent import BaseAgent
 
@@ -97,6 +98,12 @@ class Args:
     """the energy consumption preference of the reward"""
     sla_penalty_pref: float = 1
     """the SLA penalty preference of the reward"""
+    makespan_alpha: float = 1
+    """multiplier for the makespan reward"""
+    energy_alpha: float = 1
+    """multiplier for the energy consumption reward"""
+    sla_penalty_alpha: float = 1
+    """multiplier for the sla penalty reward"""
 
     # to be filled in runtime
     batch_size: Suppress[int] = 0
@@ -117,7 +124,8 @@ class Args:
 
 def make_env(idx: int, args: Args) -> gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]:
     assert args.dataset is not None
-    env = GymEnvironment(dataset_args=args.dataset)
+    reward_function = RewardFunction(args.makespan_alpha, args.energy_alpha, args.sla_penalty_alpha)
+    env = GymEnvironment(dataset_args=args.dataset, reward_function=reward_function)
     return RecordEpisodeStatistics(env)
 
 

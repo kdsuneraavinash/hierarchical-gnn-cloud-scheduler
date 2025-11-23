@@ -57,7 +57,7 @@ class MoheftScheduler(BaseMoScheduler):
 
                     makespan = max(schedule.makespan, finish_time)
                     energy_consumption = schedule.energy_consumption + energy_cost
-                    sla_penalty = schedule.sla_penalty + start_time * task.priority
+                    sla_penalty = schedule.sla_penalty + start_time * dataset.workflows[task.workflow_id].priority
 
                     new_schedule = CandidateSchedule(
                         assignments=schedule.assignments.copy(),

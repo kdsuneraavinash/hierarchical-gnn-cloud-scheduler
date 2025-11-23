@@ -10,10 +10,21 @@ from pymoo.indicators.gd import GD
 from pymoo.indicators.gd_plus import GDPlus
 import seaborn as sns
 
-from constants import CHART_AXIS_PAD
+from constants import CHART_AXIS_PAD, SCH_COLORS
 
 
-def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
+dynamic_schedulers = {
+    "Random",
+    "Least Loaded First",
+    "Round--Robin",
+    "Weighted Dynamic",
+    "Proposed",
+    "Proposed-Syn",
+    "Proposed-Real",
+}
+
+
+def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]], num_tasks: int, dataset_name: str):
     pareto_point_map: dict[str, np.ndarray[tuple[int, ...], Any]] = {}
     direct_metrics: dict[str, dict[str, float]] = {}
     for scheduler, results in summary_data.items():
@@ -22,13 +33,13 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
         energy_consumption_results = np.array([result["energy_consumption"] for result in results])
         sla_penalty_results = np.array([result["sla_penalty"] for result in results])
         run_time_results = np.array([result["run_time"] for result in results])
-        decision_latency_results = np.array([result["decision_latency"] for result in results])
 
         points = np.column_stack((makespan_results, energy_consumption_results, sla_penalty_results))
         pareto_indices = find_pareto_front(points)
+        significant_run_times = np.array([t for t in run_time_results if t > 1e-4])
         direct_metrics[scheduler] = {
-            "run_time": run_time_results.sum(),
-            "decision_latency": decision_latency_results.sum(),
+            "run_time": significant_run_times.sum(),
+            "decision_latency": significant_run_times.mean() / (num_tasks if scheduler in dynamic_schedulers else 1),
         }
         pareto_point_map[scheduler] = np.array(
             [
@@ -57,6 +68,9 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
         data.append(
             {
                 "name": scheduler,
+                "best_makespan": min(pareto_point[0] for pareto_point in pareto_points),
+                "best_energy": min(pareto_point[1] for pareto_point in pareto_points),
+                "best_qos": min(pareto_point[2] for pareto_point in pareto_points),
                 "hypervolume": hv(pareto_points),
                 "gd": gd(pareto_points),
                 "igd": igd(pareto_points),
@@ -72,33 +86,45 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]]) -> None:
 
     df["proposed"] = df["name"].str.startswith("Proposed")
 
-    fig, axes_ = plt.subplots(3, 3, figsize=(18, 10), sharex=False)
+    fig, axes_ = plt.subplots(1, 3, figsize=(18, 5), sharex=False)
     axes: list[Axes] = list(axes_.flatten())
 
     metrics = [
         # metric key, log scale
-        ("hypervolume", False),
-        ("gd", True),
-        ("igd", True),
-        ("gd_plus", True),
-        ("igd_plus", True),
-        ("run_time", True),
-        ("decision_latency", True),
+        # ("best_makespan", "Best Makespan", False),
+        # ("best_energy", "Best Enenrgy Consumption", False),
+        # ("best_qos", "Best QoS", False),
+        ("hypervolume", "Hypervolume", False),
+        # ("gd", "GD", False),
+        ("igd", "IGD", False),
+        # ("gd_plus", "GD+", False),
+        # ("igd_plus", "IGD+", False),
+        # ("run_time", "Run time", False),
+        ("decision_latency", "Decision Latency (Log Scale)", True),
     ]
-    for i, (metric, log_scale) in enumerate(metrics):
-        avg_sorted = df.sort_values(metric)
-        sns.barplot(data=avg_sorted, x="name", y=metric, hue="proposed", ax=axes[i], palette="Set2", legend=False)
-        y_min, y_max = avg_sorted[metric].min(), avg_sorted[metric].max()
+    for i, (metric, y_axis, log_scale) in enumerate(metrics):
+        # avg_sorted = df.sort_values(metric)
+        sns.barplot(data=df, x="name", y=metric, hue="name", ax=axes[i], palette=SCH_COLORS, legend=False)
+        y_min, y_max = df[metric].min(), df[metric].max()
         if log_scale:
             axes[i].set_yscale("log")
         else:
             axes[i].set_ylim(y_min * (1 - CHART_AXIS_PAD), y_max * (1 + CHART_AXIS_PAD))
-        axes[i].set_ylabel(metric)
-        axes[i].xaxis.set_ticks(avg_sorted["name"].unique())
+        axes[i].set_ylabel(y_axis)
+        axes[i].set_xlabel("Scheduler")
+        axes[i].set_title(f"{dataset_name} - {y_axis}")
+        axes[i].xaxis.set_ticks(df["name"].unique())
         axes[i].set_xticklabels(axes[i].get_xticklabels(), rotation=45, ha="right")
 
-    plt.tight_layout()
-    plt.show()
+    # Uncomment to output latex table part
+    # print()
+    # for _, row in df.iterrows():
+    #     values = list(map(lambda v: f"{v:.3f}", [row["hypervolume"], row["igd"], row["decision_latency"]]))
+    #     values.insert(0, row["name"])
+    #     print(" & ".join(values))
+    # print()
+
+    return fig
 
 
 def find_pareto_front(points: np.ndarray[tuple[int, ...], Any]) -> np.ndarray[tuple[int, ...], Any]:

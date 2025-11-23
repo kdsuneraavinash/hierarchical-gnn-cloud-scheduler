@@ -1,4 +1,6 @@
 from collections import defaultdict
+import json
+from pathlib import Path
 import random
 
 import numpy as np
@@ -6,59 +8,83 @@ import torch
 from matplotlib import pyplot as plt
 from progress_table import ProgressTable
 from progress_table.progress_table import TableProgressBar
+import tyro
 
 from algorithms.base_mo import SolutionStoreType
 from algorithms.drl_agent import DrlAgentScheduler
-from algorithms.energy_aware import EnergyAwareSchduler
-from algorithms.ferpts import FerptsScheduler
-from algorithms.heft import HeftScheduler
-from algorithms.least_loaded_first import LeastLoadedFirstScheduler
-from algorithms.moea_d import MoeaDScheduler
-from algorithms.moheft import MoheftScheduler
-from algorithms.nsga_2 import Nsga2Scheduler
-from algorithms.nsga_3 import Nsga3Scheduler
-from algorithms.random import RandomScheduler
-from algorithms.round_robin import RoundRobinScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
 from constants import TEST_SEED
-from dataset.generator import DatasetArgs, generate_dataset
+from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
+from test_datasets import DsType, get_dataset_args, get_dataset_name
 from visualizers.mo_performance import plot_mo_summary
 from visualizers.pareto_front import plot_2d_pareto_fronts
+
+
+syn_models = [
+    "logs/1743004795_gnn_synthetic_[1][1][1]/model.pt",
+    "logs/1743008150_gnn_synthetic_[0][1][1]/model.pt",
+    "logs/1743011666_gnn_synthetic_[1][0][1]/model.pt",
+    "logs/1743014991_gnn_synthetic_[1][1][0]/model.pt",
+    "logs/1743018436_gnn_synthetic_[0][0][1]/model.pt",
+    "logs/1743021872_gnn_synthetic_[0][1][0]/model.pt",
+    "logs/1743025325_gnn_synthetic_[1][0][0]/model.pt",
+    "logs/1743101013_gnn_synthetic_[0.5][1.0][1.0]/model.pt",
+    "logs/1743104152_gnn_synthetic_[1.0][0.5][1.0]/model.pt",
+    "logs/1743107501_gnn_synthetic_[1.0][1.0][0.5]/model.pt",
+    "logs/1743110872_gnn_synthetic_[0.5][0.5][1.0]/model.pt",
+    "logs/1743114241_gnn_synthetic_[0.5][1.0][0.5]/model.pt",
+    "logs/1743117583_gnn_synthetic_[1.0][0.5][0.5]/model.pt",
+    "logs/1743120904_gnn_synthetic_[0.0][0.5][1.0]/model.pt",
+    "logs/1743124213_gnn_synthetic_[0.0][1.0][0.5]/model.pt",
+    "logs/1743127535_gnn_synthetic_[0.5][0.0][1.0]/model.pt",
+    "logs/1743131083_gnn_synthetic_[0.5][1.0][0.0]/model.pt",
+    "logs/1743135407_gnn_synthetic_[1.0][0.0][0.5]/model.pt",
+    "logs/1743139924_gnn_synthetic_[1.0][0.5][0.0]/model.pt",
+]
+
+real_models = [
+    "logs/1743047332_gnn_real_world_[1][1][1]/model.pt",
+    "logs/1743050525_gnn_real_world_[0][1][1]/model.pt",
+    "logs/1743053835_gnn_real_world_[1][0][1]/model.pt",
+    "logs/1743057186_gnn_real_world_[1][1][0]/model.pt",
+    "logs/1743060567_gnn_real_world_[0][0][1]/model.pt",
+    "logs/1743063925_gnn_real_world_[0][1][0]/model.pt",
+    "logs/1743067392_gnn_real_world_[1][0][0]/model.pt",
+]
+
+mlp_models = [
+    "logs/1748319321_mlp_synthetic_[1.0][1.0][1.0]/model.pt",
+    "logs/1748326435_mlp_synthetic_[0.0][1.0][1.0]/model.pt",
+]
 
 
 moheft_store: SolutionStoreType = {}
 nsga2_store: SolutionStoreType = {}
 nsga3_store: SolutionStoreType = {}
 moead_store: SolutionStoreType = {}
-synthetic_models = [
-    "logs/1742974151_gnn_synthetic_[1][1][1]/model.pt",
-    "logs/1742977444_gnn_synthetic_[0][1][1]/model.pt",
-    "logs/1742981117_gnn_synthetic_[1][0][1]/model.pt",
-    "logs/1742984795_gnn_synthetic_[1][1][0]/model.pt",
-    "logs/1742988413_gnn_synthetic_[0][0][1]/model.pt",
-    "logs/1742992157_gnn_synthetic_[0][1][0]/model.pt",
-    "logs/1742995483_gnn_synthetic_[1][0][0]/model.pt",
-]
 
 
-def run_evaluation(datasets: list[Dataset]) -> None:
+def run_evaluation(datasets: list[Dataset]):
     schedulers: list[BaseAbstractScheduler] = [
         # Single-Objective Schedulers - Static
-        HeftScheduler(),
-        FerptsScheduler(),
+        # HeftScheduler(),
+        # FerptsScheduler(),
         # Single-Objective Schedulers - Dynamic
-        RandomScheduler(),
-        LeastLoadedFirstScheduler(),
-        RoundRobinScheduler(),
-        EnergyAwareSchduler(alpha=0.5),
+        # RandomScheduler(),
+        # LeastLoadedFirstScheduler(),
+        # RoundRobinScheduler(),
+        # WeightedDynamicSchduler(),
         # Multi-Objective Schedulers - Static
-        *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(7)],
-        *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
-        *[Nsga3Scheduler(store=nsga3_store, index=i) for i in range(100)],
-        *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
+        # *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(7)],
+        # *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
+        # *[Nsga3Scheduler(store=nsga3_store, index=i) for i in range(100)],
+        # *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
         # Multi-Objective Schedulers - Dynamic
-        *[DrlAgentScheduler("Proposed-Synthetic", model_path=model, agent_type="gnn") for model in synthetic_models],
+        *[DrlAgentScheduler("MLP-Agent", model_path=model, agent_type="mlp") for model in mlp_models],
+        *[DrlAgentScheduler("GNN-Agent", model_path=model, agent_type="gnn") for model in syn_models],
+        # *[DrlAgentScheduler("Proposed-Syn", model_path=model, agent_type="gnn") for model in syn_models],
+        # *[DrlAgentScheduler("Proposed-Real", model_path=model, agent_type="gnn") for model in real_models],
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)
@@ -110,30 +136,46 @@ def run_evaluation(datasets: list[Dataset]) -> None:
 
     table.close()
 
-    fig = plt.figure(figsize=(12, 10))
-    plot_2d_pareto_fronts(fig, summary_data)
-    plt.show()
-
-    plot_mo_summary(summary_data)
+    return summary_data
 
 
-def main():
+def main(ds_type: DsType, run: bool = False):
     random.seed(0)
     np.random.seed(0)
     torch.manual_seed(0)
     torch.backends.cudnn.deterministic = True
 
-    run_evaluation(
-        [
+    log_json = Path(__file__).parent / "logs" / f"{ds_type}.json"
+    dataset_args = get_dataset_args(ds_type)
+
+    if run:
+        datasets = [
             generate_dataset(
                 dataset_key=str(key),
                 rng=np.random.RandomState(TEST_SEED),
-                args=DatasetArgs.create("synthetic"),
+                args=dataset_args,
             )
             for key in range(1)
         ]
-    )
+        summary_data = run_evaluation(datasets)
+        with open(log_json, "w") as fw:
+            json.dump(summary_data, fw)
+
+    else:
+        with open(log_json, "r") as fr:
+            summary_data = json.load(fr)
+
+    title = get_dataset_name(ds_type)
+
+    fig = plt.figure(figsize=(16, 5))
+    plot_2d_pareto_fronts(fig, summary_data, title)
+    plt.tight_layout()
+    plt.show()
+
+    plot_mo_summary(summary_data, dataset_args.task_count, title)
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    tyro.cli(main)

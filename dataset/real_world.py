@@ -25,7 +25,7 @@ class RealWorldDatasetArgs(DatasetArgs):
     """existance of vm breakdowns where vms are not available"""
     vm_revival_max_gap: int = 20
     """gap between a vm breakdown and its revival"""
-    vm_breakdown_max_gap: int = 5
+    vm_breakdown_max_gap: int = 40
     """gap between a vm revival and a new vm breakdown"""
     estimation_errors: bool = False
     """existance of estimation errors (actual when running is different)"""
@@ -54,7 +54,7 @@ def generate_real_world_dataset(key: str, args: RealWorldDatasetArgs, rng: np.ra
         compatible_vms = [vm for vm in vms if vm.is_compatible(task)]
         if len(compatible_vms) == 0:
             task.req_memory_gb = 0
-            task.req_disk_gb = 0
+            task.req_core_count = 0
         elif len(compatible_vms) == 1:
             if compatible_vms[0].id in disposable_vm_ids:
                 disposable_vm_ids.remove(compatible_vms[0].id)
@@ -160,13 +160,13 @@ def generate_vms(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> list
                 host_id=rng.randint(0, host_count),
                 cpu_speed_mips=int(est_cpu_speed),
                 memory_gb=from_vm_dist("memory_mb") / 1024,
-                disk_gb=from_vm_dist("disk_gb"),
+                core_count=from_vm_dist("core_count"),
                 actual_cpu_speed_mips=int(actual_cpu_speed),
             )
         )
 
     args.context["max_vm_memory_gb"] = str(max(vm.memory_gb for vm in vms))
-    args.context["max_vm_disk_gb"] = str(max(vm.disk_gb for vm in vms))
+    args.context["max_vm_core_count"] = str(max(vm.core_count for vm in vms))
     return vms
 
 
@@ -199,14 +199,13 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
 
     workflow_count = int(args.context["workflow_count"])
     max_vm_memory_gb = float(args.context["max_vm_memory_gb"])
-    max_vm_disk_gb = float(args.context["max_vm_disk_gb"])
+    max_vm_core_count = float(args.context["max_vm_core_count"])
     tasks_per_workflow = list(map(int, args.context["tasks_per_workflow"].split(",")))
 
     with open(Path(__file__).parent / "data" / "task_specs.json", "r") as f:
         task_specs: dict[str, Any] = json.load(f)
     task_length_mean = float(task_specs["task_length_mean"])
     task_length_std = float(task_specs["task_length_std"])
-    priority_production_prob = float(task_specs["priority_production_prob"])
 
     def task_length() -> float:
         value: float = 0
@@ -227,9 +226,8 @@ def generate_tasks(args: RealWorldDatasetArgs, rng: np.random.RandomState) -> li
                     length=int(est_task_length),
                     child_ids=[task_offset + child_id for child_id in child_ids],
                     req_memory_gb=rng.uniform(low=0, high=max_vm_memory_gb),
-                    req_disk_gb=rng.uniform(low=0, high=max_vm_disk_gb),
+                    req_core_count=rng.uniform(low=0, high=max_vm_core_count),
                     actual_length=int(actual_task_length),
-                    priority=int(rng.random() < priority_production_prob),
                 )
             )
 
@@ -263,6 +261,10 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     workflow_count = rng.randint(1, max_workflow_count + 1)
     tasks_per_workflow = random_list(workflow_count, args.task_count, rng, min_value=min_size)
 
+    with open(Path(__file__).parent / "data" / "workflow_specs.json", "r") as f:
+        workflow_specs: dict[str, Any] = json.load(f)
+    priority_production_prob = float(workflow_specs["priority_production_prob"])
+
     args.context["workflow_count"] = str(workflow_count)
     args.context["tasks_per_workflow"] = ",".join(map(str, tasks_per_workflow))
 
@@ -270,7 +272,13 @@ def generate_workflows(args: RealWorldDatasetArgs, rng: np.random.RandomState) -
     workflows: list[Workflow] = []
     for workflow_id in range(workflow_count):
         arrival_time += int(generate_poisson_delay(args, rng))
-        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
+        workflows.append(
+            Workflow(
+                id=workflow_id,
+                arrival_time=arrival_time,
+                priority=int(rng.random() < priority_production_prob),
+            )
+        )
 
     return workflows
 

@@ -12,6 +12,7 @@ from env.state import VmState
 class Workflow:
     id: int
     arrival_time: int
+    priority: float
 
 
 @dataclass
@@ -21,9 +22,8 @@ class Task:
     length: int
     child_ids: list[int]
     req_memory_gb: float
-    req_disk_gb: float
+    req_core_count: float
     actual_length: int
-    priority: float
 
 
 @dataclass
@@ -32,14 +32,14 @@ class Vm:
     host_id: int
     cpu_speed_mips: int
     memory_gb: float
-    disk_gb: float
+    core_count: float
     actual_cpu_speed_mips: int
 
     def is_compatible(self, task: Task, vm_state: VmState | None = None) -> bool:
         return (
             (vm_state is None or vm_state.is_available)
             and self.memory_gb >= task.req_memory_gb
-            and self.disk_gb >= task.req_disk_gb
+            and self.core_count >= task.req_core_count
         )
 
     def execution_time(self, task: Task) -> float:
@@ -192,5 +192,5 @@ class Solution:
         sla_penalty: float = 0
         for assignment in self.vm_assignments:
             task = self.dataset.tasks[assignment.task_id]
-            sla_penalty += assignment.start_time * task.priority
+            sla_penalty += assignment.start_time * self.dataset.workflows[task.workflow_id].priority
         return sla_penalty

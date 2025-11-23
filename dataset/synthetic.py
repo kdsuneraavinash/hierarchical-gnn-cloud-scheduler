@@ -16,14 +16,6 @@ from dataset.real_world import generate_poisson_delay, generate_preference
 class SyntheticDatasetArgs(DatasetArgs):
     max_tasks_per_workflow: int = 0
     """maximum number of tasks per workflow"""
-    min_memory_gb: int = 1
-    """minimum amount of RAM for a VM (in GB)"""
-    max_memory_gb: int = 10
-    """maximum amount of RAM for a VM (in GB)"""
-    min_disk_gb: int = 1
-    """minimum amount of disk for a VM (in GB)"""
-    max_disk_gb: int = 10
-    """maximum amount of disk for a VM (in GB)"""
     min_cpu_speed: int = 500
     """minimum CPU speed in MIPS"""
     max_cpu_speed: int = 5000
@@ -55,8 +47,8 @@ def generate_synthetic_dataset(key: str, args: SyntheticDatasetArgs, rng: np.ran
     for task in tasks:
         if any(vm.is_compatible(task) for vm in vms):
             continue
-        task.req_memory_gb = args.min_memory_gb
-        task.req_disk_gb = args.min_disk_gb
+        task.req_memory_gb = 0
+        task.req_core_count = 0
 
     dataset = Dataset(key, preference, workflows, tasks, vms, hosts, [])
     dataset.check_sanity()
@@ -113,8 +105,8 @@ def generate_vms(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> list
                 id=i,
                 host_id=rng.randint(0, host_count),
                 cpu_speed_mips=cpu_speed_mips,
-                memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
-                disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
+                memory_gb=rng.random(),
+                core_count=rng.random(),
                 actual_cpu_speed_mips=cpu_speed_mips,
             )
         )
@@ -214,10 +206,9 @@ def generate_tasks(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> li
                     workflow_id=workflow_id,
                     length=int(task_length),
                     child_ids=[task_offset + child_id for child_id in child_ids],
-                    req_memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
-                    req_disk_gb=rng.randint(args.min_disk_gb, args.max_disk_gb + 1),
+                    req_memory_gb=rng.random(),
+                    req_core_count=rng.random(),
                     actual_length=int(task_length),
-                    priority=int(rng.random() < args.task_high_priority_probability),
                 )
             )
 
@@ -243,6 +234,12 @@ def generate_workflows(args: SyntheticDatasetArgs, rng: np.random.RandomState) -
     workflows: list[Workflow] = []
     for workflow_id in range(len(workflow_task_counts)):
         arrival_time += int(generate_poisson_delay(args, rng))
-        workflows.append(Workflow(id=workflow_id, arrival_time=arrival_time))
+        workflows.append(
+            Workflow(
+                id=workflow_id,
+                arrival_time=arrival_time,
+                priority=int(rng.random() < args.task_high_priority_probability),
+            )
+        )
 
     return workflows

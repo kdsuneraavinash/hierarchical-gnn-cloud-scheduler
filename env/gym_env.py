@@ -16,13 +16,13 @@ from env.simulation import Simulation
 class GymEnvironment(gym.Env[np.ndarray[tuple[int, ...], Any], np.int64]):
     _rng: np.random.RandomState | None = None
 
-    def __init__(self, dataset_args: DatasetArgs):
+    def __init__(self, dataset_args: DatasetArgs, reward_function: RewardFunction | None = None):
         super().__init__()
         self.dataset_args = dataset_args
         self.simulation: Simulation | None = None
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(OBS_SIZE,), dtype=np.float32)
         self.action_space = gym.spaces.Discrete(ACT_SIZE, start=0)
-        self.reward_function = RewardFunction()
+        self.reward_function = reward_function or RewardFunction()
 
     # Reset
     # ------------------------------------------------------------------------------------------------------------------
