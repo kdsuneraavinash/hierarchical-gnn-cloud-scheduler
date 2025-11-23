@@ -1,0 +1,20 @@
+# kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+    labels:
+      kubernetes.io/hostname: vm-0
+  - role: worker
+    labels:
+      kubernetes.io/hostname: vm-1
+  - role: worker
+    labels:
+      kubernetes.io/hostname: vm-2
+  - role: worker
+    labels:
+      kubernetes.io/hostname: vm-3
+  - role: worker
+    labels:
+      kubernetes.io/hostname: vm-4

@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-scheduler
+  template:
+    metadata:
+      labels:
+        app: python-scheduler
+    spec:
+      serviceAccountName: python-scheduler
+      containers:
+        - name: scheduler
+          image: python-scheduler:latest
+          imagePullPolicy: Never

@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: python-scheduler
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: python-scheduler-role
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - bindings
+      - pods/binding
+      - pods/bind
+      - nodes
+    verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: python-scheduler-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: python-scheduler-role
+subjects:
+  - kind: ServiceAccount
+    name: python-scheduler
+    namespace: default

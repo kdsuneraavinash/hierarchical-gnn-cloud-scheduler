@@ -1,0 +1,174 @@
+Dataset Seed        0
+RL ------------------------------------------
+Run Name            manual__2025-11-08T07:34:40+00:00
+Queued At	        2025-11-08 13:04:42
+Start Date	        2025-11-08 13:04:43
+End Date	        2025-11-08 13:06:23
+Data Interval Start	2025-11-08 13:04:40
+Data Interval End	2025-11-08 13:04:40
+Total Execution Time            101
+Seed                0
+Makespan            63.72265625
+Energy Consumption  208.31569113756615
+QoS Penalty         949
+Run Time            0.41314237299229717
+Decision Latency    0.008262847459845943
+
+Default -------------------------------------
+Run Name            manual__2025-11-08T08:03:08+00:00
+Queued At	        2025-11-08 13:33:09
+Start Date	        2025-11-08 13:33:10
+End Date	        2025-11-08 13:35:11
+Data Interval Start	2025-11-08 13:33:08
+Data Interval End	2025-11-08 13:33:08
+Total Execution Time            120
+Seed                0
+Makespan            76.96094609460945
+Energy Consumption  363.15229719128433
+QoS Penalty         1501
+Run Time            0.00013662203855346888
+Decision Latency    2.7324407710693776e-06
+
+
+
+Dataset Seed        1
+RL ------------------------------------------
+Run Name            manual__2025-11-08T08:15:11+00:00
+Queued At	        2025-11-08 13:45:12
+Start Date	        2025-11-08 13:45:13
+End Date	        2025-11-08 13:46:38
+Data Interval Start	2025-11-08 13:45:11
+Data Interval End	2025-11-08 13:45:11
+Total Execution Time            84
+Seed                1
+Makespan            58.418591859185916
+Energy Consumption  338.74428104575156
+QoS Penalty         1010
+Run Time            0.49351726201712154
+Decision Latency    0.00987034524034243
+
+Default -------------------------------------
+Run Name            manual__2025-11-08T08:11:49+00:00
+Queued At	        2025-11-08 13:41:51
+Start Date	        2025-11-08 13:41:51
+End Date	        2025-11-08 13:44:00
+Data Interval Start	2025-11-08 13:41:49
+Data Interval End	2025-11-08 13:41:49
+Total Execution Time            128
+Seed                1
+Makespan            83.94563802083333
+Energy Consumption  338.74428104575156
+QoS Penalty         1650
+Run Time            0.00010747397755039856
+Decision Latency    2.149479551007971e-06
+
+
+
+
+
+
+
+Dataset Seed        2
+RL ------------------------------------------
+Run Name            manual__2025-11-08T08:17:26+00:00
+Queued At	        2025-11-08 13:47:27
+Start Date	        2025-11-08 13:47:27
+End Date	        2025-11-08 13:48:28
+Data Interval Start	2025-11-08 13:47:26
+Data Interval End	2025-11-08 13:47:26
+Total Execution Time            61
+Seed                2
+Makespan            40.93454345434544
+Energy Consumption  572.4756382117287
+QoS Penalty         431
+Run Time            0.4669538589878357
+Decision Latency    0.009339077179756714
+
+Default -------------------------------------
+Run Name            manual__2025-11-08T08:19:14+00:00
+Queued At	        2025-11-08 13:49:15
+Start Date	        2025-11-08 13:49:16
+End Date	        2025-11-08 13:50:30
+Data Interval Start	2025-11-08 13:49:14
+Data Interval End	2025-11-08 13:49:14
+Total Execution Time            74
+Seed                2
+Makespan            64.85169880624426
+Energy Consumption  572.4756382117288
+QoS Penalty         781
+Run Time            0.0001012090069707483
+Decision Latency    2.024180139414966e-06
+
+
+
+
+
+
+Dataset Seed        3
+RL ------------------------------------------
+Run Name            manual__2025-11-08T10:50:48+00:00
+Queued At	        2025-11-08 16:20:49
+Start Date	        2025-11-08 16:20:50
+End Date	        2025-11-08 16:23:29
+Data Interval Start	2025-11-08 16:20:48
+Data Interval End	2025-11-08 16:20:48
+Total Execution Time            159
+Seed                3
+Makespan            127.21464646464646
+Energy Consumption 337.44505718954235
+QoS Penalty         1872
+Run Time            0.4771411610126961
+Decision Latency    0.009542823220253922
+
+Default -------------------------------------
+Run Name            manual__2025-11-08T10:54:31+00:00
+Start Date	        2025-11-08 16:24:33
+End Date	2       025-11-08 16:28:15
+Data Interval Start	2025-11-08 16:24:31
+Data Interval End	2025-11-08 16:24:31
+Total Execution Time            222
+Seed                3
+Makespan            174.21464646464648
+Energy Consumption  337.44505718954235
+QoS Penalty         2897
+Run Time            0.00010895098239416257
+Decision Latency    2.1790196478832513e-06
+
+
+
+
+
+
+
+Dataset Seed        3
+RL ------------------------------------------
+Run Name            manual__2025-11-08T11:02:58+00:00
+Queued At	        2025-11-08 16:32:59
+Start Date	        2025-11-08 16:32:59
+End Date	        2025-11-08 16:34:08
+Data Interval Start	2025-11-08 16:32:58
+Data Interval End	2025-11-08 16:32:58
+Total Execution Time            68
+Seed                4
+Makespan            60.01485148514851
+Energy Consumption  277.65844896933123
+QoS Penalty         1061
+Run Time            0.5658284600140178
+Decision Latency    0.011316569200280355
+
+Default -------------------------------------
+Run Name            manual__2025-11-08T10:59:53+00:00
+Queued At	        2025-11-08 16:29:54
+Start Date	        2025-11-08 16:29:54
+End Date	        2025-11-08 16:31:52
+Data Interval Start	2025-11-08 16:29:53
+Data Interval End	2025-11-08 16:29:53
+Total Execution Time            117
+Seed                4
+Makespan            80.7841796875
+Energy Consumption 281.67178900620064
+QoS Penalty         1320
+Run Time            0.00011011202150257304
+Decision Latency    2.202240430051461e-06
+
+

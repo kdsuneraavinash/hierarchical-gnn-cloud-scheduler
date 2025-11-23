@@ -1,0 +1,311 @@
+from time import sleep
+from prefect import flow, task
+
+@task
+def task_17():
+    sleep(3.013)
+    print("Task 17 completed")
+
+@task
+def task_21():
+    sleep(3.284)
+    print("Task 21 completed")
+
+@task
+def task_28():
+    sleep(1.553)
+    print("Task 28 completed")
+
+@task
+def task_0():
+    sleep(7.188)
+    print("Task 0 completed")
+
+@task
+def task_1():
+    sleep(1.303)
+    print("Task 1 completed")
+
+@task
+def task_24():
+    sleep(8.526)
+    print("Task 24 completed")
+
+@task
+def task_40():
+    sleep(0.864)
+    print("Task 40 completed")
+
+@task
+def task_43():
+    sleep(4.135)
+    print("Task 43 completed")
+
+@task
+def task_41():
+    sleep(3.015)
+    print("Task 41 completed")
+
+@task
+def task_3():
+    sleep(2.860)
+    print("Task 3 completed")
+
+@task
+def task_34():
+    sleep(3.509)
+    print("Task 34 completed")
+
+@task
+def task_31():
+    sleep(2.891)
+    print("Task 31 completed")
+
+@task
+def task_10():
+    sleep(1.679)
+    print("Task 10 completed")
+
+@task
+def task_12():
+    sleep(1.604)
+    print("Task 12 completed")
+
+@task
+def task_19():
+    sleep(3.368)
+    print("Task 19 completed")
+
+@task
+def task_45():
+    sleep(1.167)
+    print("Task 45 completed")
+
+@task
+def task_2():
+    sleep(4.608)
+    print("Task 2 completed")
+
+@task
+def task_44():
+    sleep(1.401)
+    print("Task 44 completed")
+
+@task
+def task_4():
+    sleep(4.333)
+    print("Task 4 completed")
+
+@task
+def task_5():
+    sleep(0.736)
+    print("Task 5 completed")
+
+@task
+def task_32():
+    sleep(1.265)
+    print("Task 32 completed")
+
+@task
+def task_18():
+    sleep(1.213)
+    print("Task 18 completed")
+
+@task
+def task_11():
+    sleep(0.302)
+    print("Task 11 completed")
+
+@task
+def task_29():
+    sleep(1.811)
+    print("Task 29 completed")
+
+@task
+def task_42():
+    sleep(1.321)
+    print("Task 42 completed")
+
+@task
+def task_30():
+    sleep(2.467)
+    print("Task 30 completed")
+
+@task
+def task_13():
+    sleep(0.516)
+    print("Task 13 completed")
+
+@task
+def task_33():
+    sleep(1.413)
+    print("Task 33 completed")
+
+@task
+def task_37():
+    sleep(4.770)
+    print("Task 37 completed")
+
+@task
+def task_6():
+    sleep(2.363)
+    print("Task 6 completed")
+
+@task
+def task_23():
+    sleep(1.150)
+    print("Task 23 completed")
+
+@task
+def task_7():
+    sleep(0.158)
+    print("Task 7 completed")
+
+@task
+def task_35():
+    sleep(1.500)
+    print("Task 35 completed")
+
+@task
+def task_22():
+    sleep(1.546)
+    print("Task 22 completed")
+
+@task
+def task_14():
+    sleep(1.521)
+    print("Task 14 completed")
+
+@task
+def task_25():
+    sleep(0.282)
+    print("Task 25 completed")
+
+@task
+def task_38():
+    sleep(0.482)
+    print("Task 38 completed")
+
+@task
+def task_8():
+    sleep(2.838)
+    print("Task 8 completed")
+
+@task
+def task_20():
+    sleep(2.957)
+    print("Task 20 completed")
+
+@task
+def task_9():
+    sleep(0.275)
+    print("Task 9 completed")
+
+@task
+def task_36():
+    sleep(0.735)
+    print("Task 36 completed")
+
+@task
+def task_39():
+    sleep(5.761)
+    print("Task 39 completed")
+
+@task
+def task_46():
+    sleep(3.404)
+    print("Task 46 completed")
+
+@task
+def task_47():
+    sleep(0.657)
+    print("Task 47 completed")
+
+@task
+def task_26():
+    sleep(3.060)
+    print("Task 26 completed")
+
+@task
+def task_15():
+    sleep(4.111)
+    print("Task 15 completed")
+
+@task
+def task_27():
+    sleep(1.522)
+    print("Task 27 completed")
+
+@task
+def task_16():
+    sleep(0.835)
+    print("Task 16 completed")
+
+@task
+def task_48():
+    sleep(2.917)
+    print("Task 48 completed")
+
+@task
+def task_49():
+    sleep(3.015)
+    print("Task 49 completed")
+
+@flow
+def workflow():
+    t17 = task_17.submit()
+    t21 = task_21.submit()
+    t28 = task_28.submit()
+    t0 = task_0.submit(wait_for=[t17])
+    t1 = task_1.submit(wait_for=[t0, t21])
+    t24 = task_24.submit(wait_for=[t0, t21])
+    t40 = task_40.submit(wait_for=[t1])
+    t43 = task_43.submit(wait_for=[t24])
+    t41 = task_41.submit(wait_for=[t40])
+    t3 = task_3.submit(wait_for=[t43])
+    t34 = task_34.submit(wait_for=[t41])
+    t31 = task_31.submit(wait_for=[t3, t28])
+    t10 = task_10.submit(wait_for=[t31])
+    t12 = task_12.submit(wait_for=[t10, t28])
+    t19 = task_19.submit(wait_for=[t17, t10])
+    t45 = task_45.submit(wait_for=[t43, t12])
+    t2 = task_2.submit(wait_for=[t1, t19])
+    t44 = task_44.submit(wait_for=[t43, t45])
+    t4 = task_4.submit(wait_for=[t2, t3])
+    t5 = task_5.submit(wait_for=[t34, t4])
+    t32 = task_32.submit(wait_for=[t28, t4])
+    t18 = task_18.submit(wait_for=[t17, t5])
+    t11 = task_11.submit(wait_for=[t32, t10])
+    t29 = task_29.submit(wait_for=[t18, t28])
+    t42 = task_42.submit(wait_for=[t41, t11])
+    t30 = task_30.submit(wait_for=[t42, t28])
+    t13 = task_13.submit(wait_for=[t10, t30])
+    t33 = task_33.submit(wait_for=[t32, t29, t30, t31])
+    t37 = task_37.submit(wait_for=[t34, t13])
+    t6 = task_6.submit(wait_for=[t33, t5])
+    t23 = task_23.submit(wait_for=[t37, t21])
+    t7 = task_7.submit(wait_for=[t6])
+    t35 = task_35.submit(wait_for=[t34, t23])
+    t22 = task_22.submit(wait_for=[t21, t7])
+    t14 = task_14.submit(wait_for=[t35, t11, t12, t13])
+    t25 = task_25.submit(wait_for=[t24, t44, t22, t23])
+    t38 = task_38.submit(wait_for=[t34, t22])
+    t8 = task_8.submit(wait_for=[t25, t7])
+    t20 = task_20.submit(wait_for=[t18, t19, t38])
+    t9 = task_9.submit(wait_for=[t8])
+    t36 = task_36.submit(wait_for=[t34, t20])
+    t39 = task_39.submit(wait_for=[t35, t36, t37, t38, t14])
+    t46 = task_46.submit(wait_for=[t44, t45, t36])
+    t47 = task_47.submit(wait_for=[t46])
+    t26 = task_26.submit(wait_for=[t25, t47])
+    t15 = task_15.submit(wait_for=[t26, t14])
+    t27 = task_27.submit(wait_for=[t26, t39])
+    t16 = task_16.submit(wait_for=[t15])
+    t48 = task_48.submit(wait_for=[t27, t47])
+    t49 = task_49.submit(wait_for=[t48])
+    t9.result()
+    t16.result()
+    t49.result()
+
+
+workflow()

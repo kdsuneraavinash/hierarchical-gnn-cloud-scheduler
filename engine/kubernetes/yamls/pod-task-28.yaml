@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: task-28
+  annotations:
+    deps: task-27
+spec:
+  schedulerName: python-scheduler
+  restartPolicy: Never
+  containers:
+  - name: task-28
+    image: busybox
+    command:
+    - sh
+    - -c
+    - sleep 4.581

@@ -1,0 +1,138 @@
+Dataset Seed        0
+RL ------------------------------------------
+Run Name                lurking-pogona
+Total Execution Time    80
+Makespan            63.72265625
+Energy Consumption  208.31569113756615
+SLA Penalty         949
+Run Time            0.41314237299229717
+Decision Latency    0.008262847459845943
+
+Default -------------------------------------
+Run Name                hopping-goat
+Total Execution Time    100
+Makespan            76.96094609460945
+Energy Consumption  363.15229719128433
+SLA Penalty         1501
+Run Time            0.00013662203855346888
+Decision Latency    2.7324407710693776e-06
+
+
+
+Dataset Seed        1
+RL ------------------------------------------
+Run Name            skinny-raptor
+Total Execution Time            71
+Makespan            58.418591859185916
+Energy Consumption  338.74428104575156
+SLA Penalty         1010
+Run Time            0.49351726201712154
+Decision Latency    0.00987034524034243
+
+Default -------------------------------------
+Run Name            hypersonic-stoat
+Total Execution Time            103
+Makespan            83.94563802083333
+Energy Consumption  338.74428104575156
+SLA Penalty         1650
+Run Time            0.00010747397755039856
+Decision Latency    2.149479551007971e-06
+
+
+
+
+
+
+
+Dataset Seed        2
+RL ------------------------------------------
+Run Name            singing-wren
+Total Execution Time    51            
+Seed                2
+Makespan            40.93454345434544
+Energy Consumption  572.4756382117287
+SLA Penalty         431
+Run Time            0.4669538589878357
+Decision Latency    0.009339077179756714
+
+Default -------------------------------------
+Run Name            spectral-zebra
+Total Execution Time     78
+Seed                2
+Makespan            64.85169880624426
+Energy Consumption  572.4756382117288
+SLA Penalty         781
+Run Time            0.0001012090069707483
+Decision Latency    2.024180139414966e-06
+
+
+
+
+
+
+Dataset Seed        3
+RL ------------------------------------------
+Run Name            unnatural-mink
+Total Execution Time            141
+Makespan            127.21464646464646
+Energy Consumption 337.44505718954235
+SLA Penalty         1872
+Run Time            0.4771411610126961
+Decision Latency    0.009542823220253922
+
+Default -------------------------------------
+Run Name            lavender-inchworm
+Total Execution Time            196
+Makespan            174.21464646464648
+Energy Consumption  337.44505718954235
+SLA Penalty         2897
+Run Time            0.00010895098239416257
+Decision Latency    2.1790196478832513e-06
+
+
+
+
+
+
+
+Dataset Seed        4
+RL ------------------------------------------
+Run Name            speedy-kudu
+Total Execution Time            67
+Makespan            60.01485148514851
+Energy Consumption  277.65844896933123
+SLA Penalty         1061
+Run Time            0.5658284600140178
+Decision Latency    0.011316569200280355
+
+Default -------------------------------------
+Run Name            garrulous-spaniel
+Total Execution Time            97
+Makespan            80.7841796875
+Energy Consumption 281.67178900620064
+SLA Penalty         1320
+Run Time            0.00011011202150257304
+Decision Latency    2.202240430051461e-06
+
+
+
+
+
+Dataset Seed        5
+RL ------------------------------------------
+Run Name            astonishing-butterfly
+Total Execution Time            98
+Makespan            83.87898789878987
+Energy Consumption  245.96692907718648
+SLA Penalty         1575
+Run Time            0.3906937049468979
+Decision Latency    0.007813874098937959
+
+Default -------------------------------------
+Run Name            valiant-nautilus
+Total Execution Time            136
+Makespan            115.3916391639164
+Energy Consumption  314.65413145813886
+SLA Penalty         2228
+Run Time            0.0001711889635771513
+Decision Latency    3.423779271543026e-06

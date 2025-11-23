@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: task-13
+  annotations:
+    deps: task-11,task-12
+spec:
+  schedulerName: python-scheduler
+  restartPolicy: Never
+  containers:
+  - name: task-13
+    image: busybox
+    command:
+    - sh
+    - -c
+    - sleep 0.039
