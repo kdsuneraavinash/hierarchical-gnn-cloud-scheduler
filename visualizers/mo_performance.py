@@ -68,6 +68,9 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]], num_tasks: 
         data.append(
             {
                 "name": scheduler,
+                "best_makespan": min(pareto_point[0] for pareto_point in pareto_points),
+                "best_energy": min(pareto_point[1] for pareto_point in pareto_points),
+                "best_qos": min(pareto_point[2] for pareto_point in pareto_points),
                 "hypervolume": hv(pareto_points),
                 "gd": gd(pareto_points),
                 "igd": igd(pareto_points),
@@ -88,6 +91,9 @@ def plot_mo_summary(summary_data: dict[str, list[dict[str, float]]], num_tasks: 
 
     metrics = [
         # metric key, log scale
+        # ("best_makespan", "Best Makespan", False),
+        # ("best_energy", "Best Enenrgy Consumption", False),
+        # ("best_qos", "Best QoS", False),
         ("hypervolume", "Hypervolume", False),
         # ("gd", "GD", False),
         ("igd", "IGD", False),

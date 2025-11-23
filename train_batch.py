@@ -6,9 +6,9 @@ from models.agent import AgentType
 from train import Args, train
 
 
-def main(agent_type: AgentType = "gnn", dataset_type: DatasetType = "synthetic"):
-    prefs = sorted(list(product([0, 0.5, 1], repeat=3)), key=sum, reverse=True)
-    completed_prefs = set(list(product([0.0, 1.0], repeat=3)))
+def main(agent_type: AgentType = "mlp", dataset_type: DatasetType = "synthetic"):
+    prefs = sorted(list(product([0, 1], repeat=3)), key=sum, reverse=True)
+    completed_prefs = set()
     for m, e, s in prefs:
         if m + e + s == 0:
             continue

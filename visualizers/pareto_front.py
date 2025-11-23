@@ -38,8 +38,8 @@ def plot_2d_pareto_fronts(fig: figure.Figure, data: dict[str, list[dict[str, flo
     metric_pairs = [
         # xlabel, ylabel, x_axis_metric_key, y_axis_metric_key
         ("Makespan", "Energy Consumption", "makespan", "energy_consumption"),
-        ("SLA Penalty", "Energy Consumption", "sla_penalty", "energy_consumption"),
-        ("Makespan", "SLA Penalty", "makespan", "sla_penalty"),
+        ("QoS Penalty", "Energy Consumption", "sla_penalty", "energy_consumption"),
+        ("Makespan", "QoS Penalty", "makespan", "sla_penalty"),
     ]
     for ax, (xlabel, ylabel, x_axis_metric_key, y_axis_metric_key) in zip(axes, metric_pairs):
         data_points = {k: [(w[x_axis_metric_key], w[y_axis_metric_key]) for w in v] for k, v in data.items()}

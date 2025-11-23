@@ -7,8 +7,8 @@ DEFAULT_MAX_TASKS_PER_WORKFLOW = 10
 
 # --- Buffer size/Tensor size constraints ---
 
-N_TASK = 250
-N_VM = 20
+N_TASK = 1000
+N_VM = 50
 F_TASK = 6  # Number of task features
 F_VM = 4  # Number of VM features
 OBS_SIZE = (N_TASK * F_TASK) + (N_TASK * N_VM * F_VM) + N_TASK + (N_TASK * N_VM) + (N_TASK * N_TASK)
@@ -42,4 +42,6 @@ SCH_COLORS = {
     "Proposed": "#1a55FF",  # strong blue
     "Proposed-Syn": "#1a55FF",  # strong blue
     "Proposed-Real": "#FF1493",  # deep pink
+    "MLP-Agent": "#1E6FD8",
+    "GNN-Agent": "#d62728",
 }

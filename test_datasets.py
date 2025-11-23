@@ -55,7 +55,7 @@ DS_DYN = RealWorldDatasetArgs(
     estimation_errors=True,
 )
 
-DsType = Literal["ds_syn_1", "ds_syn_2", "ds_syn_3", "ds_real", "ds_dyn"]
+DsType = Literal["ds_syn_1", "ds_syn_2", "ds_syn_3", "ds_real", "ds_dyn", "ds_syn_2_ablation"]
 
 
 def get_dataset_args(ds_type: DsType):
@@ -69,6 +69,8 @@ def get_dataset_args(ds_type: DsType):
         return DS_REAL
     if ds_type == "ds_dyn":
         return DS_DYN
+    if ds_type == "ds_syn_2_ablation":
+        return DS_SYNTHETIC_2
     raise ValueError("Unknown DS Type")
 
 
@@ -83,4 +85,6 @@ def get_dataset_name(ds_type: DsType):
         return "$DS^\\text{real}$"
     if ds_type == "ds_dyn":
         return "$DS^\\text{dyn}$"
+    if ds_type == "ds_syn_2_ablation":
+        return "$DS^\\text{syn}_2$ (Ablation)"
     raise ValueError("Unknown DS Type")
