@@ -31,6 +31,15 @@ class SyntheticDatasetArgs(DatasetArgs):
     context: dict[str, str] = field(default_factory=dict)
     """additional context for the dataset"""
 
+    min_memory_gb: int = 1
+    """minimum amount of RAM for a VM (in GB)"""
+    max_memory_gb: int = 10
+    """maximum amount of RAM for a VM (in GB)"""
+    min_core_count: int = 1
+    """minimum amount of cores for a VM"""
+    max_core_count: int = 10
+    """maximum amount of cores for a VM"""
+
 
 def generate_synthetic_dataset(key: str, args: SyntheticDatasetArgs, rng: np.random.RandomState) -> Dataset:
     """
@@ -47,8 +56,8 @@ def generate_synthetic_dataset(key: str, args: SyntheticDatasetArgs, rng: np.ran
     for task in tasks:
         if any(vm.is_compatible(task) for vm in vms):
             continue
-        task.req_memory_gb = 0
-        task.req_core_count = 0
+        task.req_memory_gb = args.min_memory_gb
+        task.req_core_count = args.min_core_count
 
     dataset = Dataset(key, preference, workflows, tasks, vms, hosts, [])
     dataset.check_sanity()
@@ -105,8 +114,8 @@ def generate_vms(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> list
                 id=i,
                 host_id=rng.randint(0, host_count),
                 cpu_speed_mips=cpu_speed_mips,
-                memory_gb=rng.random(),
-                core_count=rng.random(),
+                memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
+                core_count=rng.randint(args.min_core_count, args.max_core_count + 1),
                 actual_cpu_speed_mips=cpu_speed_mips,
             )
         )
@@ -206,8 +215,8 @@ def generate_tasks(args: SyntheticDatasetArgs, rng: np.random.RandomState) -> li
                     workflow_id=workflow_id,
                     length=int(task_length),
                     child_ids=[task_offset + child_id for child_id in child_ids],
-                    req_memory_gb=rng.random(),
-                    req_core_count=rng.random(),
+                    req_memory_gb=rng.randint(args.min_memory_gb, args.max_memory_gb + 1),
+                    req_core_count=rng.randint(args.min_core_count, args.max_core_count + 1),
                     actual_length=int(task_length),
                 )
             )

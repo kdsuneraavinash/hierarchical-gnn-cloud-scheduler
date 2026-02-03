@@ -13,6 +13,16 @@ import tyro
 from algorithms.base_mo import SolutionStoreType
 from algorithms.drl_agent import DrlAgentScheduler
 from algorithms.base_abstract import BaseAbstractScheduler
+from algorithms.ferpts import FerptsScheduler
+from algorithms.heft import HeftScheduler
+from algorithms.least_loaded_first import LeastLoadedFirstScheduler
+from algorithms.moea_d import MoeaDScheduler
+from algorithms.moheft import MoheftScheduler
+from algorithms.nsga_2 import Nsga2Scheduler
+from algorithms.nsga_3 import Nsga3Scheduler
+from algorithms.random import RandomScheduler
+from algorithms.round_robin import RoundRobinScheduler
+from algorithms.weighted_dynamic import WeightedDynamicSchduler
 from constants import TEST_SEED
 from dataset.generator import generate_dataset
 from dataset.models import Dataset, Solution
@@ -68,21 +78,21 @@ moead_store: SolutionStoreType = {}
 def run_evaluation(datasets: list[Dataset]):
     schedulers: list[BaseAbstractScheduler] = [
         # Single-Objective Schedulers - Static
-        # HeftScheduler(),
-        # FerptsScheduler(),
+        HeftScheduler(),
+        FerptsScheduler(),
         # Single-Objective Schedulers - Dynamic
-        # RandomScheduler(),
-        # LeastLoadedFirstScheduler(),
-        # RoundRobinScheduler(),
-        # WeightedDynamicSchduler(),
+        RandomScheduler(),
+        LeastLoadedFirstScheduler(),
+        RoundRobinScheduler(),
+        WeightedDynamicSchduler(),
         # Multi-Objective Schedulers - Static
-        # *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(7)],
-        # *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
-        # *[Nsga3Scheduler(store=nsga3_store, index=i) for i in range(100)],
-        # *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
+        *[MoheftScheduler(solution_count=7, store=moheft_store, index=i) for i in range(7)],
+        *[Nsga2Scheduler(store=nsga2_store, index=i) for i in range(100)],
+        *[Nsga3Scheduler(store=nsga3_store, index=i) for i in range(100)],
+        *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
         # Multi-Objective Schedulers - Dynamic
-        *[DrlAgentScheduler("MLP-Agent", model_path=model, agent_type="mlp") for model in mlp_models],
-        *[DrlAgentScheduler("GNN-Agent", model_path=model, agent_type="gnn") for model in syn_models],
+        # *[DrlAgentScheduler("MLP-Agent", model_path=model, agent_type="mlp") for model in mlp_models],
+        # *[DrlAgentScheduler("GNN-Agent", model_path=model, agent_type="gnn") for model in syn_models],
         # *[DrlAgentScheduler("Proposed-Syn", model_path=model, agent_type="gnn") for model in syn_models],
         # *[DrlAgentScheduler("Proposed-Real", model_path=model, agent_type="gnn") for model in real_models],
     ]
