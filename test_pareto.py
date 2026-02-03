@@ -91,10 +91,9 @@ def run_evaluation(datasets: list[Dataset]):
         *[Nsga3Scheduler(store=nsga3_store, index=i) for i in range(100)],
         *[MoeaDScheduler(store=moead_store, index=i) for i in range(100)],
         # Multi-Objective Schedulers - Dynamic
-        # *[DrlAgentScheduler("MLP-Agent", model_path=model, agent_type="mlp") for model in mlp_models],
-        # *[DrlAgentScheduler("GNN-Agent", model_path=model, agent_type="gnn") for model in syn_models],
-        # *[DrlAgentScheduler("Proposed-Syn", model_path=model, agent_type="gnn") for model in syn_models],
-        # *[DrlAgentScheduler("Proposed-Real", model_path=model, agent_type="gnn") for model in real_models],
+        *[DrlAgentScheduler("2SD-GAT", model_path=model, agent_type="gnn") for model in syn_models],
+        # *[DrlAgentScheduler("2SD-GAT (Syn)", model_path=model, agent_type="gnn") for model in syn_models],
+        # *[DrlAgentScheduler("2SD-GAT (Real)", model_path=model, agent_type="gnn") for model in real_models],
     ]
 
     table = ProgressTable(print_header_every_n_rows=0, pbar_embedded=False, pbar_show_eta=True)

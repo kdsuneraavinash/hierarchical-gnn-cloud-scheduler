@@ -39,9 +39,7 @@ SCH_COLORS = {
     "NSGA-II": "#7f7f7f",  # gray
     "NSGA-III": "#bcbd22",  # olive
     "MOEA/D": "#17becf",  # cyan
-    "Proposed": "#1a55FF",  # strong blue
-    "Proposed-Syn": "#1a55FF",  # strong blue
-    "Proposed-Real": "#FF1493",  # deep pink
-    "MLP-Agent": "#1E6FD8",
-    "GNN-Agent": "#d62728",
+    "Proposed": "2SD-GAT",  # strong blue
+    "Proposed-Syn": "2SD-GAT (Syn)",  # strong blue
+    "Proposed-Real": "2SD-GAT (Real)",  # deep pink
 }
